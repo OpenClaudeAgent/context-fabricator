@@ -14,6 +14,7 @@ import json
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from socketserver import TCPServer
 from urllib.parse import parse_qs, urlsplit
 
 ALPHA = {"id": 41, "full_name": "fixture/alpha", "default_branch": "main", "private": True}
@@ -202,13 +203,20 @@ class GitHub(BaseHTTPRequestHandler):
             self.respond(*routes.get(route.path, (404, {"message": "Not Found"})))
 
 
+class LoopbackHTTPServer(ThreadingHTTPServer):
+    def server_bind(self):
+        # The numeric loopback address needs no hostname lookup to serve HTTP.
+        TCPServer.server_bind(self)
+        self.server_name, self.server_port = self.server_address
+
+
 directory = Path(sys.argv[1])
 hits = directory / "hits.log"
 expired = directory / "expire"
 references = pinned_routes(os.getenv("CTXFAB_REFERENCE_CORPUS"))
 if STARTUP_DIAGNOSTICS:
     print("GitHub fixture: binding to loopback", file=sys.stderr, flush=True)
-with ThreadingHTTPServer(("127.0.0.1", 0), GitHub) as server:
+with LoopbackHTTPServer(("127.0.0.1", 0), GitHub) as server:
     port_file = directory / "port"
     pending = port_file.with_suffix(".pending")
     pending.write_text(str(server.server_port), encoding="ascii")
