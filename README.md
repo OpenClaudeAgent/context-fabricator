@@ -1,8 +1,8 @@
 # Context Fabricator
 
-**Ask questions about your GitHub repositories, with answers grounded in source you can open.**
+**Find the evidence you need across the engineering tools you already use.**
 
-Context Fabricator is a local-first macOS app and CLI. It indexes the branches you select, searches the index on your Mac, and runs a local model to answer questions. GitHub code citations link to the exact commit, file and lines.
+Context Fabricator is an open-source macOS app that builds a local, searchable index from your engineering data for retrieval-augmented generation (RAG). The dashboard shows what was collected, when it was last refreshed, what’s ready to query, and where indexing ran into problems. Ask questions from the app or the `ctxfab` CLI and follow the citations back to the original evidence.
 
 > **Work in progress · Fully AI-generated implementation.** AI coding agents generate the code, tests and documentation. A human directs the product, makes architecture decisions and tests the app. The current preview builds from source on Apple Silicon.
 
@@ -12,12 +12,14 @@ See the [screenshot gallery](docs/SCREENSHOTS.md) for GitHub setup, model manage
 
 ## What works today
 
+GitHub is the first connector in the preview. Code citations link to the exact commit, file, and lines.
+
 - **Read-only GitHub indexing.** Choose a repository and branch. Refresh on demand or on a schedule while the app is running. Credentials are stored in macOS Keychain. Request pacing and counters are visible in the connector.
 - **Local search and answers.** SQLite/FTS5 provides BM25 search. Optional Qwen3 embeddings enable semantic and hybrid search. Qwen3 4B generates answers locally and the backend checks the quoted evidence.
 - **Built-in diagnostics.** Search and filter logs, and inspect trace steps, timings and related events from Answers or Diagnostics.
 - **Terminal access.** The bundled `ctxfab` CLI uses the same local backend and can scope search and answers to a repository and branch.
 
-Commit history, GitHub Actions ingestion, code graph navigation and additional connectors are planned. Current-code collection and citations have been qualified on bounded fixtures.
+Commit history, GitHub Actions ingestion, code graph navigation, and connectors for sources such as Datadog and Sonar are planned. Current-code collection and citations have been qualified on bounded fixtures.
 
 ## Try it from source
 
