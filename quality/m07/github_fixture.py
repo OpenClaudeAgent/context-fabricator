@@ -1,11 +1,16 @@
 #!/usr/bin/env python3
 """Loopback GitHub read-only fixture used through the real backend HTTP adapter."""
 
+import os
+import sys
+
+STARTUP_DIAGNOSTICS = os.getenv("CTXFAB_GITHUB_FIXTURE_STARTUP_DIAGNOSTICS") == "1"
+if STARTUP_DIAGNOSTICS:
+    print("GitHub fixture: Python script started", file=sys.stderr, flush=True)
+
 import base64
 import hashlib
 import json
-import os
-import sys
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -201,9 +206,13 @@ directory = Path(sys.argv[1])
 hits = directory / "hits.log"
 expired = directory / "expire"
 references = pinned_routes(os.getenv("CTXFAB_REFERENCE_CORPUS"))
+if STARTUP_DIAGNOSTICS:
+    print("GitHub fixture: binding to loopback", file=sys.stderr, flush=True)
 with ThreadingHTTPServer(("127.0.0.1", 0), GitHub) as server:
     port_file = directory / "port"
     pending = port_file.with_suffix(".pending")
     pending.write_text(str(server.server_port), encoding="ascii")
     pending.replace(port_file)
+    if STARTUP_DIAGNOSTICS:
+        print("GitHub fixture: listening port published", file=sys.stderr, flush=True)
     server.serve_forever()

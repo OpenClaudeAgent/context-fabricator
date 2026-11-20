@@ -2,6 +2,7 @@
 
 use std::error::Error;
 use std::fs;
+use std::io::{self, ErrorKind};
 use std::num::NonZeroU16;
 use std::path::Path;
 use std::process::{Child, Command, Stdio};
@@ -64,25 +65,46 @@ impl Origin {
         let directory = tempfile::tempdir()?;
         let script =
             Path::new(env!("CARGO_MANIFEST_DIR")).join("../../quality/m07/github_fixture.py");
+        let log = directory.path().join("fixture.log");
+        let output = fs::File::create(&log)?;
         let mut origin = Self {
             process: Command::new("python3")
                 .arg(script)
                 .arg(directory.path())
+                .env("CTXFAB_GITHUB_FIXTURE_STARTUP_DIAGNOSTICS", "1")
                 .stdin(Stdio::null())
-                .stdout(Stdio::null())
+                .stdout(output.try_clone()?)
+                .stderr(output)
                 .spawn()?,
             directory,
             port: 0,
         };
-        origin.port = tokio::time::timeout(Duration::from_secs(5), async {
+        let port = origin.directory.path().join("port");
+        let ready = tokio::time::timeout(Duration::from_secs(5), async {
             loop {
-                if let Ok(port) = fs::read_to_string(origin.directory.path().join("port")) {
-                    return port.parse::<u16>();
+                match fs::read_to_string(&port) {
+                    Ok(contents) => return contents.parse::<u16>().map_err(io::Error::other),
+                    Err(error) if error.kind() == ErrorKind::NotFound => {}
+                    Err(error) => return Err(error),
+                }
+                if let Some(status) = origin.process.try_wait()? {
+                    return Err(io::Error::other(format!(
+                        "fixture process exited with {status}"
+                    )));
                 }
                 tokio::time::sleep(Duration::from_millis(20)).await;
             }
         })
-        .await??;
+        .await;
+        origin.port = match ready {
+            Ok(Ok(port)) => port,
+            Ok(Err(error)) => return Err(fixture_start_error(&error, &log).into()),
+            Err(_) => {
+                let error =
+                    io::Error::new(ErrorKind::TimedOut, "port file missing after 5 seconds");
+                return Err(fixture_start_error(&error, &log).into());
+            }
+        };
         Ok(origin)
     }
 
@@ -139,6 +161,14 @@ impl Origin {
     fn expire(&self) -> std::io::Result<()> {
         fs::write(self.directory.path().join("expire"), [])
     }
+}
+
+fn fixture_start_error(error: &io::Error, log: &Path) -> io::Error {
+    let output = fs::read_to_string(log).unwrap_or_default();
+    io::Error::new(
+        error.kind(),
+        format!("GitHub fixture did not publish its listening port: {error}\n{output}"),
+    )
 }
 
 fn app_with_github(store: &Arc<SqliteStore>, github: Arc<GitHub>) -> Router {
