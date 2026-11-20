@@ -36,7 +36,10 @@ open ".quality/foundation-xcode/Build/Products/Debug/Context Fabricator.app"
 ```
 
 1. Open **Connectors → GitHub** and use the browser setup to create a fine-grained token with **Contents: Read** for the repositories you select. Paste it into the app, add a repository and choose its branch. Open Repository Settings and use **Refresh Now** to queue a check.
-2. To generate answers locally, extract the Apple Silicon runtime and keep its files together. Symlink its `llama-server` to `~/Library/Application Support/ContextFabricator/inference/llama-server`. In **Answers**, open the model picker and choose **Manage Models…** to download weights, then restart the backend. [Qualified llama.cpp build](https://github.com/ggml-org/llama.cpp/releases/tag/b12359) · [Model setup](quality/FOUNDATION.md#local-answer-qualification)
+2. **Temporary setup for local answers.** Extract the Apple Silicon runtime and keep its files together. Symlink its `llama-server` to `~/Library/Application Support/ContextFabricator/inference/llama-server`. In **Answers**, open the model picker and choose **Manage Models…** to download weights, then restart the backend. [Qualified llama.cpp build](https://github.com/ggml-org/llama.cpp/releases/tag/b12359) · [Model setup](quality/FOUNDATION.md#local-answer-qualification)
+
+   The planned **Manage Models** flow will install the compatible runtime, download model weights, and activate the selected model in the running app. [Model lifecycle](ARCHITECTURE.md#local-inference)
+
 3. Ask a question in **Answers** with **Command-Return**, or try the bundled CLI while the app is running.
 
 ```sh
@@ -48,6 +51,8 @@ CTXFAB=".quality/foundation-xcode/Build/Products/Debug/Context Fabricator.app/Co
 See [CLI usage](cli/README.md) for repository filters, model controls and answer commands.
 
 ## Project layout
+
+See [Architecture](ARCHITECTURE.md) for component boundaries, data flow, and the model lifecycle.
 
 | Path | Responsibility |
 | --- | --- |
