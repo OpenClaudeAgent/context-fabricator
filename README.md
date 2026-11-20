@@ -8,7 +8,7 @@ Context Fabricator is a local-first macOS app and CLI. It indexes the branches y
 
 ![Context Fabricator Answers screen with a local model, an answer, and its source excerpt](docs/screenshots/answers.png)
 
-*Screenshots show the native macOS app using synthetic test fixtures.*
+See the [screenshot gallery](docs/SCREENSHOTS.md) for GitHub setup, model management, diagnostics, and settings.
 
 ## What works today
 
@@ -18,12 +18,6 @@ Context Fabricator is a local-first macOS app and CLI. It indexes the branches y
 - **Terminal access.** The bundled `ctxfab` CLI uses the same local backend and can scope search and answers to a repository and branch.
 
 Commit history, GitHub Actions ingestion, code graph navigation and additional connectors are planned. Current-code collection and citations have been qualified on bounded fixtures.
-
-| Repository refresh | Request limits and activity |
-| --- | --- |
-| ![GitHub repository settings showing an indexed commit and Refresh Now](docs/screenshots/github-refresh.png) | ![GitHub Requests panel showing the effective rate limit and request counts](docs/screenshots/github-requests.png) |
-
-![Trace inspector showing retrieval, generation and citation verification spans, with events and logs](docs/screenshots/trace-inspector.png)
 
 ## Try it from source
 
