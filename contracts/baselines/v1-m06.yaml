@@ -1,0 +1,258 @@
+openapi: 3.0.3
+info:
+  title: Context Fabricator Local API
+  version: 1.0.0
+servers:
+  - url: http://127.0.0.1
+security:
+  - LocalSession: []
+paths:
+  /v1/status:
+    get:
+      operationId: readStatus
+      responses:
+        '200':
+          description: Current backend state
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Status' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /v1/settings:
+    get:
+      operationId: readSettings
+      responses:
+        '200':
+          description: Effective settings and revision
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Settings' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+    put:
+      operationId: saveSettings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Settings' }
+      responses:
+        '200':
+          description: Saved effective settings
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Settings' }
+        '400':
+          description: Malformed request or unsupported settings value
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '409':
+          description: Settings changed since this revision was read
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /v1/diagnostics:
+    get:
+      operationId: readDiagnostics
+      responses:
+        '200':
+          description: Recent backend events in reverse time order
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Diagnostic' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /v1/telemetry:
+    get:
+      operationId: readTelemetry
+      responses:
+        '200':
+          description: Bounded redacted local logs, metrics, traces and sink health
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TelemetrySnapshot' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+    put:
+      operationId: controlTelemetry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TelemetryControl' }
+      responses:
+        '200':
+          description: Diagnostic state after the command
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TelemetrySnapshot' }
+        '400':
+          description: Invalid diagnostic control
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /v1/search:
+    get:
+      operationId: searchCorpus
+      parameters:
+        - in: query
+          name: query
+          required: true
+          schema: { type: string, minLength: 1, maxLength: 512 }
+      responses:
+        '200':
+          description: Evidence ranked by the local lexical index
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/SearchHit' }
+        '400':
+          description: Invalid or missing search text
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+components:
+  securitySchemes:
+    LocalSession:
+      type: http
+      scheme: bearer
+  responses:
+    Unauthorized:
+      description: Missing or invalid session credential
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    Unavailable:
+      description: Backend storage is unavailable
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Problem' }
+  schemas:
+    Status:
+      type: object
+      required: [status, apiVersion, connectedSources, indexedDocuments, outboundAttempts, inference]
+      properties:
+        status: { type: string, enum: [ready] }
+        apiVersion: { type: integer, enum: [1] }
+        connectedSources: { type: integer, minimum: 0 }
+        collectedDocuments:
+          type: integer
+          minimum: 0
+          description: Distinct local documents committed by collection, including retained copies.
+        indexedDocuments: { type: integer, minimum: 0 }
+        outboundAttempts:
+          type: integer
+          minimum: 0
+          description: Accounted transport handoffs, including durable reservations with an uncertain outcome.
+        outboundPending:
+          type: integer
+          minimum: 0
+          description: Reservations in the current backend session without a recorded outcome.
+        outboundUncertain:
+          type: integer
+          minimum: 0
+          description: Prior reservations reconciled after a session ended without a recorded outcome.
+        inference: { type: string, enum: [notConfigured] }
+    Settings:
+      type: object
+      required: [revision, answerLanguage, diagnosticRetentionHours]
+      properties:
+        revision: { type: integer, minimum: 0 }
+        answerLanguage: { type: string, enum: [auto, en, fr] }
+        diagnosticRetentionHours: { type: integer, minimum: 1, maximum: 168 }
+    Diagnostic:
+      type: object
+      required: [id, timestamp, code, message]
+      properties:
+        id: { type: integer, minimum: 1 }
+        timestamp: { type: integer, format: int64, minimum: 0 }
+        code: { type: string }
+        message: { type: string }
+    TelemetryControl:
+      type: object
+      required: [command]
+      additionalProperties: false
+      properties:
+        command: { type: string, enum: [enableDebug, disableDebug, purgeExpired] }
+    TelemetrySnapshot:
+      type: object
+      required: [logs, metrics, traces, health]
+      properties:
+        logs:
+          type: array
+          maxItems: 60
+          items: { $ref: '#/components/schemas/SignalSample' }
+        metrics:
+          type: array
+          maxItems: 60
+          items: { $ref: '#/components/schemas/SignalSample' }
+        traces:
+          type: array
+          maxItems: 60
+          items: { $ref: '#/components/schemas/SignalSample' }
+        health: { $ref: '#/components/schemas/TelemetryHealth' }
+    SignalSample:
+      type: object
+      required: [id, timestamp, name]
+      properties:
+        id: { type: integer, format: int64, minimum: 1 }
+        timestamp: { type: integer, format: int64, minimum: 0 }
+        name: { type: string }
+        value:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Cumulative operation count for a metric or elapsed microseconds for a trace.
+        level: { type: string, enum: [ok, info, error, debug] }
+        traceId: { type: string, pattern: '^[a-f0-9]{32}$' }
+        spanId: { type: string, pattern: '^[a-f0-9]{16}$' }
+        parentSpanId: { type: string, pattern: '^[a-f0-9]{16}$' }
+    TelemetryHealth:
+      type: object
+      required: [state, dropped, pruned, queued, fileBytes, budgetBytes, retentionHours, debugUntil]
+      properties:
+        state: { type: string, enum: [ready, degraded, gaps] }
+        dropped: { type: integer, format: int64, minimum: 0 }
+        pruned: { type: integer, format: int64, minimum: 0 }
+        queued: { type: integer, minimum: 0 }
+        fileBytes: { type: integer, format: int64, minimum: 0 }
+        budgetBytes: { type: integer, format: int64, minimum: 0 }
+        retentionHours: { type: integer, minimum: 1, maximum: 168 }
+        debugUntil:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Unix timestamp, or zero when the temporary override is inactive.
+        oldestAt: { type: integer, format: int64, nullable: true, minimum: 0 }
+    SearchHit:
+      type: object
+      required: [source, revision, kind, title]
+      properties:
+        source: { type: string }
+        revision: { type: string }
+        kind: { type: string, enum: [current, history, workflow] }
+        trackedRef:
+          type: string
+          description: Tracked ref for a current document when known. Absent on legacy rows without ref metadata.
+        title: { type: string }
+        access:
+          type: string
+          enum: [available, retained]
+          description: Whether the matching result comes from an available scope or a locally retained copy after access loss.
+    Problem:
+      type: object
+      required: [code, message]
+      properties:
+        code: { type: string }
+        message: { type: string }
+        field: { type: string }

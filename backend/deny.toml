@@ -1,0 +1,29 @@
+[licenses]
+allow = ["Apache-2.0", "MIT"]
+
+[bans]
+multiple-versions = "deny"
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+
+[[licenses.exceptions]]
+crate = "borrow-or-share@=0.2.4"
+allow = ["MIT-0"]
+
+[[licenses.exceptions]]
+crate = "matchit@=0.8.4"
+allow = ["BSD-3-Clause"]
+
+[[licenses.exceptions]]
+crate = "subtle@=2.6.1"
+allow = ["BSD-3-Clause"]
+
+[[licenses.exceptions]]
+crate = "foldhash@=0.2.0"
+allow = ["Zlib"]
+
+[[licenses.exceptions]]
+crate = "unicode-ident@=1.0.27"
+allow = ["Unicode-3.0"]

@@ -1,0 +1,11 @@
+--- a/Tests/QualityFixtureTests/ScenarioTests.swift
++++ b/Tests/QualityFixtureTests/ScenarioTests.swift
+@@ -14,7 +14,7 @@
+   }
+   await store.receive(\.response) {
+     $0.isLoading = false
+-    $0.response = "fixture response"
++    $0.response = "unexpected response"
+   }
+   await store.finish()
+ }

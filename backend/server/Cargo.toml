@@ -1,0 +1,48 @@
+[package]
+name = "ctxfab-server"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+publish = false
+
+[dependencies]
+axum = { version = "=0.8.9", features = ["json"] }
+base64 = "=0.23.1"
+ctxfab-inference = { path = "../inference" }
+opentelemetry = "=0.33.1"
+opentelemetry_sdk = "=0.33.1"
+percent-encoding = "=2.3.2"
+fluent-uri = "=0.4.1"
+http-body-util = "=0.1.5"
+httpdate = "=1.0.3"
+hyper = { version = "=1.12.0", features = ["client", "http1"] }
+hyper-tls = "=0.6.0"
+hyper-util = { version = "=0.1.21", features = ["client-legacy", "http1", "tokio"] }
+native-tls = "=0.2.18"
+rustix = { version = "=1.1.6", features = ["fs"] }
+rusqlite = { version = "=0.43.0", features = ["bundled"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "=0.11.1"
+sha1 = "=0.11.0"
+subtle = "2"
+thiserror = "2"
+tokio = { version = "=1.54.1", features = ["fs", "io-util", "macros", "rt-multi-thread", "signal", "net", "sync", "time"] }
+tracing = { version = "=0.1.44", default-features = false, features = ["std"] }
+tracing-subscriber = "0.3"
+uuid = "=1.29.3"
+getrandom = "=0.3.4"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+security-framework = "=3.7.0"
+security-framework-sys = "=2.17.0"
+
+[dev-dependencies]
+opentelemetry_sdk = { version = "=0.33.1", features = ["testing"] }
+tempfile = "3"
+tokio = { version = "=1.54.1", features = ["test-util"] }
+tower = { version = "0.5", features = ["util"] }
+ureq = { version = "=3.5.2", default-features = false }
+
+[lints]
+workspace = true

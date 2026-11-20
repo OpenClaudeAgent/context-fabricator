@@ -1,0 +1,9 @@
+--- a/Tests/QualityFixtureTests/UnitTests.swift
++++ b/Tests/QualityFixtureTests/UnitTests.swift
+@@ -4,5 +4,5 @@
+ 
+ @Test
+ func unitFixture() {
+-  #expect(fixtureValue() == 42)
++  #expect(fixtureValue() == 41)
+ }

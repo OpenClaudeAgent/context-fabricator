@@ -1,0 +1,16 @@
+--- a/quality-fixture/src/lib.rs
++++ b/quality-fixture/src/lib.rs
+@@ -1,5 +1,13 @@
+ #[must_use]
+ pub fn fixture_value() -> String {
++    fixture_value_with_mode(false)
++}
++
++fn fixture_value_with_mode(use_alternate: bool) -> String {
++    if use_alternate {
++        let value = 7;
++        return itoa::Buffer::new().format(value).to_owned();
++    }
+     itoa::Buffer::new().format(42).to_owned()
+ }
+ 

@@ -1,0 +1,12 @@
+[
+  {"id":"requests-adapter-id","repository":"psf/requests","language":"identifier","query":"get_adapter","line":781,"anchor":"def get_adapter(self, url):"},
+  {"id":"requests-adapter-en","repository":"psf/requests","language":"en","query":"Where does the session choose a connection adapter by matching the beginning of a URL without regard to case?","line":788,"anchor":"url.lower().startswith(prefix.lower())"},
+  {"id":"requests-adapter-fr","repository":"psf/requests","language":"fr","query":"Où la session choisit-elle le gestionnaire de connexion en comparant le début de l’adresse sans tenir compte de la casse ?","line":788,"anchor":"url.lower().startswith(prefix.lower())"},
+  {"id":"requests-redirect-en","repository":"psf/requests","language":"en","query":"Where does a redirect to a different hostname cause the authorization header to be removed?","line":131,"anchor":"if old_parsed.hostname != new_parsed.hostname:"},
+  {"id":"requests-redirect-fr","repository":"psf/requests","language":"fr","query":"Où décide-t-on de retirer l’en-tête d’autorisation lorsqu’une redirection change de nom d’hôte ?","line":131,"anchor":"if old_parsed.hostname != new_parsed.hostname:"},
+  {"id":"ripgrep-choice-id","repository":"BurntSushi/ripgrep","language":"identifier","query":"choices_ascii_alphanumeric","line":7760,"anchor":"fn choices_ascii_alphanumeric()"},
+  {"id":"ripgrep-choice-en","repository":"BurntSushi/ripgrep","language":"en","query":"Which test checks the letters, digits and punctuation allowed in the documented values of flags?","line":7765,"anchor":"choice.chars().all(|c| c.is_ascii_alphanumeric()"},
+  {"id":"ripgrep-choice-fr","repository":"BurntSushi/ripgrep","language":"fr","query":"Quel test vérifie les lettres, chiffres et signes de ponctuation permis dans les valeurs documentées des options ?","line":7765,"anchor":"choice.chars().all(|c| c.is_ascii_alphanumeric()"},
+  {"id":"ripgrep-depth-en","repository":"BurntSushi/ripgrep","language":"en","query":"Which command-line option prevents descending more than a fixed number of directories, and what does zero mean?","line":3964,"anchor":"This flag limits the depth of directory traversal"},
+  {"id":"ripgrep-depth-fr","repository":"BurntSushi/ripgrep","language":"fr","query":"Quelle option limite jusqu’où descendre dans les sous-répertoires et que signifie une valeur de zéro ?","line":3964,"anchor":"This flag limits the depth of directory traversal"}
+]

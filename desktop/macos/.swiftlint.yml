@@ -1,0 +1,38 @@
+# swift-format owns formatting. These rules guard safety and maintainability.
+only_rules:
+  - cyclomatic_complexity
+  - async_without_await
+  - discarded_notification_center_observer
+  - discouraged_direct_init
+  - duplicate_conditions
+  - duplicate_enum_cases
+  - duplicate_imports
+  - force_cast
+  - force_try
+  - force_unwrapping
+  - function_body_length
+  - identical_operands
+  - incompatible_concurrency_annotation
+  - implicitly_unwrapped_optional
+  - large_tuple
+  - notification_center_detachment
+  - redundant_discardable_let
+  - implicit_optional_initialization
+  - private_swiftui_state
+  - superfluous_disable_command
+  - unavailable_condition
+  - unhandled_throwing_task
+  - unowned_variable_capture
+  - unused_closure_parameter
+  - unused_control_flow_label
+  - weak_delegate
+  - contains_over_filter_count
+  - contains_over_filter_is_empty
+  - empty_count
+  - first_where
+  - reduce_into
+
+analyzer_rules:
+  - capture_variable
+  - unused_declaration
+  - unused_import

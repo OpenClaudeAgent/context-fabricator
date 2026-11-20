@@ -1,0 +1,8 @@
+--- a/quality-fixture/src/tests/mod.rs
++++ b/quality-fixture/src/tests/mod.rs
+@@ -1,4 +1,4 @@
+ #[test]
+ fn unit_fixture() {
+-    assert_eq!(super::fixture_value(), "42");
++    assert_eq!(super::fixture_value(), "41");
+ }

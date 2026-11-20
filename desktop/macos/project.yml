@@ -1,0 +1,89 @@
+name: ContextFabricator
+options:
+  deploymentTarget:
+    macOS: "14.0"
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    SWIFT_TREAT_WARNINGS_AS_ERRORS: YES
+    CODE_SIGN_STYLE: Manual
+    CODE_SIGN_IDENTITY: "-"
+    ENABLE_USER_SCRIPT_SANDBOXING: NO
+packages:
+  TCA:
+    url: https://github.com/pointfreeco/swift-composable-architecture
+    exactVersion: 1.25.5
+  LocalAPI:
+    path: Client
+targets:
+  ContextFabricator:
+    type: application
+    platform: macOS
+    sources: App
+    settings:
+      base:
+        PRODUCT_NAME: Context Fabricator
+        PRODUCT_MODULE_NAME: ContextFabricator
+        PRODUCT_BUNDLE_IDENTIFIER: org.contextfabricator.desktop
+        GENERATE_INFOPLIST_FILE: YES
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.developer-tools
+    dependencies:
+      - package: TCA
+        product: ComposableArchitecture
+      - package: LocalAPI
+        products: [LocalAPI, DesktopFeature]
+    postBuildScripts:
+      - name: Embed Rust backend
+        shell: /bin/bash
+        basedOnDependencyAnalysis: false
+        outputFiles:
+          - $(TARGET_BUILD_DIR)/$(EXECUTABLE_FOLDER_PATH)/ctxfab-server
+          - $(TARGET_BUILD_DIR)/$(EXECUTABLE_FOLDER_PATH)/ctxfab
+        script: |
+          set -euo pipefail
+          source "$SRCROOT/../../quality/toolchain.sh"
+          profile=debug
+          flags=()
+          if [[ "$CONFIGURATION" == Release ]]; then
+              profile=release
+              flags+=(--release)
+          fi
+          cargo build --locked ${flags[@]+"${flags[@]}"} --manifest-path "$quality_root/backend/Cargo.toml" -p ctxfab-server
+          cargo build --locked ${flags[@]+"${flags[@]}"} --manifest-path "$quality_root/cli/Cargo.toml"
+          helper="$TARGET_BUILD_DIR/$EXECUTABLE_FOLDER_PATH/ctxfab-server"
+          /usr/bin/install -m 755 "$quality_root/backend/target/$profile/ctxfab-server" "$helper"
+          /usr/bin/codesign --force --sign - --identifier org.contextfabricator.backend "$helper"
+          cli="$TARGET_BUILD_DIR/$EXECUTABLE_FOLDER_PATH/ctxfab"
+          /usr/bin/install -m 755 "$quality_root/cli/target/$profile/ctxfab" "$cli"
+          /usr/bin/codesign --force --sign - "$cli"
+  ContextFabricatorUITests:
+    type: bundle.ui-testing
+    platform: macOS
+    sources: UITests
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: org.contextfabricator.desktop.uitests
+        GENERATE_INFOPLIST_FILE: YES
+    dependencies:
+      - target: ContextFabricator
+    postBuildScripts:
+      - name: Stage native inference fixture
+        shell: /bin/bash
+        inputFiles:
+          - $(SRCROOT)/../../quality/m09/mock_worker.py
+        outputFiles:
+          - $(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/llama-server
+        script: |
+          set -euo pipefail
+          /bin/mkdir -p "$(/usr/bin/dirname "$SCRIPT_OUTPUT_FILE_0")"
+          /usr/bin/install -m 755 "$SCRIPT_INPUT_FILE_0" "$SCRIPT_OUTPUT_FILE_0"
+schemes:
+  ContextFabricator:
+    build:
+      targets:
+        ContextFabricator: all
+    test:
+      gatherCoverageData: true
+      targets:
+        - ContextFabricatorUITests

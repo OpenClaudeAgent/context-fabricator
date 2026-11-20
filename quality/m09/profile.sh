@@ -1,0 +1,7 @@
+m09_revision=a06e946bb6b655725eafa393f4a9745d460374c9
+m09_sha256=3605803b982cb64aead44f6c1b2ae36e3acdb41d8e46c8a94c6533bc4c67e597
+m09_model=Qwen3-4B-Instruct-2507-Q4_K_M.gguf
+m09_profile=qwen3-4b-instruct-2507-q4-k-m-3605803b-v1
+m09_alternate=Qwen3-4B-Instruct-2507-Q5_K_M.gguf
+m09_alternate_profile=qwen3-4b-instruct-2507-q5-k-m-5bde5e9d-v1
+m09_alternate_sha256=5bde5e9d883622acb02bf77fe7dcbc56a8b9a9ad4be78a72ca23a532658b4ecb

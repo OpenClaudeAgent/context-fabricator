@@ -1,0 +1,294 @@
+{
+  "documents": [
+    {
+      "id": "quota",
+      "source": "src/http/admission.rs",
+      "revision": "r2",
+      "kind": "current",
+      "title": "Provider pacing",
+      "content": "retry_after_gate delays outbound requests using the server cooldown. It accounts for every attempt and makes queued work wait before hitting a rate ceiling."
+    },
+    {
+      "id": "quota-old",
+      "source": "src/http/admission.rs",
+      "revision": "r1",
+      "kind": "history",
+      "title": "Legacy outbound cooldown",
+      "content": "legacy_rate_sleep used one-second constant pacing. Old queued tasks resumed together after restart; timestamp and attempts were not persisted."
+    },
+    {
+      "id": "keychain",
+      "source": "src/platform/keychain.rs",
+      "revision": "r3",
+      "kind": "current",
+      "title": "Local secrets",
+      "content": "macOS stores provider credentials in the login Keychain. A signed helper rotates a secret and reports denied access without writing credentials to SQLite."
+    },
+    {
+      "id": "backup",
+      "source": "db/backup.md",
+      "revision": "r4",
+      "kind": "current",
+      "title": "Sauvegarde hors ligne",
+      "content": "Une copie chiffrée de la base locale est déposée sur un volume externe. Un exercice de restauration mesure la capacité à récupérer les fichiers après une coupure."
+    },
+    {
+      "id": "fixture-workflow",
+      "source": ".github/workflows/mac-qualify.yml",
+      "revision": "run-92",
+      "kind": "workflow",
+      "title": "Native gates",
+      "content": "The CI workflow checks SwiftLint and Clippy, runs macOS UI automation and retains coverage reports. A failed assertion uploads an accessibility attachment."
+    },
+    {
+      "id": "schema",
+      "source": "db/migrate.md",
+      "revision": "r2",
+      "kind": "current",
+      "title": "Migration atomique",
+      "content": "Une migration SQLite reconstruit le catalogue FTS5, contrôle les index et préserve la version des réglages. La transaction annule toute écriture en cas d'échec."
+    },
+    {
+      "id": "cursor",
+      "source": "src/sync/cursor.rs",
+      "revision": "r4",
+      "kind": "current",
+      "title": "Incremental collection",
+      "content": "commit_delta_checkpoint advances the offset only once normalized records and the search index are durable. An interrupted page is replayed from the predecessor cursor."
+    },
+    {
+      "id": "retention",
+      "source": "src/diagnostics/prune.rs",
+      "revision": "r2",
+      "kind": "current",
+      "title": "Diagnostic retention",
+      "content": "purge_expired_signals removes telemetry older than the configured retention period. Age and row caps keep the telemetry database bounded."
+    },
+    {
+      "id": "ingress",
+      "source": "src/http/auth.rs",
+      "revision": "r1",
+      "kind": "current",
+      "title": "Inbound authentication",
+      "content": "The loopback service requires an ephemeral bearer token and rejects browser Origin headers. CLI clients read a user-private endpoint record."
+    },
+    {
+      "id": "shots",
+      "source": "assets/screenshots.md",
+      "revision": "r1",
+      "kind": "current",
+      "title": "Snapshot tests",
+      "content": "Snapshots compare rendered SwiftUI appearance and check color differences. Font and padding changes are reviewed against reference images."
+    },
+    {
+      "id": "rustfmt",
+      "source": "docs/rustfmt.md",
+      "revision": "r1",
+      "kind": "current",
+      "title": "Code formatting",
+      "content": "Formatters enforce indentation in Rust and Swift before the compiler runs. They do not inspect runtime permissions or local data."
+    },
+    {
+      "id": "observability",
+      "source": "docs/telemetry.md",
+      "revision": "r1",
+      "kind": "current",
+      "title": "Trace correlation",
+      "content": "An import trace connects the scheduler and index stages. A query trace tracks lexical lookups. Logs carry identifiers and exclude credentials and raw query text."
+    },
+    {
+      "id": "incident",
+      "source": "ops/incident.md",
+      "revision": "r5",
+      "kind": "current",
+      "title": "Dependency health",
+      "content": "A circuit breaker opens when repeated upstream errors cross the failure threshold. Its half-open state accepts a probe before returning to normal."
+    },
+    {
+      "id": "permissions",
+      "source": "docs/ownership.md",
+      "revision": "r3",
+      "kind": "current",
+      "title": "Shared ownership",
+      "content": "Deleting one collection drops its ownership of shared documents. Copies remain searchable while another scope owns them, with retained status after access loss."
+    },
+    {
+      "id": "rollback",
+      "source": "deploy/releases.md",
+      "revision": "r1",
+      "kind": "current",
+      "title": "Deployment rollback",
+      "content": "Release rollback changes the application deployment to a prior healthy image. A deploy gate checks HTTP readiness before promoting infrastructure changes."
+    },
+    {
+      "id": "schema-noise",
+      "source": "db/preferences.md",
+      "revision": "r2",
+      "kind": "current",
+      "title": "Settings revision",
+      "content": "An optimistic revision number rejects stale writes to settings. The current language and retention appear on the settings page after restart."
+    },
+    {
+      "id": "queue-noise",
+      "source": "docs/tasks.md",
+      "revision": "r1",
+      "kind": "current",
+      "title": "Worker pool",
+      "content": "A bounded queue protects memory when local jobs run faster than threads can finish. Tasks start when a worker becomes free."
+    },
+    {
+      "id": "cancel-current",
+      "source": "src/orders/cancel.rs",
+      "revision": "r3",
+      "kind": "current",
+      "title": "Current order cancellation",
+      "content": "cancel_order_v3 accepts cancellation while payment is pending and hands refund approval to a separate ledger workflow."
+    },
+    {
+      "id": "cancel-legacy",
+      "source": "src/orders/cancel.rs",
+      "revision": "r1",
+      "kind": "history",
+      "title": "Historical order cancellation",
+      "content": "historical_cancel_v1 rejected cancellation as soon as payment authorization began. This revision was retired after the order redesign."
+    },
+    {
+      "id": "bookmarks",
+      "source": "docs/browser.md",
+      "revision": "r6",
+      "kind": "current",
+      "title": "Local bookmarks",
+      "content": "The browser keeps a list of saved pages for the current user. The address bar filters bookmark names and keyboard history."
+    },
+    {
+      "id": "metrics",
+      "source": "docs/memory.md",
+      "revision": "r1",
+      "kind": "current",
+      "title": "Memory sampling",
+      "content": "Resident process memory is sampled periodically. Allocator telemetry distinguishes live allocations and free pages retained by the runtime."
+    },
+    {
+      "id": "accessibility",
+      "source": "desktop/accessibility.md",
+      "revision": "r1",
+      "kind": "current",
+      "title": "Accessibility labels",
+      "content": "The VoiceOver screen reader announces controls by their accessibility labels. Localized labels are tested with an accessibility tree snapshot."
+    },
+    {
+      "id": "workflow-noise",
+      "source": ".github/workflows/deploy.yml",
+      "revision": "run-28",
+      "kind": "workflow",
+      "title": "Release workflow",
+      "content": "Release automation publishes notarized app images to a download bucket and signs them with a Developer ID certificate."
+    },
+    {
+      "id": "disk-noise",
+      "source": "docs/storage.md",
+      "revision": "r3",
+      "kind": "current",
+      "title": "Disk limits",
+      "content": "A write budget puts a hard cap on SQLite page allocation. When free space is too low, the writer sheds rows and reports dropped entries."
+    }
+  ],
+  "queries": [
+    {
+      "id": "exact-gate",
+      "family": "exact",
+      "query": "retry_after_gate",
+      "relevant": "quota"
+    },
+    {
+      "id": "exact-cursor",
+      "family": "exact",
+      "query": "commit_delta_checkpoint",
+      "relevant": "cursor"
+    },
+    {
+      "id": "exact-purge",
+      "family": "exact",
+      "query": "purge_expired_signals",
+      "relevant": "retention"
+    },
+    {
+      "id": "old-order",
+      "family": "revision",
+      "query": "historical_cancel_v1",
+      "relevant": "cancel-legacy"
+    },
+    {
+      "id": "current-order",
+      "family": "revision",
+      "query": "cancel_order_v3",
+      "relevant": "cancel-current"
+    },
+    {
+      "id": "fr-keychain",
+      "family": "crossLanguage",
+      "query": "Où le système conserve-t-il les identifiants du fournisseur sur le Mac ?",
+      "relevant": "keychain"
+    },
+    {
+      "id": "en-backup",
+      "family": "crossLanguage",
+      "query": "How can we recover files from an encrypted copy on an external drive after an outage?",
+      "relevant": "backup"
+    },
+    {
+      "id": "es-cursor",
+      "family": "crossLanguage",
+      "query": "¿Cómo se reanuda una página interrumpida desde el último punto de control?",
+      "relevant": "cursor"
+    },
+    {
+      "id": "de-ownership",
+      "family": "crossLanguage",
+      "query": "Warum bleiben gemeinsame Dokumente nach dem Löschen einer Sammlung auffindbar?",
+      "relevant": "permissions"
+    },
+    {
+      "id": "ja-workflow",
+      "family": "crossLanguage",
+      "query": "ネイティブの画面テストとカバレッジのレポートを保存するCIの処理はどれですか？",
+      "relevant": "fixture-workflow"
+    },
+    {
+      "id": "en-migration",
+      "family": "crossLanguage",
+      "query": "Which transaction rebuilds the search catalogue and preserves preferences during a schema upgrade?",
+      "relevant": "schema"
+    },
+    {
+      "id": "fr-quota",
+      "family": "crossLanguage",
+      "query": "Comment espacer les appels sortants pour respecter la période de refroidissement imposée ?",
+      "relevant": "quota"
+    },
+    {
+      "id": "en-traces",
+      "family": "sameLanguage",
+      "query": "Where are query trace identifiers correlated with sanitized operation logs?",
+      "relevant": "observability"
+    },
+    {
+      "id": "en-disk",
+      "family": "sameLanguage",
+      "query": "What protects the SQLite writer when free disk space is low?",
+      "relevant": "disk-noise"
+    },
+    {
+      "id": "en-browser",
+      "family": "sameLanguage",
+      "query": "How does the address bar search my saved bookmarks?",
+      "relevant": "bookmarks"
+    },
+    {
+      "id": "en-gates",
+      "family": "sameLanguage",
+      "query": "Which workflow retains SwiftLint and Clippy reports after native UI checks?",
+      "relevant": "fixture-workflow"
+    }
+  ]
+}

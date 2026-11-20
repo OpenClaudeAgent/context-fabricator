@@ -1,0 +1,12 @@
+[package]
+name = "m01-quality-fixture"
+version = "0.0.0"
+edition = "2024"
+license = "MIT"
+publish = false
+
+[dependencies]
+itoa = "=1.0.15"
+
+[lints]
+workspace = true

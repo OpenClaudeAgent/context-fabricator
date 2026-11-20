@@ -1,0 +1,13 @@
+/.quality/
+/.idea/
+/backend/target/
+/desktop/macos/.build/
+/desktop/macos/.swiftpm/
+.DS_Store
+/desktop/macos/Client/.build/
+/desktop/macos/Client/.swiftpm/
+/desktop/macos/ContextFabricator.xcodeproj/
+/cli/target/
+/quality/m01-rust/target/
+
+/.schemathesis/
