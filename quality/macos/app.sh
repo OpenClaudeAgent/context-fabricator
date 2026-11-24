@@ -4,6 +4,8 @@ source "$(dirname "$0")/../toolchain/environment.sh"
 
 require_mac
 cd "$quality_root/desktop/macos"
+mode=${1:-build}
+destination='platform=macOS,arch=arm64'
 check_app_coverage() {
     jq -er --arg app "$PWD/App/" --argjson minimum "$minimum_line_coverage" '
         [.targets[].files[] | select(.path | startswith($app))]
@@ -63,9 +65,9 @@ if [[ ${1:-} == unit ]]; then
         ' "$report/coverage.json" | tee "$report/coverage-gate.log"
     exit 0
 fi
-"$tools_dir/xcodegen/xcodegen/bin/xcodegen" generate --spec project.yml
-if [[ ${1:-} == project ]]; then
-    exit 0
+if [[ $mode != test-built-ui ]]; then
+    "$tools_dir/xcodegen/xcodegen/bin/xcodegen" generate --spec project.yml
+    [[ $mode != project ]] || exit 0
 fi
 
 configuration=Debug
@@ -101,11 +103,38 @@ if [[ ${1:-} == build-release ]]; then
     fi
 fi
 xcode=(xcodebuild -project ContextFabricator.xcodeproj -scheme ContextFabricator
-    -destination 'platform=macOS,arch=arm64' -onlyUsePackageVersionsFromResolvedFile
+    -destination "$destination" -onlyUsePackageVersionsFromResolvedFile
     -skipMacroValidation -skipPackagePluginValidation
     -configuration "$configuration" -derivedDataPath "$derived_data"
     -clonedSourcePackagesDirPath "$quality_build_dir/foundation-packages")
-if [[ ${1:-} == test ]]; then
+if [[ $mode == build-ui-tests ]]; then
+    archive=${2:?Expected an absolute path for the XCUI archive}
+    [[ $archive = /* ]] || { echo 'Expected an absolute XCUI archive path.' >&2; exit 2; }
+    "${xcode[@]}" -enableCodeCoverage YES build-for-testing
+    products="$derived_data/Build/Products"
+    sdk_version=$(xcrun --sdk macosx --show-sdk-version)
+    plan="$products/ContextFabricator_macosx$sdk_version-arm64.xctestrun"
+    [[ -f $plan ]] || {
+        echo "Missing macOS arm64 test plan: $plan" >&2
+        exit 1
+    }
+    staging=$(quality_workspace xcui-build)
+    trap 'rm -rf -- "$staging"' EXIT
+    staged="$staging/Products"
+    mkdir -p "$staged/Debug"
+    cp "$plan" "$staged/ContextFabricator.xctestrun"
+    for bundle in 'Context Fabricator.app' ContextFabricatorUITests-Runner.app; do
+        /usr/bin/codesign --verify --deep --strict "$products/Debug/$bundle"
+        /usr/bin/ditto "$products/Debug/$bundle" "$staged/Debug/$bundle"
+    done
+    if [[ -d $products/Debug/PackageFrameworks ]]; then
+        /usr/bin/ditto "$products/Debug/PackageFrameworks" "$staged/Debug/PackageFrameworks"
+    fi
+    /usr/bin/ditto -c -k --sequesterRsrc --keepParent "$staged" "$archive"
+    exit 0
+fi
+
+if [[ $mode == test || $mode == test-built-ui ]]; then
     shard=${CTXFAB_UI_SHARD:-all}
     target=ContextFabricatorUITests
     performance="$target/BackendLifecycleUITests/testLaunchToBackendReadyPerformance"
@@ -187,8 +216,18 @@ if [[ ${1:-} == test ]]; then
         export TEST_RUNNER_CTXFAB_HUGGING_FACE_PORT="$(< "$hub_fixture/port")"
         export TEST_RUNNER_CTXFAB_HUGGING_FACE_HITS="$hub_fixture/hits.log"
     fi
+    action=test
+    if [[ $mode == test-built-ui ]]; then
+        archive=${2:?Expected an absolute path for the XCUI archive}
+        [[ $archive = /* && -f $archive ]] || { echo 'XCUI archive not found.' >&2; exit 2; }
+        test_data="$fixture_root/derived"
+        /usr/bin/ditto -x -k "$archive" "$test_data/Build"
+        xcode=(xcodebuild -xctestrun "$test_data/Build/Products/ContextFabricator.xctestrun"
+            -destination "$destination" -derivedDataPath "$test_data")
+        action=test-without-building
+    fi
     "${xcode[@]}" -parallel-testing-enabled NO \
-        "${subjects[@]}" -resultBundlePath "$report/App.xcresult" test |
+        "${subjects[@]}" -resultBundlePath "$report/App.xcresult" "$action" |
         tee "$report/xcode.log"
     xcrun xcresulttool get test-results summary --path "$report/App.xcresult" > "$report/tests.json"
     jq -e '.passedTests > 0 and .failedTests == 0 and .skippedTests == 0' "$report/tests.json" > /dev/null

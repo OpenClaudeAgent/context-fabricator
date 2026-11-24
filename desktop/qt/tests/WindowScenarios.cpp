@@ -12,6 +12,7 @@
 #include <QtQml/QQmlListReference>
 #include <QtQuick/QQuickItem>
 #include <QtQuick/QQuickWindow>
+#include <QtTest/QSignalSpy>
 #include <QtTest/QTest>
 
 namespace {
@@ -451,9 +452,11 @@ void verifyPipeline(QQuickWindow &window) {
     if (!language->setProperty("selection", 1))
         qFatal("Could not select English for the benchmark");
     window.resize(1080, 780);
-    await([&] { return window.size() == QSize(1080, 780); }, "configured pipeline window size");
+    await([&] { return window.contentItem()->size() == QSizeF(1080, 780); },
+          "pipeline window content at its configured size");
     click(window, "answersTab");
     click(window, "openPipelineInspector");
+    item(window, "pipelineStage-2");
     auto *pipeline = window.property("pipelineInspector").value<QObject *>();
     auto *question = item(window, "pipelineQuestion");
     click(window, "pipelineQuestion");
@@ -461,6 +464,10 @@ void verifyPipeline(QQuickWindow &window) {
         qFatal("Could not select the pipeline query");
     type(window, "What is the retry delay?");
     auto *run = item(window, "runPipelineQuestion");
+    // Measure the painted dialog after the compositor has applied the window resize.
+    QSignalSpy presented(&window, &QQuickWindow::frameSwapped);
+    window.update();
+    await([&] { return !presented.isEmpty(); }, "the painted pipeline inspector");
     const auto questionBounds = sceneBounds(*question);
     const auto runBounds = sceneBounds(*run);
     click(window, "runPipelineQuestion");
