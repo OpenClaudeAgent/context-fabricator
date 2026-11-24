@@ -63,7 +63,8 @@ final class BackendSupervisor {
     guard let current = process, parentPipe != nil else {
       throw BackendConnectionError.helperExited
     }
-    let deadline = ContinuousClock.now + .seconds(5)
+    // A cold launch may need to initialize the database before it publishes its endpoint.
+    let deadline = ContinuousClock.now + .seconds(10)
     while ContinuousClock.now < deadline {
       try Task.checkCancellation()
       guard process === current, current.isRunning, parentPipe != nil else {

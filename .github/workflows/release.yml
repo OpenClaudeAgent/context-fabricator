@@ -120,6 +120,7 @@ jobs:
         with:
           name: release-candidate
           path: ${{ runner.temp }}/release-candidate/
+          compression-level: 0
           if-no-files-found: error
           retention-days: 14
 

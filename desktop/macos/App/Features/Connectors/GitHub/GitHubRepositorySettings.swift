@@ -4,12 +4,41 @@ import LocalAPI
 import SwiftUI
 
 struct GitHubOptionsSheet: View {
+  private enum Confirmation: String, Identifiable {
+    case purge
+    case remove
+
+    var id: Self { self }
+
+    var title: LocalizedStringKey {
+      switch self {
+      case .purge: "Delete local repository data?"
+      case .remove: "Remove this repository?"
+      }
+    }
+
+    var button: LocalizedStringKey {
+      switch self {
+      case .purge: "Delete Local Data"
+      case .remove: "Remove Repository"
+      }
+    }
+
+    var message: LocalizedStringKey {
+      switch self {
+      case .purge:
+        "This deletes all retained local code, history, Actions and graph data for this repository, including its other branches. Settings remain. Collection pauses until you explicitly refresh an enabled, verified feature."
+      case .remove:
+        "This removes the repository settings from Context Fabricator."
+      }
+    }
+  }
+
   @Environment(\.locale) private var locale
   let store: StoreOf<GitHubConnector>
   let draft: GitHubConnector.Draft
   let showTrace: (Components.Schemas.GitHubCollectionTrace) -> Void
-  @State private var remove = false
-  @State private var purge = false
+  @State private var confirmation: Confirmation?
 
   private var configured: Components.Schemas.GitHubConfiguredRepository? {
     guard store.panel == .editOptions else { return nil }
@@ -58,23 +87,24 @@ struct GitHubOptionsSheet: View {
       if let configured { await store.send(.loadDataState(configured.repository.id)).finish() }
     }
     .onExitCommand { store.send(.dismissPanel) }
-    .alert("Delete local repository data?", isPresented: $purge) {
-      Button("Cancel", role: .cancel) {}
-      Button("Delete Local Data", role: .destructive) {
-        if let id = configured?.repository.id { store.send(.purgeData(id)) }
+    .sheet(item: $confirmation) { action in
+      GitHubSheet(title: action.title, subtitle: draft.repository, message: nil, busy: false) {
+        Text(action.message)
+          .frame(maxWidth: .infinity, alignment: .leading)
+          .fixedSize(horizontal: false, vertical: true)
+          .padding(22)
+      } buttons: {
+        Spacer()
+        Button("Cancel", role: .cancel) { confirmation = nil }
+          .keyboardShortcut(.cancelAction)
+        Button(action.button, role: .destructive) {
+          confirmation = nil
+          guard let id = draft.expectedId else { return }
+          store.send(action == .purge ? .purgeData(id) : .remove(id))
+        }
+        .accessibilityIdentifier("github-confirm-\(action.rawValue)")
       }
-    } message: {
-      Text(
-        "This deletes all retained local code, history, Actions and graph data for this repository, including its other branches. Settings remain. Collection pauses until you explicitly refresh an enabled, verified feature."
-      )
-    }
-    .alert("Remove this repository?", isPresented: $remove) {
-      Button("Cancel", role: .cancel) {}
-      Button("Remove Repository", role: .destructive) {
-        if let id = draft.expectedId { store.send(.remove(id)) }
-      }
-    } message: {
-      Text("This removes the repository settings from Context Fabricator.")
+      .interactiveDismissDisabled()
     }
   }
 
@@ -288,11 +318,11 @@ struct GitHubOptionsSheet: View {
         .accessibilityIdentifier("github-data-pause-state")
       }
       LabeledContent("Data on this Mac") {
-        Button("Delete Local Data…", role: .destructive) { purge = true }
+        Button("Delete Local Data…", role: .destructive) { confirmation = .purge }
           .accessibilityIdentifier("github-purge-data")
       }
       LabeledContent("Configured repository") {
-        Button("Remove Repository…", role: .destructive) { remove = true }
+        Button("Remove Repository…", role: .destructive) { confirmation = .remove }
           .accessibilityIdentifier("github-remove")
       }
     } header: {

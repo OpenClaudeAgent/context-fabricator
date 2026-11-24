@@ -258,7 +258,7 @@ final class GitHubUITests: XCTestCase {
     let purge = app.buttons["github-purge-data"]
     try revealRepositoryControl(purge, in: form, deltaY: -400)
     purge.click()
-    let confirm = app.buttons["Delete Local Data"]
+    let confirm = app.buttons["github-confirm-purge"]
     _ = try XCTUnwrap(
       confirm.wait(for: \.isHittable, toEqual: true, timeout: 5) ? confirm : nil,
       "Repository Settings must present the destructive confirmation before purging data.")

@@ -120,6 +120,7 @@ jobs:
           path: |
             .quality/reports/release-package.*/package/*.zip
             .quality/reports/release-package.*/package/manifest.json
+          compression-level: 0
           if-no-files-found: error
           include-hidden-files: true
           retention-days: 14
