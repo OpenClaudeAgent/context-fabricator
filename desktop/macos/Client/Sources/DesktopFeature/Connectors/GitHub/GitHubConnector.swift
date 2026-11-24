@@ -594,9 +594,10 @@ public struct GitHubConnector {
   }
 
   private func readCollection(after delay: Duration) -> EffectOf<Self> {
-    .run { [clock, perform] send in
+    let pollingClock = clock
+    return .run { [perform] send in
       do {
-        if delay > .zero { try await clock.sleep(for: delay) }
+        if delay > .zero { try await pollingClock.sleep(for: delay) }
         try Task.checkCancellation()
         guard case .snapshot(let snapshot) = try await perform(.load) else {
           throw URLError(.badServerResponse)

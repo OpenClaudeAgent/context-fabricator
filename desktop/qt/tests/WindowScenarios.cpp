@@ -398,8 +398,11 @@ QRectF sceneBounds(QQuickItem &item) {
 }
 
 void requireSameBounds(const QRectF &before, QQuickItem &control, const char *context) {
-    if (before != sceneBounds(control))
-        qFatal("%s shifted", context);
+    const auto after = sceneBounds(control);
+    if (before != after)
+        qFatal("%s shifted from (%.2f, %.2f, %.2f, %.2f) to (%.2f, %.2f, %.2f, %.2f)", context,
+               before.x(), before.y(), before.width(), before.height(), after.x(), after.y(),
+               after.width(), after.height());
 }
 
 void verifyPipelineSuite(QQuickWindow &window, QObject &pipeline) {
@@ -448,6 +451,7 @@ void verifyPipeline(QQuickWindow &window) {
     if (!language->setProperty("selection", 1))
         qFatal("Could not select English for the benchmark");
     window.resize(1080, 780);
+    await([&] { return window.size() == QSize(1080, 780); }, "configured pipeline window size");
     click(window, "answersTab");
     click(window, "openPipelineInspector");
     auto *pipeline = window.property("pipelineInspector").value<QObject *>();
@@ -572,6 +576,8 @@ void runWindowScenarios() {
     if (!language->setProperty("selection", 1))
         qFatal("Could not select English for the wide captures");
     auto *overview = window->property("overview").value<QObject *>();
+    await([overview] { return !overview->property("busy").toBool(); },
+          "initial Overview request to finish");
     if (!QMetaObject::invokeMethod(overview, "refresh"))
         qFatal("Could not refresh Overview after seeding the fixture");
     await(

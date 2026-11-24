@@ -3,8 +3,12 @@ import XCTest
 
 @MainActor
 final class GitHubUITests: XCTestCase {
-  func testGitHubOnboardingUsesTheBundledBackendAndReadOnlyFixture() throws {
+
+  override func setUpWithError() throws {
     continueAfterFailure = false
+  }
+
+  func testGitHubOnboardingUsesTheBundledBackendAndReadOnlyFixture() throws {
     let environment = ProcessInfo.processInfo.environment
     guard let port = environment["CTXFAB_GITHUB_TEST_PORT"],
       let hitsPath = environment["CTXFAB_GITHUB_TEST_HITS"]
@@ -32,7 +36,6 @@ final class GitHubUITests: XCTestCase {
   }
 
   func testGitHubBranchPickerSearchesLoadedPagesAndUpdatesTheDraft() async throws {
-    continueAfterFailure = false
     guard let port = ProcessInfo.processInfo.environment["CTXFAB_GITHUB_TEST_PORT"]
     else { throw XCTSkip("Run with the loopback GitHub fixture.") }
     addTeardownBlock {
@@ -80,7 +83,6 @@ final class GitHubUITests: XCTestCase {
   }
 
   func testGitHubRefreshPublishesAndShowsANewCommit() async throws {
-    continueAfterFailure = false
     let environment = ProcessInfo.processInfo.environment
     guard let port = environment["CTXFAB_GITHUB_TEST_PORT"]
     else { throw XCTSkip("Run make app-test to start the loopback GitHub fixture.") }
@@ -207,7 +209,6 @@ final class GitHubUITests: XCTestCase {
   }
 
   func testHistoryOnlyRepositoryResumesFromRepositorySettings() async throws {
-    continueAfterFailure = false
     let port = try XCTUnwrap(ProcessInfo.processInfo.environment["CTXFAB_GITHUB_TEST_PORT"])
     addTeardownBlock {
       try await Self.fixtureControl(port: port, route: "history", method: "DELETE")
@@ -333,7 +334,6 @@ final class GitHubUITests: XCTestCase {
   }
 
   func testActionsActivityShowsObservedRun() async throws {
-    continueAfterFailure = false
     let environment = ProcessInfo.processInfo.environment
     guard let port = environment["CTXFAB_GITHUB_TEST_PORT"]
     else { throw XCTSkip("Run with the loopback GitHub fixture.") }

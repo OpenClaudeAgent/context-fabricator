@@ -131,6 +131,7 @@ mkdir "$work/swift" "$work/rust" "$work/snippets"
 cp "$quality_root/desktop/macos/"{.swift-format,.swiftlint.yml,Package.swift,Package.resolved} "$work/swift/"
 cp -R "$quality_root/desktop/macos/"{Sources,Tests} "$work/swift/"
 cp "$quality_root/quality/toolchain/rust-fixture/"{Cargo.toml,Cargo.lock,deny.toml} "$work/rust/"
+cp "$quality_root/rust-toolchain.toml" "$work/rust/"
 cp -R "$quality_root/quality/toolchain/rust-fixture/quality-fixture" "$work/rust/"
 cp "$work/swift/Package.resolved" "$work/rust/Cargo.lock" "$reports/"
 

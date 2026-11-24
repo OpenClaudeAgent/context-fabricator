@@ -3,12 +3,16 @@ import XCTest
 
 @MainActor
 final class AnswersUITests: XCTestCase {
+
+  override func setUpWithError() throws {
+    continueAfterFailure = false
+  }
+
   private struct ModelCatalog: Decodable {
     let activeProfile: String?
   }
 
   func testPipelineShowsTheRejectedDraftAndItsContext() throws {
-    continueAfterFailure = false
     let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
     let app = XCUIApplication()
     defer {
@@ -58,7 +62,6 @@ final class AnswersUITests: XCTestCase {
   }
 
   func testPipelineBenchmarksRunAgainstPastedText() throws {
-    continueAfterFailure = false
     let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
     let app = XCUIApplication()
     defer {
@@ -119,7 +122,6 @@ final class AnswersUITests: XCTestCase {
 
   func testPinnedJacksonCorpusLoadsAndReplaysInInspector() throws {
     try XCTSkipUnless(ProcessInfo.processInfo.environment["CTXFAB_XCTEST_LIVE_BENCHMARK"] == "1")
-    continueAfterFailure = false
     let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
     let app = XCUIApplication()
     defer {
@@ -167,7 +169,6 @@ final class AnswersUITests: XCTestCase {
 
   func testCommonsCLIBenchmarkShowsRetrievedPassagesAndBM25Reason() throws {
     try XCTSkipUnless(ProcessInfo.processInfo.environment["CTXFAB_XCTEST_LIVE_BENCHMARK"] == "1")
-    continueAfterFailure = false
     let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
     let app = XCUIApplication()
     defer {
@@ -216,7 +217,6 @@ final class AnswersUITests: XCTestCase {
   }
 
   func testAbstentionTraceShowsSearchedSourcesAndCandidateDisposition() throws {
-    continueAfterFailure = false
     let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
     let app = XCUIApplication()
     defer {
@@ -302,7 +302,6 @@ final class AnswersUITests: XCTestCase {
   }
 
   func testAnswersSwitchesModelWithoutRestartingAndShowsInsufficientEvidence() async throws {
-    continueAfterFailure = false
     let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
     let app = XCUIApplication()
     defer {
@@ -346,7 +345,6 @@ final class AnswersUITests: XCTestCase {
   }
 
   func testAnswerUsageShowsPublishedDesktopAnswerAndOpensItsTrace() throws {
-    continueAfterFailure = false
     let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
     let app = XCUIApplication()
     defer {
@@ -426,7 +424,6 @@ final class AnswersUITests: XCTestCase {
   }
 
   func testAnswersCancelsAnInFlightGenerationAndAcceptsTheNextQuestion() throws {
-    continueAfterFailure = false
     let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
     let app = XCUIApplication()
     defer {
@@ -481,7 +478,6 @@ final class AnswersUITests: XCTestCase {
   }
 
   func testAnswerHistoryPersistsACitedAnswerAndClearsItFromSettings() async throws {
-    continueAfterFailure = false
     let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
     let app = XCUIApplication()
     defer {
@@ -527,7 +523,6 @@ final class AnswersUITests: XCTestCase {
   }
 
   func testAnswerLanguageSearchSelectsAndSavesJapanese() {
-    continueAfterFailure = false
     let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
     let app = XCUIApplication()
     app.launchEnvironment["CTXFAB_TEST_DATA_DIRECTORY"] = directory.path

@@ -111,7 +111,6 @@ struct PipelineBenchmark: Decodable, Sendable {
 
     let suite: String
     let id: String
-    let surface: String
     let query: String
     let expected: String?
     let oracle: String

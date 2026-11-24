@@ -360,13 +360,14 @@ public struct Dashboard {
   }
 
   private func observeOverview() -> EffectOf<Self> {
-    .run { [readStatus = client.readStatus, clock] send in
+    let pollingClock = clock
+    return .run { [readStatus = client.readStatus] send in
       while !Task.isCancelled {
         if let status = try? await readStatus() {
           try Task.checkCancellation()
           await send(.overviewStatusLoaded(status))
         }
-        try await clock.sleep(for: .seconds(3))
+        try await pollingClock.sleep(for: .seconds(3))
       }
     }
     .cancellable(id: Cancellation.overview, cancelInFlight: true)

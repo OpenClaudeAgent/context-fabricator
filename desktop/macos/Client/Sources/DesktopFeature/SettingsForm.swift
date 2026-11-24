@@ -105,8 +105,9 @@ public struct SettingsForm {
         guard !state.embeddingSwitching else { return .none }
         state.embeddingLoading = true
         state.embeddingFeedback = nil
-        return .run { [loadEmbeddingModels] send in
-          do { await send(.embeddingModelsLoaded(try await loadEmbeddingModels())) } catch {
+        let load = loadEmbeddingModels
+        return .run { send in
+          do { await send(.embeddingModelsLoaded(try await load())) } catch {
             if !Task.isCancelled { await send(.embeddingModelsFailed(error.localizedDescription)) }
           }
         }.cancellable(id: Cancellation.embeddingLoad, cancelInFlight: true)
@@ -127,11 +128,12 @@ public struct SettingsForm {
         state.embeddingLoading = false
         state.embeddingSwitching = true
         state.embeddingFeedback = nil
+        let select = selectEmbeddingModel
         return .merge(
           .cancel(id: Cancellation.embeddingLoad),
-          .run { [selectEmbeddingModel] send in
+          .run { send in
             do {
-              await send(.embeddingModelSelected(try await selectEmbeddingModel(profile)))
+              await send(.embeddingModelSelected(try await select(profile)))
             } catch { await send(.embeddingSelectionFailed(error.localizedDescription)) }
           })
       case .embeddingModelSelected(let models):

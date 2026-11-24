@@ -2,11 +2,15 @@ import XCTest
 
 extension XCUIApplication {
   func selectWorkspace(_ destination: String) {
-    let showSidebar = buttons["Show Sidebar"]
-    if showSidebar.exists { showSidebar.click() }
     let row = descendants(matching: .any)
       .matching(identifier: "navigation-\(destination)").firstMatch
-    XCTAssertTrue(row.waitForExistence(timeout: 5))
+    let showSidebar = buttons["Show Sidebar"]
+    if !row.isHittable && showSidebar.isHittable { showSidebar.click() }
+    guard row.wait(for: \.isHittable, toEqual: true, timeout: 5) else {
+      let frame = windows.firstMatch.frame
+      XCTFail("Workspace \(destination) is not clickable. Window frame: \(frame)")
+      return
+    }
     row.click()
   }
 }

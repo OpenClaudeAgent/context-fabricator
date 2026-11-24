@@ -23,6 +23,8 @@ MISSING_CRATE_DOCUMENTS = {
         "opentelemetry", "open-telemetry/opentelemetry-rust", "372ebbc74d4dba71bb9820732f57f7316b4e7a1e", "LICENSE"),
     ("tree-sitter-rust", "0.24.0"): (
         "tree-sitter-rust", "tree-sitter/tree-sitter-rust", "18b0515fca567f5a10aee9978c6d2640e878671a", "LICENSE"),
+    ("tree-sitter-java", "0.23.5"): (
+        "tree-sitter-java", "tree-sitter/tree-sitter-java", "94703d5a6bed02b98e438d7cad1136c01a60ba2c", "LICENSE"),
 }
 
 
@@ -201,10 +203,20 @@ def verify_notices(directory):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("directory", type=Path)
-    parser.add_argument("--swift-checkouts", type=Path, help="Assemble from these resolved Xcode checkouts.")
+    parser.add_argument("directory", type=Path, nargs="?")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--swift-checkouts", type=Path, help="Assemble from these resolved Xcode checkouts.")
+    mode.add_argument("--check-rust-target", help="Check all Rust notices for this target before building.")
     args = parser.parse_args()
-    if args.swift_checkouts is None:
+    if args.check_rust_target is not None:
+        if args.directory is not None:
+            parser.error("--check-rust-target uses a temporary directory.")
+        with TemporaryDirectory(prefix="ctxfab-rust-notices-") as temporary:
+            entries = rust_components(Path(temporary), args.check_rust_target)
+            print(f"Checked Rust notices for {len(entries)} packages on {args.check_rust_target}.")
+    elif args.directory is None:
+        parser.error("Provide the notice directory to assemble or verify.")
+    elif args.swift_checkouts is None:
         verify_notices(args.directory)
     else:
         stage_notices(args.directory, args.swift_checkouts)

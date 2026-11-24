@@ -1,7 +1,6 @@
 import ComposableArchitecture
 import DesktopFeature
 import Foundation
-import LocalAPI
 import SwiftUI
 
 struct DashboardView: View {

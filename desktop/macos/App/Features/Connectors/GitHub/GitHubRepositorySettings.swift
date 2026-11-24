@@ -364,6 +364,7 @@ struct GitHubOptionsSheet: View {
   ) -> some View {
     Toggle(label, isOn: binding(field))
       .toggleStyle(.switch)
+      .accessibilityLabel(Text(label))
       .accessibilityIdentifier(id)
   }
 

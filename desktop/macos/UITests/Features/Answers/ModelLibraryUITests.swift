@@ -3,12 +3,16 @@ import XCTest
 
 @MainActor
 final class ModelLibraryUITests: XCTestCase {
+
+  override func setUpWithError() throws {
+    continueAfterFailure = false
+  }
+
   private struct Status: Decodable {
     let outboundAttempts: Int
   }
 
   func testGuidedModelSetupShowsQ5DownloadProgress() async throws {
-    continueAfterFailure = false
     let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
     let app = XCUIApplication()
     defer {
@@ -33,7 +37,6 @@ final class ModelLibraryUITests: XCTestCase {
   }
 
   func testManageModelsAlignsRuntimeAndIndexControls() throws {
-    continueAfterFailure = false
     let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
     let app = XCUIApplication()
     defer {
@@ -221,7 +224,6 @@ final class ModelLibraryUITests: XCTestCase {
   }
 
   func testHuggingFaceCatalogSearchAndModelDeletion() throws {
-    continueAfterFailure = false
     let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
     let app = XCUIApplication()
     defer {
@@ -233,7 +235,6 @@ final class ModelLibraryUITests: XCTestCase {
   }
 
   func testSetupRespectsTheInferenceStorageLimit() async throws {
-    continueAfterFailure = false
     let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
     let app = XCUIApplication()
     defer {
@@ -275,7 +276,6 @@ final class ModelLibraryUITests: XCTestCase {
   }
 
   func testDownloadsDiscoveredHuggingFaceWeightsThroughTheBundledBackend() async throws {
-    continueAfterFailure = false
     let environment = ProcessInfo.processInfo.environment
     let port = try XCTUnwrap(environment["CTXFAB_HUGGING_FACE_PORT"], "Run make app-test.")
     let hits = try XCTUnwrap(environment["CTXFAB_HUGGING_FACE_HITS"], "Run make app-test.")

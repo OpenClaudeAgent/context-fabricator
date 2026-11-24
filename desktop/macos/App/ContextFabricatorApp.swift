@@ -68,12 +68,16 @@ struct ContextFabricatorApp: App {
 
   var body: some Scene {
     let locale = appLanguage.locale()
+    let visibleScreen = NSScreen.main?.visibleFrame
     Window("Context Fabricator", id: "dashboard") {
       RootView(supervisor: delegate.supervisor, appLanguage: $appLanguage)
         .frame(minWidth: 900, minHeight: 660)
         .environment(\.locale, locale)
     }
-    .defaultSize(width: 1280, height: 820)
+    .defaultSize(
+      width: min(1280, visibleScreen?.width ?? 1280),
+      height: min(820, visibleScreen?.height ?? 820)
+    )
     .windowResizability(.contentMinSize)
     .commands {
       SidebarCommands()
