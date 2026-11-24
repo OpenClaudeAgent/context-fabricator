@@ -16,7 +16,7 @@ struct GitHubActionsSheet: View {
       title: "GitHub Actions",
       subtitle: repository.map { "\($0.repository.fullName) · \($0.branch)" },
       message: store.feedback, busy: store.busy && store.actionsState != nil,
-      width: .wide
+      width: .wide, prefersTallContent: true
     ) {
       Group {
         if store.actionsState == nil && store.busy {
@@ -25,7 +25,6 @@ struct GitHubActionsSheet: View {
           activity
         }
       }
-      .frame(minHeight: 480, idealHeight: 550, maxHeight: 550)
     } buttons: {
       Button("Back") { store.send(.dismissPanel) }
         .disabled(store.busy)

@@ -105,8 +105,17 @@ struct GitHubSheet<Content: View, Buttons: View>: View {
   let message: String?
   let busy: Bool
   var width: GitHubSheetWidth = .standard
+  var prefersTallContent = false
   @ViewBuilder let content: Content
   @ViewBuilder let buttons: Buttons
+
+  private var tallContentHeight: CGFloat? {
+    guard prefersTallContent else { return nil }
+    let screenHeight = NSApp.keyWindow?.screen?.visibleFrame.height
+      ?? NSScreen.main?.visibleFrame.height ?? 820
+    // Leave room for the parent toolbar, sheet header, feedback, and buttons.
+    return min(550, max(340, screenHeight - 230))
+  }
 
   var body: some View {
     VStack(alignment: .leading, spacing: 0) {
@@ -125,7 +134,7 @@ struct GitHubSheet<Content: View, Buttons: View>: View {
       .padding(.horizontal, 22)
       .padding(.vertical, 18)
       Divider()
-      content.disabled(busy)
+      content.frame(height: tallContentHeight).disabled(busy)
       Divider()
       VStack(alignment: .leading, spacing: 10) {
         if let message { GitHubFeedback(message: message) }

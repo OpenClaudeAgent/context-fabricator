@@ -656,7 +656,7 @@ struct AnswerPipelineView: View {
       .truncationMode(.middle)
     }
     .disabled(requestID != nil || loadingCorpus)
-    .accessibilityIdentifier("answer-pipeline-benchmarks")
+    .accessibilityIdentifier("answer-pipeline-scope")
     .help("Choose all connected sources or one specific source")
   }
 

@@ -69,8 +69,6 @@ jobs:
           make bootstrap-app
       - name: Check product code, coverage and API contracts
         run: make check-product
-      - name: Build signed Debug app
-        run: make package-debug
       - name: Verify packaged launcher, helper and CLI
         run: make check-packaged-smoke
       - name: Qualify runtime diagnostics and controlled failures

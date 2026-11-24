@@ -38,11 +38,10 @@ struct GitHubOptionsSheet: View {
     GitHubSheet(
       title: store.panel == .editOptions ? "Repository Settings" : "Configure Repository",
       subtitle: draft.repository, message: feedback, busy: store.busy,
-      width: configured == nil ? .standard : .wide
+      width: configured == nil ? .standard : .wide, prefersTallContent: configured != nil
     ) {
       if let configured {
         repositorySettings(configured)
-          .frame(minHeight: 480, idealHeight: 550, maxHeight: 550)
       } else {
         Form {
           repositorySection

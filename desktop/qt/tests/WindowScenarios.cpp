@@ -536,13 +536,17 @@ void verifyPipeline(QQuickWindow &window) {
     click(window, "pipelineSourcesTab");
     auto *download = item(window, "pipelineDownloadAllActions");
     auto *frame = item(window, "pipelineSourcesFrame");
-    const auto frameBounds = sceneBounds(*frame);
-    if (frameBounds.right() > window.width() - 12 ||
-        sceneBounds(*download).right() > frameBounds.right() ||
-        sceneBounds(*download).bottom() > frameBounds.top())
-        qFatal("The compact source actions are outside their toolbar");
-    if (sceneBounds(*item(window, "closePipelineInspector")).right() > frameBounds.right())
-        qFatal("The compact header overflows");
+    auto *close = item(window, "closePipelineInspector");
+    await(
+        [&] {
+            const auto frameBounds = sceneBounds(*frame);
+            const auto actionBounds = sceneBounds(*download);
+            return !actionBounds.isEmpty() && frameBounds.right() <= window.width() - 12 &&
+                   actionBounds.right() <= frameBounds.right() &&
+                   actionBounds.bottom() <= frameBounds.top() &&
+                   sceneBounds(*close).right() <= frameBounds.right();
+        },
+        "the compact source actions and header to fit above the content");
     capture(window, "26-pipeline-sources-compact-fr.png");
     click(window, "closePipelineInspector");
 }

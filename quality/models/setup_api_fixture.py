@@ -4,6 +4,7 @@ import json
 import sys
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
+from socketserver import TCPServer
 
 SETUP = "/v1/inference/setup"
 FINGERPRINT = "a" * 64
@@ -61,7 +62,13 @@ class SetupHandler(BaseHTTPRequestHandler):
                                "selection": SELECTION})
 
 
-with HTTPServer(("127.0.0.1", 0), SetupHandler) as server:
+class LoopbackHTTPServer(HTTPServer):
+    def server_bind(self):
+        TCPServer.server_bind(self)
+        self.server_name, self.server_port = self.server_address
+
+
+with LoopbackHTTPServer(("127.0.0.1", 0), SetupHandler) as server:
     server.completed = False
     port_file = Path(sys.argv[1])
     staged = port_file.with_suffix(".pending")

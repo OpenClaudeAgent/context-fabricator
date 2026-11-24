@@ -39,12 +39,14 @@ defaults:
 
 jobs:
   qt:
-    name: Qt checks (${{ matrix.platform }})
+    name: Qt ${{ matrix.suite }} (${{ matrix.platform }})
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 25
+    timeout-minutes: ${{ matrix.suite == 'coverage' && matrix.platform == 'macOS arm64' && 30 || 25 }}
     strategy:
       fail-fast: false
       matrix:
+        platform: [Linux x86-64, macOS arm64]
+        suite: [coverage, sanitizers]
         include:
           - platform: Linux x86-64
             runner: ubuntu-24.04
@@ -82,9 +84,13 @@ jobs:
           echo "CXX=clang++-19" >> "$GITHUB_ENV"
       - name: Install macOS build and analysis tools
         if: runner.os == 'macOS'
+        env:
+          QT_CHECK_SUITE: ${{ matrix.suite }}
         run: |
-          brew install llvm@19
-          brew --prefix llvm@19 | sed 's|$|/bin|' >> "$GITHUB_PATH"
+          if [[ $QT_CHECK_SUITE == coverage ]]; then
+            brew install llvm@19
+            brew --prefix llvm@19 | sed 's|$|/bin|' >> "$GITHUB_PATH"
+          fi
           echo "CXX=$(xcrun --find clang++)" >> "$GITHUB_ENV"
       - name: Install pinned build and complexity tools
         run: |
@@ -100,13 +106,14 @@ jobs:
             -p ctxfab-server --jobs 4 2>&1 | tee .quality/qt/coverage/backend.log
           echo "CTXFAB_TEST_BACKEND_EXECUTABLE=$PWD/.quality/qt/rust/debug/ctxfab-server" >> "$GITHUB_ENV"
       - name: Build, lint and run headless tests with coverage
+        if: matrix.suite == 'coverage'
         working-directory: desktop/qt
         run: |
           mkdir -p ../../.quality/qt/coverage
           cmake --preset coverage 2>&1 | tee ../../.quality/qt/coverage/configure.log
           cmake --build --preset coverage --parallel 4 2>&1 | tee ../../.quality/qt/coverage/build.log
       - name: Exercise the real Qt window and CLI on X11
-        if: runner.os == 'Linux'
+        if: runner.os == 'Linux' && matrix.suite == 'coverage'
         env:
           CARGO_PROFILE_DEV_DEBUG: '0'
           LLVM_PROFILE_FILE: '${{ runner.temp }}/ctxfab-window-%p.profraw'
@@ -116,7 +123,7 @@ jobs:
             "$CTXFAB_TEST_BACKEND_EXECUTABLE" .quality/qt/rust-cli/debug/ctxfab \
             2>&1 | tee .quality/qt/coverage/window.log
       - name: Replay the Qt window scenarios under Wayland
-        if: runner.os == 'Linux'
+        if: runner.os == 'Linux' && matrix.suite == 'coverage'
         run: |
           out=.quality/qt/window-wayland
           mkdir -p "$out"
@@ -124,11 +131,12 @@ jobs:
             desktop/qt/build/coverage/ctxfab_qt_window_tests "$CTXFAB_TEST_BACKEND_EXECUTABLE" "$out" --wayland \
             2>&1 | tee "$out/scenarios.log"
       - name: Exercise GitHub credentials in a Linux Secret Service session
-        if: runner.os == 'Linux'
+        if: runner.os == 'Linux' && matrix.suite == 'coverage'
         run: |
           python3 -B quality/github/secret_service_check.py "$CTXFAB_TEST_BACKEND_EXECUTABLE" \
             2>&1 | tee .quality/qt/coverage/secret-service.log
       - name: Run AddressSanitizer and UndefinedBehaviorSanitizer
+        if: matrix.suite == 'sanitizers'
         working-directory: desktop/qt
         run: |
           mkdir -p ../../.quality/qt/sanitizers
@@ -139,7 +147,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: qt-quality-${{ runner.os }}
+          name: qt-quality-${{ runner.os }}-${{ matrix.suite }}
           path: |
             .quality/qt/*/configure.log
             .quality/qt/*/build.log

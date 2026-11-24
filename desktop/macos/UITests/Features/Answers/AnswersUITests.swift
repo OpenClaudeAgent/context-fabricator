@@ -73,12 +73,12 @@ final class AnswersUITests: XCTestCase {
     app.buttons["open-answer-pipeline"].click()
     XCTAssertTrue(app.buttons["answer-pipeline-stage-index"].exists)
     XCTAssertTrue(app.buttons["answer-pipeline-stage-embedding"].exists)
-    let menu = app.descendants(matching: .any).matching(identifier: "answer-pipeline-benchmarks")
+    let menu = app.descendants(matching: .any).matching(identifier: "answer-pipeline-scope")
       .firstMatch
-    XCTAssertTrue(menu.waitForExistence(timeout: 5))
+    XCTAssertTrue(menu.wait(for: \.isHittable, toEqual: true, timeout: 5))
     menu.click()
-    XCTAssertTrue(app.menuItems["Jackson · Java"].waitForExistence(timeout: 4))
-    XCTAssertTrue(app.menuItems["bytes · Rust"].exists)
+    assertBenchmarkCorpus("FasterXML/jackson-databind", in: app)
+    assertBenchmarkCorpus("tokio-rs/bytes", in: app)
     app.typeKey(.escape, modifierFlags: [])
     pasteBenchmarkDocument(in: app)
     let question = app.textFields["answer-pipeline-question"]
@@ -96,6 +96,13 @@ final class AnswersUITests: XCTestCase {
     let file = app.staticTexts.matching(NSPredicate(format: "value == %@", "note.txt")).firstMatch
     XCTAssertTrue(file.waitForExistence(timeout: 5))
     captureWindow("Native Answers benchmarks - temporary corpus", in: app)
+  }
+
+  private func assertBenchmarkCorpus(_ repository: String, in app: XCUIApplication) {
+    let item = app.menuItems.matching(
+      NSPredicate(format: "label BEGINSWITH %@", repository)
+    ).firstMatch
+    XCTAssertTrue(item.waitForExistence(timeout: 4), "Benchmark corpus \(repository) is missing.")
   }
 
   private func pasteBenchmarkDocument(in app: XCUIApplication) {
@@ -131,11 +138,13 @@ final class AnswersUITests: XCTestCase {
     _ = try launchAnswerFixture(in: app, directory: directory)
     app.selectWorkspace("answers")
     app.buttons["open-answer-pipeline"].click()
-    let menu = app.descendants(matching: .any).matching(identifier: "answer-pipeline-benchmarks")
+    let menu = app.descendants(matching: .any).matching(identifier: "answer-pipeline-scope")
       .firstMatch
     XCTAssertTrue(menu.waitForExistence(timeout: 5))
     menu.click()
-    let jackson = app.menuItems["benchmark-corpus-FasterXML/jackson-databind"]
+    let jackson = app.menuItems.matching(
+      NSPredicate(format: "label BEGINSWITH %@", "FasterXML/jackson-databind")
+    ).firstMatch
     XCTAssertTrue(jackson.waitForExistence(timeout: 5))
     jackson.click()
     let ready = app.descendants(matching: .any).matching(identifier: "benchmark-reference-ready")
@@ -178,7 +187,7 @@ final class AnswersUITests: XCTestCase {
     _ = try launchAnswerFixture(in: app, directory: directory)
     app.selectWorkspace("answers")
     app.buttons["open-answer-pipeline"].click()
-    let menu = app.descendants(matching: .any).matching(identifier: "answer-pipeline-benchmarks")
+    let menu = app.descendants(matching: .any).matching(identifier: "answer-pipeline-scope")
       .firstMatch
     XCTAssertTrue(menu.waitForExistence(timeout: 5))
     menu.click()

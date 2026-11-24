@@ -97,11 +97,14 @@ final class ModelLibraryUITests: XCTestCase {
     XCTAssertTrue(
       q5.label.contains(2_889_514_080.formatted(.byteCount(style: .file))))
     let embedding = semanticSearchToggle(in: app)
-    XCTAssertTrue(embedding.exists)
-    XCTAssertTrue(embedding.label.contains("Qwen3 Embedding 0.6B"))
-    XCTAssertTrue(
-      embedding.label.contains(
-        639_150_592.formatted(.byteCount(style: .file))))
+    XCTAssertTrue(embedding.isHittable)
+    embedding.click()
+    let q8 = app.radioButtons.matching(
+      NSPredicate(format: "label CONTAINS %@", "Qwen3 Embedding 0.6B · Q8_0")
+    ).firstMatch
+    XCTAssertTrue(q8.waitForExistence(timeout: 5))
+    XCTAssertTrue(q8.label.contains(639_150_592.formatted(.byteCount(style: .file))))
+    embedding.click()
     q5.click()
     captureWindow("Model setup choices", in: app)
   }

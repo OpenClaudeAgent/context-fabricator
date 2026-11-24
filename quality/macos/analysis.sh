@@ -7,14 +7,20 @@ cd "$quality_root/desktop/macos"
 "$tools_dir/xcodegen/xcodegen/bin/xcodegen" generate --spec project.yml
 mkdir -p "$quality_dir/reports"
 quality_begin_report reports analysis
-build=$(quality_workspace analysis-build)
-quality_on_exit 'rm -rf -- "$build"'
+actions=(build-for-testing)
+if [[ -n ${CI:-} ]]; then
+    build="$quality_build_dir/foundation-xcode"
+    actions=(clean build-for-testing)
+else
+    build=$(quality_workspace analysis-build)
+    quality_on_exit 'rm -rf -- "$build"'
+fi
 echo "Swift analysis reports in $reports"
 if ! xcodebuild -project ContextFabricator.xcodeproj -scheme ContextFabricator \
     -destination 'platform=macOS,arch=arm64' -onlyUsePackageVersionsFromResolvedFile \
     -skipMacroValidation -skipPackagePluginValidation -enableCodeCoverage NO \
     -derivedDataPath "$build" -clonedSourcePackagesDirPath "$quality_build_dir/foundation-packages" \
-    build-for-testing 2>&1 |
+    "${actions[@]}" 2>&1 |
     sed '/^[[:space:]]*error: The command /d' > "$reports/compiler.log"; then
     grep -E -m 20 '(^xcodebuild: error:|:[0-9]+:[0-9]+: error: )' "$reports/compiler.log" || true
     echo "Xcode build failed. Compiler report in $reports/compiler.log" >&2
