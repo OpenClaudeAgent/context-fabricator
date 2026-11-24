@@ -194,10 +194,9 @@ if(BUILD_TESTING)
     target_link_libraries(ctxfab_qt_window_tests PRIVATE
         ctxfab_qt_options ctxfab_qt_ui ctxfab_qt_uiplugin Qt6::Test)
 
-    add_executable(ctxfab_app_language_tests tests/AppLanguageTests.cpp ${app_sources})
-    target_link_libraries(ctxfab_app_language_tests PRIVATE ctxfab_qt_options Qt6::Qml Qt6::Test)
-    target_include_directories(ctxfab_app_language_tests PRIVATE ${app_directory})
-    ctxfab_add_translations(ctxfab_app_language_tests)
+    # Link the same implementation and resources as the app, once per build.
+    add_executable(ctxfab_app_language_tests tests/AppLanguageTests.cpp)
+    target_link_libraries(ctxfab_app_language_tests PRIVATE ctxfab_qt_options ctxfab_qt_ui Qt6::Test)
     add_test(NAME qt-app-language COMMAND ctxfab_app_language_tests)
     set_tests_properties(qt-app-language PROPERTIES TIMEOUT 10)
 
@@ -211,69 +210,56 @@ if(BUILD_TESTING)
     add_test(NAME qt-session COMMAND ctxfab_session_tests)
     set_tests_properties(qt-session PROPERTIES TIMEOUT 15)
 
-    add_executable(ctxfab_overview_tests tests/OverviewTests.cpp ${overview_sources})
-    target_include_directories(ctxfab_overview_tests PRIVATE ${overview_directory})
+    add_executable(ctxfab_overview_tests tests/OverviewTests.cpp)
     target_link_libraries(ctxfab_overview_tests PRIVATE
-        ctxfab_qt_options ctxfab_local_api Qt6::Qml Qt6::Test)
+        ctxfab_qt_options ctxfab_qt_ui Qt6::Test)
     add_test(NAME qt-overview COMMAND ctxfab_overview_tests)
     set_tests_properties(qt-overview PROPERTIES TIMEOUT 20)
 
-    add_executable(ctxfab_preferences_tests tests/PreferencesTests.cpp ${preference_sources})
-    target_include_directories(ctxfab_preferences_tests PRIVATE ${settings_directory})
+    add_executable(ctxfab_preferences_tests tests/PreferencesTests.cpp)
     target_link_libraries(ctxfab_preferences_tests PRIVATE
-        ctxfab_qt_options ctxfab_local_api Qt6::Qml Qt6::Test)
+        ctxfab_qt_options ctxfab_qt_ui Qt6::Test)
     add_test(NAME qt-preferences COMMAND ctxfab_preferences_tests)
     set_tests_properties(qt-preferences PROPERTIES TIMEOUT 30)
 
-    add_executable(ctxfab_github_tests tests/GitHubTests.cpp ${github_sources} ${diagnostics_sources})
-    target_include_directories(ctxfab_github_tests PRIVATE ${github_directory} ${diagnostics_directory})
+    add_executable(ctxfab_github_tests tests/GitHubTests.cpp)
     target_link_libraries(ctxfab_github_tests PRIVATE
-        ctxfab_qt_options ctxfab_local_api Qt6::Qml Qt6::Test)
+        ctxfab_qt_options ctxfab_qt_ui Qt6::Test)
     target_compile_definitions(ctxfab_github_tests PRIVATE
         CTXFAB_GITHUB_FIXTURE="${CMAKE_CURRENT_SOURCE_DIR}/../../quality/github/github_fixture.py")
     add_test(NAME qt-github COMMAND ctxfab_github_tests)
     set_tests_properties(qt-github PROPERTIES TIMEOUT 100)
 
-    add_executable(ctxfab_trace_tests tests/TraceInspectorTests.cpp ${diagnostics_sources} ${telemetry_sources})
-    target_include_directories(ctxfab_trace_tests PRIVATE ${diagnostics_directory})
+    add_executable(ctxfab_trace_tests tests/TraceInspectorTests.cpp)
     target_link_libraries(ctxfab_trace_tests PRIVATE
-        ctxfab_qt_options ctxfab_local_api Qt6::Qml Qt6::Test)
+        ctxfab_qt_options ctxfab_qt_ui Qt6::Test)
     add_test(NAME qt-traces COMMAND ctxfab_trace_tests)
     set_tests_properties(qt-traces PROPERTIES TIMEOUT 20)
 
-    add_executable(ctxfab_answers_tests tests/AnswersTests.cpp ${answers_sources} ${trace_answer_sources}
-        ${answer_request_sources} ${diagnostic_log_sources} ${trace_record_sources}
-        ${settings_directory}/HistoryPreferences.cpp ${settings_directory}/HistoryPreferences.h)
-    target_include_directories(ctxfab_answers_tests PRIVATE
-        ${answers_directory} ${settings_directory} ${diagnostics_directory})
+    add_executable(ctxfab_answers_tests tests/AnswersTests.cpp)
     target_link_libraries(ctxfab_answers_tests PRIVATE
-        ctxfab_qt_options ctxfab_local_api Qt6::Qml Qt6::Test)
+        ctxfab_qt_options ctxfab_qt_ui Qt6::Test)
     target_compile_definitions(ctxfab_answers_tests PRIVATE
         CTXFAB_ANSWER_FIXTURE="${CMAKE_CURRENT_SOURCE_DIR}/../../quality/answers/mock_worker.py")
     add_test(NAME qt-answers COMMAND ctxfab_answers_tests)
     set_tests_properties(qt-answers PROPERTIES TIMEOUT 40)
 
-    add_executable(ctxfab_models_tests tests/ModelLibraryTests.cpp ${model_sources})
-    target_include_directories(ctxfab_models_tests PRIVATE ${models_directory})
+    add_executable(ctxfab_models_tests tests/ModelLibraryTests.cpp)
     target_link_libraries(ctxfab_models_tests PRIVATE
-        ctxfab_qt_options ctxfab_local_api Qt6::Qml Qt6::Test)
+        ctxfab_qt_options ctxfab_qt_ui Qt6::Test)
     target_compile_definitions(ctxfab_models_tests PRIVATE
         CTXFAB_HUB_FIXTURE="${CMAKE_CURRENT_SOURCE_DIR}/../../quality/models/hugging_face_fixture.py")
     add_test(NAME qt-models COMMAND ctxfab_models_tests)
     set_tests_properties(qt-models PROPERTIES TIMEOUT 65)
 
     add_executable(ctxfab_pipeline_tests tests/PipelineTests.cpp)
-    target_include_directories(ctxfab_pipeline_tests PRIVATE
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/features/pipeline" ${answers_directory})
     target_link_libraries(ctxfab_pipeline_tests PRIVATE ctxfab_qt_options ctxfab_qt_ui Qt6::Test)
     add_test(NAME qt-pipeline COMMAND ctxfab_pipeline_tests)
     set_tests_properties(qt-pipeline PROPERTIES TIMEOUT 50)
 
-    add_executable(ctxfab_inference_tests tests/InferenceControlsTests.cpp ${inference_control_sources}
-        ${models_directory}/LibraryModel.cpp ${models_directory}/LibraryModel.h)
-    target_include_directories(ctxfab_inference_tests PRIVATE ${models_directory})
+    add_executable(ctxfab_inference_tests tests/InferenceControlsTests.cpp)
     target_link_libraries(ctxfab_inference_tests PRIVATE
-        ctxfab_qt_options ctxfab_local_api Qt6::Qml Qt6::Test)
+        ctxfab_qt_options ctxfab_qt_ui Qt6::Test)
     add_test(NAME qt-inference-controls COMMAND ctxfab_inference_tests)
     set_tests_properties(qt-inference-controls PROPERTIES TIMEOUT 45)
 endif()

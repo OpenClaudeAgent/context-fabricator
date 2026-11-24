@@ -1,19 +1,8 @@
-name: Quality
+name: macOS qualification
 
 on:
   push:
-    paths: &macos_inputs
-      - 'backend/**'
-      - 'cli/**'
-      - 'contracts/**'
-      - 'desktop/macos/**'
-      - 'quality/**'
-      - 'Makefile'
-      - 'rust-toolchain.toml'
-      - 'LICENSE'
-      - '.github/workflows/quality.yml'
-  pull_request:
-    paths: *macos_inputs
+    tags: ['v*']
   workflow_dispatch:
 
 permissions:
@@ -71,8 +60,6 @@ jobs:
         run: make check-product
       - name: Verify packaged launcher, helper and CLI
         run: make check-packaged-smoke
-      - name: Qualify runtime diagnostics and controlled failures
-        run: make qualify-runtime-diagnostics
       - name: Verify packaged SQLite migration and corpus retrieval
         run: make check-packaged-corpus
       - name: Qualify packaged sync and outbound admission
@@ -86,6 +73,29 @@ jobs:
           name: macos-product-reports
           path: .quality/reports/
           if-no-files-found: error
+          include-hidden-files: true
+          retention-days: 14
+
+  runtime-diagnostics:
+    name: macOS runtime diagnostics and controlled failures
+    runs-on: macos-26
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install app and integration tools
+        run: |
+          brew install k6 uv
+          make bootstrap-app
+      - name: Qualify lifecycle, crash reporting and sanitizers
+        run: make qualify-runtime-diagnostics
+      - name: Retain diagnostic reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: macos-runtime-diagnostics
+          path: .quality/reports/
           include-hidden-files: true
           retention-days: 14
 

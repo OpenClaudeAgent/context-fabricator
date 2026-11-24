@@ -1,24 +1,8 @@
-name: Qt desktop quality
+name: Qt desktop qualification
 
 on:
   push:
-    paths: &qt_inputs
-      - 'desktop/qt/**'
-      - 'desktop/macos/App/Localizable.xcstrings'
-      - 'desktop/macos/App/Assets.xcassets/AppIcon.appiconset/**'
-      - 'desktop/macos/App/Features/Diagnostics/Resources/PipelineBenchmark*.json'
-      - 'contracts/**'
-      - 'backend/**'
-      - 'cli/**'
-      - 'quality/answers/**'
-      - 'quality/github/**'
-      - 'quality/models/**'
-      - 'quality/release/**'
-      - 'rust-toolchain.toml'
-      - 'LICENSE'
-      - '.github/workflows/qt.yml'
-  pull_request:
-    paths: *qt_inputs
+    tags: ['v*']
   workflow_dispatch:
     inputs:
       native_inference:
@@ -42,6 +26,8 @@ jobs:
     name: Qt ${{ matrix.suite }} (${{ matrix.platform }})
     runs-on: ${{ matrix.runner }}
     timeout-minutes: ${{ matrix.suite == 'coverage' && matrix.platform == 'macOS arm64' && 30 || 25 }}
+    env:
+      CTEST_PARALLEL_LEVEL: '3'
     strategy:
       fail-fast: false
       matrix:

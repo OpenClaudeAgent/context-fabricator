@@ -1,0 +1,80 @@
+name: CI Qt
+
+on:
+  push:
+    branches: [main]
+    paths: &qt_inputs
+      - 'desktop/qt/**'
+      - 'desktop/macos/App/Localizable.xcstrings'
+      - 'desktop/macos/App/Assets.xcassets/AppIcon.appiconset/**'
+      - 'desktop/macos/App/Features/Diagnostics/Resources/PipelineBenchmark*.json'
+      - 'backend/**'
+      - 'contracts/**'
+      - 'quality/answers/mock_worker.py'
+      - 'quality/github/github_fixture.py'
+      - 'quality/models/hugging_face_fixture.py'
+      - 'rust-toolchain.toml'
+      - '.github/workflows/ci-qt.yml'
+  pull_request:
+    paths: *qt_inputs
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qt:
+    name: Qt Linux headless tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      CXX: clang++-19
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_INCREMENTAL: '0'
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@1bcf9fb12cf4aa7d266a90ae39939e61372fe520 # v5.4.0
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Install Qt SDK
+        uses: jurplel/install-qt-action@bcb88e3bed2e992f5f9e24c0f9e364a231d278eb # v4.4.0
+        with:
+          version: '6.12.0'
+          arch: linux_gcc_64
+          archives: qtbase qtdeclarative qttools icu
+          aqtversion: '==3.3.0'
+          cache: true
+      - name: Install compiler and Qt runtime dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y clang-19 libgl-dev libegl-dev libxkbcommon-dev \
+            libxkbcommon-x11-0 libglib2.0-0t64 libxcb-cursor0 libxcb-icccm4 \
+            libxcb-keysyms1 libxcb-shape0 libssl-dev pkg-config fonts-dejavu-core
+          python3 -m venv "$RUNNER_TEMP/qt-tools"
+          "$RUNNER_TEMP/qt-tools/bin/pip" install --only-binary=:all: \
+            -r desktop/qt/requirements-quality.txt
+          echo "$RUNNER_TEMP/qt-tools/bin" >> "$GITHUB_PATH"
+      - name: Build the real Rust backend
+        run: |
+          cargo build --locked --manifest-path backend/Cargo.toml -p ctxfab-server
+          echo "CTXFAB_TEST_BACKEND_EXECUTABLE=$PWD/backend/target/debug/ctxfab-server" >> "$GITHUB_ENV"
+      - name: Build the Qt app and tests
+        working-directory: desktop/qt
+        run: |
+          cmake --preset dev -DCMAKE_CXX_FLAGS_DEBUG=-g0
+          cmake --build --preset dev --parallel 4 --target all ctxfab_qt_window_tests
+      - name: Test Qt components and replay the window offscreen
+        run: |
+          ctest --test-dir desktop/qt/build/dev --parallel 3 --no-tests=error --output-on-failure
+          python3 -B desktop/qt/tests/run_window_scenarios.py \
+            desktop/qt/build/dev/ctxfab_qt_window_tests "$CTXFAB_TEST_BACKEND_EXECUTABLE" \
+            "$RUNNER_TEMP/qt-windows" --offscreen

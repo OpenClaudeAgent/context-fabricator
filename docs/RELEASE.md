@@ -21,4 +21,6 @@ Context Fabricator is in preview. The native macOS project declares version `0.1
 
 ## Evidence for publication
 
+Run the macOS and Qt qualification workflows on the candidate branch and check that both runs report the candidate commit. Version tags matching `v*` trigger both workflows as well. The regular CI verifies the headless tests for each changed component.
+
 Record the source revision, package checksum, platform, installation and upgrade results, and one verified answer from each package in scope. Keep the fixture UI results and real-weight inference results identified in the release report. Include the packaged third-party notices and model download requirements with the release assets. Use a fresh pair of native and Qt screenshots when qualifying the final candidate. [Quality checks](../quality/README.md)

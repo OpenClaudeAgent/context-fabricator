@@ -1,0 +1,49 @@
+name: CI Rust
+
+on:
+  push:
+    branches: [main]
+    paths: &rust_inputs
+      - 'backend/**'
+      - 'cli/**'
+      - 'contracts/**'
+      - 'quality/answers/mock_worker.py'
+      - 'quality/github/github_fixture.py'
+      - 'quality/github/*.json'
+      - 'quality/github/reference-corpora.sh'
+      - 'quality/models/hugging_face_fixture.py'
+      - 'quality/models/setup_api_fixture.py'
+      - 'quality/retrieval/corpus.json'
+      - 'rust-toolchain.toml'
+      - '.github/workflows/ci-rust.yml'
+  pull_request:
+    paths: *rust_inputs
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rust:
+    name: Rust and CLI tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      CARGO_PROFILE_TEST_DEBUG: '0'
+      CARGO_INCREMENTAL: '0'
+      RUSTFLAGS: -D warnings
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Check formatting
+        run: |
+          cargo fmt --all --check --manifest-path backend/Cargo.toml
+          cargo fmt --all --check --manifest-path cli/Cargo.toml
+      - name: Test the backend and CLI
+        run: |
+          cargo test --locked --workspace --manifest-path backend/Cargo.toml
+          cargo test --locked --workspace --manifest-path cli/Cargo.toml

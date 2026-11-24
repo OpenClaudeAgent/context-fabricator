@@ -9,8 +9,12 @@ mkdir -p "$quality_dir/reports"
 quality_begin_report reports lifecycle-ui
 echo "Lifecycle XCUI and performance reports in $reports"
 
-work=$(quality_workspace lifecycle-ui)
-quality_on_exit 'rm -rf -- "$work"'
+if [[ -n ${CI:-} ]]; then
+    work="$quality_build_dir/foundation-xcode"
+else
+    work=$(quality_workspace lifecycle-ui)
+    quality_on_exit 'rm -rf -- "$work"'
+fi
 
 xcode=(xcodebuild -project ContextFabricator.xcodeproj -scheme ContextFabricator
     -destination 'platform=macOS,arch=arm64' -onlyUsePackageVersionsFromResolvedFile
@@ -20,7 +24,12 @@ xcode=(xcodebuild -project ContextFabricator.xcodeproj -scheme ContextFabricator
     -parallel-testing-enabled NO -enableCodeCoverage NO)
 suite=ContextFabricatorUITests/BackendLifecycleUITests
 performance="$suite/testLaunchToBackendReadyPerformance"
-if ! "${xcode[@]}" -only-testing:"$performance" -resultBundlePath "$reports/Performance.xcresult" test \
+if ! "${xcode[@]}" build-for-testing > "$reports/build.log" 2>&1; then
+    tail -n 65 "$reports/build.log" >&2
+    exit 1
+fi
+if ! "${xcode[@]}" -only-testing:"$performance" \
+    -resultBundlePath "$reports/Performance.xcresult" test-without-building \
     > "$reports/performance.log" 2>&1; then
     tail -n 65 "$reports/performance.log" >&2
     exit 1
@@ -39,7 +48,7 @@ jq -e --arg identifier "${performance#*/}()" '
 status=0
 TEST_RUNNER_CTXFAB_UI_PROBE_MISSING_BACKEND=1 "${xcode[@]}" \
     -only-testing:"$suite/testPackagedBackendBecomesReady" \
-    -resultBundlePath "$reports/RejectedAssertion.xcresult" test \
+    -resultBundlePath "$reports/RejectedAssertion.xcresult" test-without-building \
     > "$reports/ui-failure.log" 2>&1 || status=$?
 if [[ $status != 65 ]]; then
     tail -n 65 "$reports/ui-failure.log" >&2

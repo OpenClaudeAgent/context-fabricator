@@ -1,0 +1,55 @@
+name: CI Swift
+
+on:
+  push:
+    branches: [main]
+    paths: &swift_inputs
+      - 'desktop/macos/**'
+      - 'backend/**'
+      - 'contracts/**'
+      - 'quality/answers/mock_worker.py'
+      - 'quality/github/github_fixture.py'
+      - 'quality/models/hugging_face_fixture.py'
+      - 'quality/models/setup_api_fixture.py'
+      - 'rust-toolchain.toml'
+      - '.github/workflows/ci-swift.yml'
+  pull_request:
+    paths: *swift_inputs
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  swift:
+    name: Swift package tests and format
+    runs-on: macos-26
+    timeout-minutes: 10
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_INCREMENTAL: '0'
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Check Swift formatting
+        working-directory: desktop/macos
+        run: |
+          xcrun swift-format lint --strict --configuration .swift-format --recursive \
+            App UITests Client/Package.swift Client/Sources Client/Tests
+      - name: Build the real Rust backend
+        run: cargo build --locked --manifest-path backend/Cargo.toml -p ctxfab-server
+      - name: Exercise the Swift package and the loopback API
+        run: |
+          log="$RUNNER_TEMP/swift-tests.log"
+          CTXFAB_TEST_BACKEND_EXECUTABLE="$PWD/backend/target/debug/ctxfab-server" \
+            xcrun swift test --package-path desktop/macos/Client \
+              --only-use-versions-from-resolved-file --jobs 4 2>&1 | tee "$log"
+          grep -F 'Test generatedClientReadsAndUpdatesTheLiveRustService() passed' "$log"
