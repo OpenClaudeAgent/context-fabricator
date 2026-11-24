@@ -9,6 +9,7 @@ include(CTest)
 option(CTXFAB_QUALITY_TOOLS "Require the static and formatting tools" OFF)
 option(CTXFAB_SANITIZERS "Enable AddressSanitizer and UndefinedBehaviorSanitizer" OFF)
 option(CTXFAB_COVERAGE "Instrument the first-party C++ and enable the coverage gate" OFF)
+option(CTXFAB_OPENAPI_UNITY "Compile generated OpenAPI models in small batches" OFF)
 option(CTXFAB_LINUX_DEPLOYMENT "Install a standalone Linux Qt application tree" OFF)
 
 if(CTXFAB_LINUX_DEPLOYMENT)

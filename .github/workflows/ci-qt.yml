@@ -70,7 +70,7 @@ jobs:
       - name: Build the Qt app and tests
         working-directory: desktop/qt
         run: |
-          cmake --preset dev -DCMAKE_CXX_FLAGS_DEBUG=-g0
+          cmake --preset dev -DCMAKE_CXX_FLAGS_DEBUG=-g0 -DCTXFAB_OPENAPI_UNITY=ON
           cmake --build --preset dev --parallel 4 --target all ctxfab_qt_window_tests
       - name: Test Qt components and replay the window offscreen
         run: |

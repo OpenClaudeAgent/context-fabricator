@@ -154,6 +154,13 @@ ${after_handler}")
 
     file(GLOB sources "${generated}/client/*.cpp" "${generated}/client/*.h")
     add_library(ctxfab_openapi STATIC ${sources})
+    if(CTXFAB_OPENAPI_UNITY)
+        # The generated models repeatedly include the same Qt and OpenAPI headers.
+        set_target_properties(ctxfab_openapi PROPERTIES UNITY_BUILD ON UNITY_BUILD_BATCH_SIZE 8)
+        set_source_files_properties(
+            "${generated}/client/DefaultApi.cpp" "${generated}/client/HttpRequest.cpp"
+            PROPERTIES SKIP_UNITY_BUILD_INCLUSION ON)
+    endif()
     target_include_directories(ctxfab_openapi SYSTEM PUBLIC "${generated}/client")
     target_link_libraries(ctxfab_openapi PUBLIC Qt6::Core Qt6::Gui Qt6::Network)
 endfunction()
