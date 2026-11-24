@@ -20,7 +20,7 @@ Coverage gates require 90% of first-party lines in each Rust workspace, the Swif
 
 Pull requests and pushes to `main` run the applicable [Rust](../.github/workflows/ci-rust.yml), [Swift](../.github/workflows/ci-swift.yml) and [Qt](../.github/workflows/ci-qt.yml) checks in parallel. The target is ten minutes from runner allocation. All three use real tests, and the Swift and Qt suites exercise a Rust backend over loopback. Qt also replays the window scenarios offscreen on Linux.
 
-Run both qualification workflows on the release candidate revision. Version tags matching `v*` also trigger qualification. macOS runs the product, diagnostic and XCUI suites, merges the native coverage, and verifies the Release ZIP. Qt runs static analysis, coverage and sanitizers on Linux and macOS, and verifies the Debian install on X11 and Wayland. Download the reports from the qualification runs.
+The [Release candidate workflow](../.github/workflows/release.yml) runs both qualifications on the same commit. macOS runs the product, diagnostic and XCUI suites, merges the native coverage, and verifies the Release ZIP. Qt runs static analysis, coverage and sanitizers on Linux and macOS, and verifies the Debian install on X11 and Wayland. Each qualification can also be run individually for troubleshooting.
 
 To include the two XCUI scenarios that download pinned public repositories, run `CTXFAB_UI_SHARD=answers CTXFAB_XCTEST_LIVE_BENCHMARK=1 make test-native-ui` in a macOS desktop session.
 

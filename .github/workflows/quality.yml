@@ -1,16 +1,11 @@
 name: macOS qualification
 
 on:
-  push:
-    tags: ['v*']
+  workflow_call:
   workflow_dispatch:
 
 permissions:
   contents: read
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event_name == 'workflow_dispatch' && github.run_id || github.ref }}
-  cancel-in-progress: true
 
 defaults:
   run:
@@ -118,6 +113,16 @@ jobs:
             2>&1 | tee .quality/reports/release-rust-notices.log
       - name: Verify the Release ZIP and embedded binaries
         run: make qualify-release 2>&1 | tee .quality/reports/release-package.log
+      - name: Retain the verified macOS candidate
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-macos-arm64
+          path: |
+            .quality/reports/release-package.*/package/*.zip
+            .quality/reports/release-package.*/package/manifest.json
+          if-no-files-found: error
+          include-hidden-files: true
+          retention-days: 14
       - name: Retain release verification results
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

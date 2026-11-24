@@ -1,8 +1,14 @@
 name: Qt desktop qualification
 
 on:
-  push:
-    tags: ['v*']
+  workflow_call:
+    inputs:
+      native_inference:
+        type: boolean
+        default: false
+      versioned_package:
+        type: boolean
+        default: false
   workflow_dispatch:
     inputs:
       native_inference:
@@ -12,10 +18,6 @@ on:
 
 permissions:
   contents: read
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event_name == 'workflow_dispatch' && github.run_id || github.ref }}
-  cancel-in-progress: true
 
 defaults:
   run:
@@ -96,7 +98,7 @@ jobs:
         working-directory: desktop/qt
         run: |
           mkdir -p ../../.quality/qt/coverage
-          cmake --preset coverage 2>&1 | tee ../../.quality/qt/coverage/configure.log
+          cmake --preset coverage -DCTXFAB_OPENAPI_UNITY=ON 2>&1 | tee ../../.quality/qt/coverage/configure.log
           cmake --build --preset coverage --parallel 4 2>&1 | tee ../../.quality/qt/coverage/build.log
       - name: Exercise the real Qt window and CLI on X11
         if: runner.os == 'Linux' && matrix.suite == 'coverage'
@@ -126,7 +128,7 @@ jobs:
         working-directory: desktop/qt
         run: |
           mkdir -p ../../.quality/qt/sanitizers
-          cmake --preset sanitizers 2>&1 | tee ../../.quality/qt/sanitizers/configure.log
+          cmake --preset sanitizers -DCTXFAB_OPENAPI_UNITY=ON 2>&1 | tee ../../.quality/qt/sanitizers/configure.log
           cmake --build --preset sanitizers --parallel 4 2>&1 | tee ../../.quality/qt/sanitizers/build.log
           ctest --preset sanitizers
       - name: Retain Qt quality evidence
@@ -214,10 +216,11 @@ jobs:
       - name: Deploy Qt and build the installable package
         env:
           CXX: clang++-19
+          VERSIONED_PACKAGE: ${{ inputs.versioned_package || github.ref_type == 'tag' }}
         run: |
           work="$PWD/.quality/qt/linux-runtime"
           cd desktop/qt
-          cmake --preset linux-release 2>&1 | tee "$work/qt-configure.log"
+          cmake --preset linux-release -DCTXFAB_OPENAPI_UNITY=ON 2>&1 | tee "$work/qt-configure.log"
           cmake --build --preset linux-release --parallel 4 2>&1 | tee "$work/qt-build.log"
           cmake --install build/linux-release --prefix "$work/qt-tree" --strip \
             2>&1 | tee "$work/qt-install.log"
@@ -226,10 +229,11 @@ jobs:
             'https://raw.githubusercontent.com/unicode-org/icu/release-73-2/icu4c/LICENSE' \
             --output "$work/ICU-73.2.txt"
           version=$(python3 -c 'import tomllib; print(tomllib.load(open("cli/Cargo.toml", "rb"))["package"]["version"])')
+          if [[ $VERSIONED_PACKAGE != true ]]; then version="$version~ci$GITHUB_RUN_NUMBER"; fi
           SOURCE_DATE_EPOCH=$(git show -s --format=%ct HEAD) python3 -B desktop/qt/packaging/stage_linux.py \
             --qt-tree "$work/qt-tree" --qt-sdk "$QT_ROOT_DIR" --backend "$work/rust/release/ctxfab-server" \
             --cli "$work/cli/release/ctxfab" --runtime "$work/runtime" --icu-license "$work/ICU-73.2.txt" \
-            --version "$version~ci$GITHUB_RUN_NUMBER" "$work/package" 2>&1 | tee "$work/deb-build.log"
+            --version "$version" "$work/package" 2>&1 | tee "$work/deb-build.log"
       - name: Install and exercise X11 and Wayland without a Qt SDK
         env:
           NATIVE_INFERENCE: ${{ inputs.native_inference }}
@@ -290,7 +294,13 @@ jobs:
           path: |
             .quality/qt/linux-runtime/*.log
             .quality/qt/linux-runtime/runtime/*.json
-            .quality/qt/linux-runtime/package/*.deb
           if-no-files-found: warn
           include-hidden-files: true
+          retention-days: 14
+      - name: Retain the verified Debian candidate
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-linux-amd64
+          path: .quality/qt/linux-runtime/package/*.deb
+          if-no-files-found: error
           retention-days: 14
