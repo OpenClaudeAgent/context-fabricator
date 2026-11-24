@@ -111,7 +111,8 @@ struct GitHubSheet<Content: View, Buttons: View>: View {
 
   private var tallContentHeight: CGFloat? {
     guard prefersTallContent else { return nil }
-    let screenHeight = NSApp.keyWindow?.screen?.visibleFrame.height
+    let screenHeight =
+      NSApp.keyWindow?.screen?.visibleFrame.height
       ?? NSScreen.main?.visibleFrame.height ?? 820
     // Leave room for the parent toolbar, sheet header, feedback, and buttons.
     return min(550, max(340, screenHeight - 230))
