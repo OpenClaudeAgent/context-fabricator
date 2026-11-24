@@ -72,11 +72,365 @@ async fn request(
     path: &str,
     authenticated: bool,
 ) -> Result<axum::response::Response, Box<dyn Error>> {
-    let mut request = Request::builder().uri(path);
+    send(app, "GET", path, authenticated).await
+}
+
+async fn send(
+    app: &Router,
+    method: &str,
+    path: &str,
+    authenticated: bool,
+) -> Result<axum::response::Response, Box<dyn Error>> {
+    let mut request = Request::builder()
+        .uri(path)
+        .method(method)
+        .header("user-agent", "PrivateAgentName");
     if authenticated {
         request = request.header("authorization", "Bearer trace-fixture");
     }
     Ok(app.clone().oneshot(request.body(Body::empty())?).await?)
+}
+
+#[tokio::test]
+async fn ingress_traces_routing_and_auth_outcomes_without_recording_telemetry_reads()
+-> Result<(), Box<dyn Error>> {
+    let directory = tempfile::tempdir()?;
+    let telemetry = Arc::new(EmbeddedTelemetry::open(
+        &directory.path().join("trace.sqlite3"),
+        24,
+        Limits::default(),
+    )?);
+    let app = http::router_with_services(
+        Arc::new(SqliteStore::open(Path::new(":memory:"))?),
+        "trace-fixture",
+        http::Services {
+            telemetry: Some(telemetry.clone()),
+            ..http::Services::default()
+        },
+    );
+    let cases = ingress_cases();
+    let mut ids = Vec::new();
+    for (method, path, auth, status, ..) in cases {
+        let response = send(&app, method, path, auth).await?;
+        assert_eq!(response.status().as_u16(), status);
+        ids.push(
+            response
+                .headers()
+                .get("x-context-trace-id")
+                .ok_or("expected trace header")?
+                .to_str()?
+                .to_owned(),
+        );
+    }
+    for method in ["GET", "HEAD"] {
+        for path in [
+            "/v1/telemetry",
+            "/v1/telemetry/logs",
+            "/v1/telemetry/answer-usage",
+        ] {
+            assert!(
+                send(&app, method, path, true)
+                    .await?
+                    .headers()
+                    .get("x-context-trace-id")
+                    .is_none()
+            );
+        }
+    }
+    let (status, usage) = get(&app, "/v1/telemetry/answer-usage", true).await?;
+    assert_eq!(status, 200);
+    assert_eq!(usage, json!({"groups": []}));
+    telemetry.shutdown();
+    let (_, summary) = get(&app, "/v1/telemetry", true).await?;
+    let recent = summary["traces"]
+        .as_array()
+        .ok_or("expected recent traces")?;
+    assert_eq!(recent.len(), cases.len());
+    let (_, logs) = get(&app, "/v1/telemetry/logs", true).await?;
+    let records = logs["records"].as_array().ok_or("log records")?;
+    assert_eq!(records.len(), cases.len());
+    for ((method, _, _, status, route, problem), id) in cases.into_iter().zip(ids) {
+        let path = format!("/v1/telemetry/traces/{id}");
+        assert!(
+            request(&app, &path, true)
+                .await?
+                .headers()
+                .get("x-context-trace-id")
+                .is_none()
+        );
+        let (_, trace) = get(&app, &path, true).await?;
+        assert_eq!(trace["spans"].as_array().map(Vec::len), Some(1));
+        let root = &trace["spans"][0];
+        let method = if method == "PRIVATE-VERB" {
+            "OTHER"
+        } else {
+            method
+        };
+        assert_eq!(root["httpMethod"], method);
+        assert_eq!(root["httpStatus"], status);
+        assert_eq!(root["clientKind"], "other");
+        assert_eq!(root["httpRoute"].as_str(), route);
+        assert_eq!(root["problemCode"].as_str(), problem);
+        let preview = recent
+            .iter()
+            .find(|item| item["traceId"].as_str() == Some(id.as_str()))
+            .ok_or("expected correlated trace summary")?;
+        for field in [
+            "displayName",
+            "operation",
+            "httpMethod",
+            "httpRoute",
+            "httpStatus",
+            "problemCode",
+        ] {
+            assert_eq!(preview[field], root[field], "{field} for {id}");
+        }
+        assert_request_log(records, &id, root)?;
+        assert!(root.get("parentSpanId").is_none());
+        assert!(!trace.to_string().contains("private-"));
+        assert!(!trace.to_string().contains("PRIVATE-VERB"));
+        assert!(!trace.to_string().contains("PrivateAgentName"));
+    }
+    assert!(!summary.to_string().contains("private-"));
+    assert_log_search_uses_recorded_operation(&app).await
+}
+
+async fn assert_log_search_uses_recorded_operation(app: &Router) -> Result<(), Box<dyn Error>> {
+    for (query, status) in [
+        ("query=GET%20%2Fv1%2Fstatus&level=info", 200),
+        ("query=route_not_found&level=error", 404),
+    ] {
+        let (_, page) = get(app, &format!("/v1/telemetry/logs?{query}"), true).await?;
+        let records = page["records"].as_array().ok_or("filtered records")?;
+        assert_eq!(records.len(), 1);
+        assert_eq!(records[0]["httpStatus"], status);
+    }
+    Ok(())
+}
+
+fn assert_request_log(records: &[Value], id: &str, root: &Value) -> Result<(), Box<dyn Error>> {
+    let log = records
+        .iter()
+        .find(|item| item["traceId"] == id)
+        .ok_or("request log")?;
+    for field in [
+        "spanId",
+        "displayName",
+        "httpMethod",
+        "httpRoute",
+        "httpStatus",
+        "problemCode",
+        "value",
+    ] {
+        assert_eq!(log[field], root[field], "{field} for {id}");
+    }
+    assert_eq!(
+        log["level"],
+        if root["level"] == "ok" {
+            "info"
+        } else {
+            "error"
+        }
+    );
+    let encoded = log.to_string();
+    for private in [
+        "private",
+        "PRIVATE-VERB",
+        "PrivateAgentName",
+        "trace-fixture",
+    ] {
+        assert!(!encoded.contains(private), "{id} retained private data");
+    }
+    Ok(())
+}
+
+type IngressCase = (
+    &'static str,
+    &'static str,
+    bool,
+    u16,
+    Option<&'static str>,
+    Option<&'static str>,
+);
+
+#[tokio::test]
+async fn usage_groups_retained_answer_requests_and_measures_only_published_latency()
+-> Result<(), Box<dyn Error>> {
+    let directory = tempfile::tempdir()?;
+    let path = directory.path().join("signals.sqlite3");
+    let limits = Limits {
+        max_rows_per_signal: 1000,
+        ..Limits::default()
+    };
+    let telemetry = Arc::new(EmbeddedTelemetry::open(&path, 24, limits)?);
+    let db = rusqlite::Connection::open(&path)?;
+    let now: i64 = db.query_row("SELECT unixepoch()", [], |row| row.get(0))?;
+    let model = ctxfab_inference::generation::GENERATION_PROFILE;
+    for (offset, duration) in (1..=20).map(|n| (n, n * 10)) {
+        insert_usage_sample(
+            &db,
+            (
+                offset,
+                now - 3,
+                duration,
+                Some(200),
+                Some("Cited answer published"),
+                None,
+            ),
+            model,
+        )?;
+    }
+    for (offset, status, event) in [
+        (
+            21,
+            Some(200),
+            Some("Answer withheld for insufficient evidence"),
+        ),
+        (22, Some(409), Some("Answer request cancelled")),
+        (23, Some(503), None),
+        (24, None, None),
+        (25, Some(401), None),
+    ] {
+        insert_usage_sample(&db, (offset, now - 1, 9_999, status, event, None), model)?;
+    }
+    insert_usage_sample(
+        &db,
+        (
+            26,
+            now - 90_000,
+            999,
+            Some(200),
+            Some("Cited answer published"),
+            None,
+        ),
+        model,
+    )?;
+    insert_usage_sample(
+        &db,
+        (
+            27,
+            now,
+            999,
+            Some(200),
+            Some("Cited answer published"),
+            Some("fedcba9876543210"),
+        ),
+        model,
+    )?;
+    db.execute(
+        "INSERT INTO signals(signal, timestamp, name, value, trace_id)
+         VALUES('trace', ?1, 'api_answer', 999, 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb')",
+        [now - 2],
+    )?;
+    db.execute(
+        "WITH RECURSIVE attempts(n) AS (SELECT 1 UNION ALL SELECT n+1 FROM attempts WHERE n<505)
+         INSERT INTO signals(signal, timestamp, name, span_timing)
+         SELECT 'trace', ?1, 'api_answer', '{\"httpStatus\":401}' FROM attempts",
+        [now],
+    )?;
+    let app = http::router_with_services(
+        Arc::new(SqliteStore::open(Path::new(":memory:"))?),
+        "trace-fixture",
+        http::Services {
+            telemetry: Some(telemetry.clone()),
+            ..http::Services::default()
+        },
+    );
+    let path = "/v1/telemetry/answer-usage";
+    assert_eq!(get(&app, path, false).await?.0, 401);
+    let (status, report) = get(&app, path, true).await?;
+    assert_eq!(status, 200);
+    assert_eq!(
+        report,
+        json!({
+            "firstAt": now - 3, "lastAt": now - 1,
+            "groups": [
+                {"client": "desktop", "modelProfile": model, "published": 20, "abstained": 1,
+                 "cancelled": 1, "failed": 1, "unknown": 1, "p50Micros": 100, "p95Micros": 190,
+                 "latestTraceId": format!("{:032x}", 24)},
+                {"client": "other", "published": 0, "abstained": 0, "cancelled": 0,
+                 "failed": 0, "unknown": 1, "latestTraceId": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}
+            ]
+        })
+    );
+    telemetry.shutdown();
+    Ok(())
+}
+
+type UsageFixture<'a> = (u32, i64, u32, Option<u16>, Option<&'a str>, Option<&'a str>);
+
+fn insert_usage_sample(
+    db: &rusqlite::Connection,
+    (id, time, elapsed, status, event, parent): UsageFixture<'_>,
+    model: &str,
+) -> rusqlite::Result<()> {
+    let timing = json!({
+        "startedAtUnixMicros": time * 1_000_000,
+        "httpStatus": status,
+        "clientKind": "desktop",
+        "modelProfile": model,
+        "events": event.into_iter().map(|name| json!({"name":name,"offsetMicros":0})).collect::<Vec<_>>()
+    });
+    db.execute(
+        "INSERT INTO signals(signal, timestamp, name, value, trace_id, span_id, parent_span_id, span_timing)
+         VALUES('trace', ?1, 'api_answer', ?2, ?3, ?4, ?5, ?6)",
+        rusqlite::params![time, elapsed, format!("{id:032x}"), format!("{id:016x}"), parent, timing.to_string()],
+    )?;
+    Ok(())
+}
+
+fn ingress_cases() -> [IngressCase; 7] {
+    [
+        (
+            "GET",
+            "/v1/status?secret-query=private",
+            true,
+            200,
+            Some("/v1/status"),
+            None,
+        ),
+        (
+            "GET",
+            "/v1/search?private-search=secret",
+            false,
+            401,
+            Some("/v1/search"),
+            Some("unauthorized"),
+        ),
+        (
+            "PATCH",
+            "/v1/search",
+            true,
+            405,
+            Some("/v1/search"),
+            Some("method_not_allowed"),
+        ),
+        (
+            "GET",
+            "/v1/answer-history/private-segment",
+            true,
+            400,
+            Some("/v1/answer-history/{id}"),
+            Some("invalid_answer_history_input"),
+        ),
+        (
+            "PRIVATE-VERB",
+            "/unmatched-private-segment",
+            false,
+            404,
+            None,
+            Some("route_not_found"),
+        ),
+        ("HEAD", "/v1/status", true, 200, Some("/v1/status"), None),
+        (
+            "PATCH",
+            "/v1/search",
+            false,
+            401,
+            Some("/v1/search"),
+            Some("unauthorized"),
+        ),
+    ]
 }
 
 #[tokio::test]
@@ -125,6 +479,7 @@ async fn search_trace_explains_operations_and_branch_without_query_text()
         .ok_or("missing event offset")?;
     let duration = root["value"].as_i64().ok_or("missing duration")?;
     assert!((0..=duration).contains(&offset));
+    assert!(root_start + offset <= child_start);
     assert!(page["logs"][0].get("operation").is_none());
     assert_eq!(page["logs"][0]["spanId"], root["spanId"]);
 
@@ -132,6 +487,7 @@ async fn search_trace_explains_operations_and_branch_without_query_text()
     assert_eq!(status, 200);
     let rejected_span = &page["spans"][0];
     assert_eq!(rejected_span["level"], "error");
+    assert_eq!(rejected_span["httpStatus"], 400);
     assert_eq!(rejected_span["events"][0]["name"], "Invalid search request");
     assert_eq!(page["spans"].as_array().map(Vec::len), Some(1));
     Ok(())

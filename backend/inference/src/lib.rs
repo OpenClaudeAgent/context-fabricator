@@ -1,12 +1,13 @@
 //! Typed embedding inputs and outputs, plus adapters for local inference runtimes.
 
-pub mod artifacts;
 pub mod generation;
 pub mod llama_cpp;
 mod qwen3;
 pub mod supervisor;
 
-pub use qwen3::{MAX_PASSAGE_BYTES, PROFILE};
+pub use qwen3::{
+    ALTERNATE_EMBEDDING_PROFILE, ALTERNATE_EMBEDDING_SHA256, MAX_PASSAGE_BYTES, PROFILE,
+};
 
 pub const DIMENSIONS: usize = 1024;
 
@@ -14,6 +15,16 @@ pub const DIMENSIONS: usize = 1024;
 pub enum Input<'a> {
     Passage { title: &'a str, content: &'a str },
     Query(&'a str),
+}
+
+impl Input<'_> {
+    /// Returns the text prepared for the Qwen embedding worker.
+    ///
+    /// # Errors
+    /// Returns an error when a passage exceeds the profile's input size.
+    pub fn qwen_text(self) -> Result<String, EmbeddingError> {
+        qwen3::encode(self)
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, thiserror::Error)]
@@ -57,9 +68,26 @@ impl Embedding {
 }
 
 pub trait Embedder: Send + Sync {
+    /// Whether this session currently has an eligible embedding worker.
+    fn is_ready(&self) -> bool {
+        true
+    }
+
     /// Returns an embedding from the active local profile.
     ///
     /// # Errors
     /// Returns a typed error if the input, runtime or vector is incompatible.
     fn embed(&self, input: Input<'_>) -> Result<Embedding, EmbeddingError>;
+
+    /// Attempts an embedding only if a worker is already warm, within the supplied deadline.
+    ///
+    /// # Errors
+    /// Returns a typed error if no warm worker is available or the operation fails.
+    fn embed_warm(
+        &self,
+        _input: Input<'_>,
+        _deadline: std::time::Instant,
+    ) -> Result<Embedding, EmbeddingError> {
+        Err(EmbeddingError::Runtime)
+    }
 }

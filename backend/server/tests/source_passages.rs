@@ -44,7 +44,7 @@ fn passages_cover_a_line_break_cutoff_and_empty_files() -> Result<(), Box<dyn Er
 }
 
 #[test]
-#[ignore = "requires pinned source files; run quality/m07/reference-corpora.sh"]
+#[ignore = "requires pinned source files; run quality/github/reference-corpora.sh"]
 fn pinned_sources_preserve_late_file_symbols() -> Result<(), Box<dyn Error>> {
     #[derive(Deserialize)]
     struct Fixture {
@@ -55,8 +55,9 @@ fn pinned_sources_preserve_late_file_symbols() -> Result<(), Box<dyn Error>> {
     const BUDGET: usize = 2_048;
     let directory =
         PathBuf::from(std::env::var_os("CTXFAB_REFERENCE_CORPUS").ok_or("set fixture directory")?);
-    let fixtures: Vec<Fixture> =
-        serde_json::from_str(include_str!("../../../quality/m07/reference-corpora.json"))?;
+    let fixtures: Vec<Fixture> = serde_json::from_str(include_str!(
+        "../../../quality/github/reference-corpora.json"
+    ))?;
     for Fixture { file, needle, line } in fixtures {
         let source = std::fs::read_to_string(directory.join(&file))?;
         let offset = source.find(&needle).ok_or("named symbol missing")?;

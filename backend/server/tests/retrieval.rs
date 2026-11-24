@@ -20,7 +20,7 @@ use serde_json::{Value, json};
 #[path = "retrieval/api.rs"]
 mod api;
 
-const DATASET: &str = include_str!("../../../quality/m08/corpus.json");
+const DATASET: &str = include_str!("../../../quality/retrieval/corpus.json");
 
 #[derive(Deserialize)]
 struct Corpus {
@@ -171,11 +171,14 @@ fn profile_progress_is_durable_and_canonical_citations_respect_deletion()
     assert_eq!(version.progress()?.indexed, 0);
     assert_eq!(version.rebuild(1)?.state, "incomplete");
     assert!(matches!(
-        service.search(&query, Mode::Hybrid),
+        version.search(&query, Mode::Hybrid),
         Err(RetrievalError::Incomplete)
     ));
+    assert_eq!(service.progress()?.state, "ready");
+    assert_eq!(service.search(&query, Mode::Hybrid)?[0].revision, "old");
     assert_eq!(version.rebuild(32)?.state, "ready");
     store.delete_collection("scope")?;
+    assert_eq!(service.progress()?.total, 0);
     assert_eq!(version.progress()?.total, 0);
     assert!(version.search(&query, Mode::Hybrid)?.is_empty());
     Ok(())
@@ -382,15 +385,50 @@ impl Api {
     }
 
     fn rebuild(&self, limit: u16) -> Result<Value, Box<dyn Error>> {
-        let response = self
-            .agent
-            .post(format!(
-                "{}/v1/retrieval/rebuild?limit={limit}",
-                self.endpoint
-            ))
-            .header("Authorization", &self.bearer)
-            .send_empty()?;
-        read(response)
+        let deadline = Instant::now() + Duration::from_secs(5);
+        loop {
+            let mut response = self
+                .agent
+                .post(format!(
+                    "{}/v1/retrieval/rebuild?limit={limit}",
+                    self.endpoint
+                ))
+                .header("Authorization", &self.bearer)
+                .send_empty()?;
+            if response.status() == 200 {
+                return read(response);
+            }
+            let status = response.status();
+            let problem: Value = serde_json::from_slice(&response.body_mut().read_to_vec()?)?;
+            if status != 503 || problem["code"] != "embedding_busy" || Instant::now() >= deadline {
+                return Err(format!("rebuild returned {status}: {problem}").into());
+            }
+            std::thread::sleep(Duration::from_millis(25));
+        }
+    }
+
+    fn enable_index(&self) -> Result<Value, Box<dyn Error>> {
+        read(
+            self.agent
+                .put(format!("{}/v1/retrieval/index", self.endpoint))
+                .header("Authorization", &self.bearer)
+                .header("Content-Type", "application/json")
+                .send(r#"{"enabled":true}"#)?,
+        )
+    }
+
+    fn await_progress(&self, satisfied: impl Fn(&Value) -> bool) -> Result<Value, Box<dyn Error>> {
+        let deadline = Instant::now() + Duration::from_secs(25);
+        loop {
+            let progress = read(self.get("/v1/retrieval")?)?;
+            if satisfied(&progress) {
+                return Ok(progress);
+            }
+            if Instant::now() >= deadline {
+                return Err(format!("embedding progress stayed at {progress}").into());
+            }
+            std::thread::sleep(Duration::from_millis(25));
+        }
     }
 
     fn search(
@@ -408,8 +446,10 @@ impl Api {
 }
 
 fn read(mut response: ureq::http::Response<ureq::Body>) -> Result<Value, Box<dyn Error>> {
-    assert_eq!(response.status(), 200);
-    Ok(serde_json::from_slice(&response.body_mut().read_to_vec()?)?)
+    let status = response.status();
+    let body = response.body_mut().read_to_vec()?;
+    assert_eq!(status, 200, "{}", String::from_utf8_lossy(&body));
+    Ok(serde_json::from_slice(&body)?)
 }
 
 fn stop(mut backend: Backend) -> Result<(), Box<dyn Error>> {
@@ -463,7 +503,7 @@ fn evaluate(api: &Api, corpus: &Corpus) -> Result<Vec<Value>, Box<dyn Error>> {
 }
 
 #[test]
-#[ignore = "requires the packaged macOS app and pinned local llama.cpp worker; run make m08"]
+#[ignore = "requires the packaged macOS app and pinned local llama.cpp worker; run make qualify-retrieval"]
 fn packaged_multilingual_corpus_qualifies_qwen_and_bm25() -> Result<(), Box<dyn Error>> {
     use std::os::unix::fs::DirBuilderExt;
 
@@ -481,25 +521,33 @@ fn packaged_multilingual_corpus_qualifies_qwen_and_bm25() -> Result<(), Box<dyn 
         .collect::<Result<Vec<_>, _>>()?;
     let store = SqliteStore::open(&database)?;
     add(&store, "qualification", &documents)?;
+    store.set_enabled(PROFILE, false)?;
     drop(store);
 
     let (backend, api) = Api::start(&bundle, &data)?;
-    assert_eq!(read(api.get("/v1/retrieval")?)?["indexed"], 0);
+    let disabled = read(api.get("/v1/retrieval")?)?;
+    assert_eq!(disabled["state"], "disabled");
+    assert_eq!(disabled["indexed"], 0);
     assert_eq!(api.search("retry_after_gate", "hybrid")?.status(), 503);
     let rebuild_start = Instant::now();
-    let partial = api.rebuild(1)?;
-    assert_eq!(partial["indexed"], 1);
+    assert_eq!(api.enable_index()?["enabled"], true);
+    let partial =
+        api.await_progress(|progress| progress["indexed"].as_i64().is_some_and(|n| n > 0))?;
     assert_eq!(partial["state"], "incomplete");
     assert_eq!(api.search("retry_after_gate", "hybrid")?.status(), 503);
     stop(backend)?;
 
+    let saved = SqliteStore::open(&database)?.progress(PROFILE, None)?;
+    assert!(saved.indexed >= partial["indexed"].as_i64().ok_or("partial indexed count")?);
+    assert!(saved.indexed < saved.total);
     let (backend, api) = Api::start(&bundle, &data)?;
-    assert_eq!(read(api.get("/v1/retrieval")?)?["indexed"], 1);
-    let progress = api.rebuild(32)?;
+    let progress = api.await_progress(|progress| progress["state"] == "ready")?;
     assert_eq!(progress["state"], "ready");
     assert_eq!(progress["profile"], PROFILE);
     assert_eq!(progress["dimensions"], DIMENSIONS);
+    assert_eq!(progress["indexed"], saved.total);
     let rebuild_micros = rebuild_start.elapsed().as_micros();
+    assert_eq!(api.rebuild(32)?, progress);
     assert_eq!(api.search("retry_after_gate", "hybrid")?.status(), 200);
     let traces = await_retrieval_telemetry(&api)?;
     let results = evaluate(&api, &corpus)?;
@@ -533,7 +581,7 @@ fn packaged_multilingual_corpus_qualifies_qwen_and_bm25() -> Result<(), Box<dyn 
     );
     stop(backend)?;
     println!(
-        "M08_RESULT {}",
+        "RETRIEVAL_RESULT {}",
         json!({
             "documents": documents.len(), "rebuildMicrosIncludingRestart": rebuild_micros,
             "vectorBytes": vector_bytes, "profile": progress, "cases": results, "telemetry": traces,
@@ -594,4 +642,97 @@ fn await_retrieval_telemetry(api: &Api) -> Result<Value, Box<dyn Error>> {
         std::thread::sleep(Duration::from_millis(30));
     }
     Err("missing retrieval latency traces".into())
+}
+
+#[test]
+fn disabled_index_fences_inflight_vectors_and_survives_restart() -> Result<(), Box<dyn Error>> {
+    use std::sync::{Condvar, Mutex, mpsc};
+    struct Blocking {
+        started: mpsc::SyncSender<()>,
+        gate: Arc<(Mutex<bool>, Condvar)>,
+    }
+    impl Embedder for Blocking {
+        fn embed(&self, _: Input<'_>) -> Result<Embedding, EmbeddingError> {
+            self.started.send(()).map_err(|_| EmbeddingError::Runtime)?;
+            let (lock, changed) = &*self.gate;
+            let mut released = lock.lock().map_err(|_| EmbeddingError::Runtime)?;
+            while !*released {
+                released = changed
+                    .wait(released)
+                    .map_err(|_| EmbeddingError::Runtime)?;
+            }
+            let mut vector = vec![0.0; DIMENSIONS];
+            vector[0] = 1.0;
+            Embedding::new(vector)
+        }
+    }
+    let directory = tempfile::tempdir()?;
+    let database = directory.path().join("index.sqlite3");
+    let store = Arc::new(SqliteStore::open(&database)?);
+    let documents = [Document {
+        source: "fixture",
+        revision: "v1",
+        kind: DocumentKind::History,
+        title: "orchid",
+        content: "orchid search remains available",
+    }];
+    add(&store, "fixture", &documents)?;
+    let (started, receiver) = mpsc::sync_channel(0);
+    let gate = Arc::new((Mutex::new(false), Condvar::new()));
+    let retrieval = Arc::new(Retrieval::new(
+        store.clone(),
+        store.clone(),
+        Arc::new(Blocking {
+            started,
+            gate: gate.clone(),
+        }),
+        PROFILE,
+    ));
+    let worker = {
+        let retrieval = retrieval.clone();
+        std::thread::spawn(move || retrieval.rebuild_one())
+    };
+    receiver.recv_timeout(Duration::from_secs(5))?;
+    let deleted = retrieval.delete_index()?;
+    assert!(!deleted.state.enabled);
+    assert_eq!(deleted.state.epoch, 1);
+    assert_eq!(deleted.removed_vectors, 0);
+    assert_eq!(deleted.removed_bytes, 0);
+    let query = SearchQuery::parse("orchid")?;
+    assert_eq!(retrieval.search(&query, Mode::Bm25)?.len(), 1);
+    assert!(matches!(
+        retrieval.search(&query, Mode::Semantic),
+        Err(RetrievalError::Disabled)
+    ));
+    assert!(matches!(
+        retrieval.search(&query, Mode::Hybrid),
+        Err(RetrievalError::Disabled)
+    ));
+    assert_eq!(retrieval.set_index_enabled(true)?.epoch, 2);
+    let (lock, changed) = &*gate;
+    *lock.lock().map_err(|_| "lock poisoned")? = true;
+    changed.notify_all();
+    worker.join().map_err(|_| "worker panicked")??;
+    assert_eq!(
+        store.progress(PROFILE, None)?.indexed,
+        0,
+        "old epoch must not publish"
+    );
+    assert_eq!(retrieval.set_index_enabled(false)?.epoch, 3);
+    drop(retrieval);
+    drop(store);
+    let reopened = Arc::new(SqliteStore::open(&database)?);
+    let state = reopened.state(PROFILE)?;
+    assert!(!state.enabled);
+    assert_eq!(state.epoch, 3);
+    assert_eq!(reopened.search(&query)?.len(), 1);
+    let active = fixture_service(&reopened, PROFILE);
+    assert_eq!(active.set_index_enabled(true)?.epoch, 4);
+    active.rebuild(1)?;
+    assert_eq!(reopened.progress(PROFILE, None)?.indexed, 1);
+    let deletion = active.delete_index()?;
+    assert_eq!(deletion.removed_vectors, 1);
+    assert_eq!(deletion.removed_bytes, i64::try_from(DIMENSIONS * 4)?);
+    assert_eq!(reopened.search(&query)?.len(), 1);
+    Ok(())
 }

@@ -56,7 +56,7 @@ pub(super) fn qualify(
     required: bool,
 ) -> Result<(), Box<dyn Error>> {
     let judgments: Vec<Judgment> = serde_json::from_str(include_str!(
-        "../../../../quality/m07/retrieval-judgments.json"
+        "../../../../quality/github/source-retrieval-judgments.json"
     ))?;
     let mut evaluated = HashSet::new();
     for reference in references {

@@ -1,0 +1,102 @@
+{
+  "repository": "astral-sh/uv",
+  "branch": "main",
+  "parent": "060b18d41122c9f6caec697f029ce9c96143984f",
+  "commit": "a58e7cd639ef2ce0f4e6717b3e06269c3e1001ad",
+  "cases": [
+    {
+      "id": "branch-publication",
+      "surface": "currentBranch",
+      "question": "At which exact commit is uv's main available locally, and does a check with no ref change republish files?",
+      "expected": "The published revision equals the pinned branch head. An unchanged check reports changed=false and keeps the same snapshot and source manifest.",
+      "oracle": "Git commit and tree, SQLite published paths and blobs, POST /v1/github/repositories/{id}/refresh."
+    },
+    {
+      "id": "branch-transition",
+      "surface": "currentBranch",
+      "question": "When main advances from the parent to the pinned commit, which accepted paths change and which revision is searchable?",
+      "expected": "Only crates/uv-fastid/src/lib.rs and crates/uv-fs/src/which.rs change. The search returns only the new revision within this branch, with reopenable coordinates.",
+      "oracle": "git diff --name-status -M, Git per-revision manifests, SQLite, GET /v1/search.",
+      "query": "What invariant keeps every byte of the uv-fastid Id valid UTF-8?",
+      "sourcePath": "crates/uv-fastid/src/lib.rs",
+      "sourceText": "Every byte belongs to `ALPHABET`, so the bytes are valid UTF-8."
+    },
+    {
+      "id": "unpublished-branch",
+      "surface": "currentBranch",
+      "question": "Can a search scoped to an unpublished branch return the current main code?",
+      "expected": "No scoped current results. The same query returns current results on main.",
+      "oracle": "GET /v1/search with the same repository and query, varying only branch."
+    },
+    {
+      "id": "history-comparison",
+      "surface": "history",
+      "question": "What safety guarantees replaced the short WinAPI comment in get_binary_type?",
+      "questionFr": "Quelles garanties de sécurité ont remplacé le commentaire WinAPI dans get_binary_type ?",
+      "expected": "The name is null-terminated UTF-16, binary_type is a writable u32, and both remain valid during the call. The comparison uses the exact first parent and both cited lines reopen.",
+      "oracle": "Git diff and both blob byte ranges, GET and POST /v1/github/repositories/{id}/history/comparisons/{child}.",
+      "sourcePath": "crates/uv-fs/src/which.rs",
+      "before": {"startLine": 19, "endLine": 19, "text": "// SAFETY: winapi call"},
+      "after": {"startLine": 19, "endLine": 20, "text": "// SAFETY: `name` is a null-terminated UTF-16 string, and `binary_type` is a writable\n    // `u32`. Both remain valid for the duration of the call."}
+    },
+    {
+      "id": "history-rename-delete",
+      "surface": "history",
+      "question": "For fixture/alpha's comparison from a…a to b…b, which path was deleted and which path was renamed without a content change?",
+      "expected": "src/removed.rs was deleted. src/old.rs became src/renamed.rs with the same content. A separate src/z-new.rs was added.",
+      "oracle": "Accepted fixture tree and blob payloads, explicit_comparison_proves_both_trees_and_first_parent."
+    },
+    {
+      "id": "history-merge-scope",
+      "surface": "history",
+      "question": "For fixture/alpha's merge a…a, is the comparison based on the first parent d…d or the other parent e…e?",
+      "expected": "d…d is the first-parent lineage and is used as the baseline; e…e is listed as a parent but is rejected as a comparison outside the active lineage.",
+      "oracle": "Ordered fixture parent payloads, history_follows_first_parent_and_reuses_a_published_lineage and explicit_comparison_proves_both_trees_and_first_parent."
+    },
+    {
+      "id": "graph-full-uv",
+      "surface": "graph",
+      "question": "Does the Code Graph publish a Rust symbol index for the whole pinned uv workspace?",
+      "expected": "The large workspace exceeds the product limit of eight conventional Rust roots. The graph reports limit and no entries instead of implying complete coverage.",
+      "oracle": "git ls-tree of accepted paths, source root limit, GET /v1/github/repositories/{id}/graph."
+    },
+    {
+      "id": "graph-resolution",
+      "surface": "graph",
+      "question": "On the small two-module Rust fixture, where is run defined, and to which declaration do the import and call bind?",
+      "expected": "The definition in src/target.rs is the target of the import and the direct call from src/lib.rs. Each occurrence reopens as the original identifier.",
+      "oracle": "Graph unit oracle qualified_call_and_import_reopen_their_original_identifier, plus connector graph fixture for the role=call resolution."
+    },
+    {
+      "id": "graph-unresolved",
+      "surface": "graph",
+      "question": "What happens to a call when its declaration is removed at the next fixture commit, or its source is ambiguous or shadowed?",
+      "expected": "The indexed call stays unresolved or ambiguous and carries no invented target. The graph revision advances.",
+      "oracle": "graph_only_refresh_publishes_scoped_edges_without_general_search_rows, duplicate_modules_and_conditional_declarations_have_no_guessed_target, stale_paths_bad_syntax_and_local_shadowing_do_not_bind."
+    },
+    {
+      "id": "actions-attempt",
+      "surface": "actions",
+      "question": "What was the conclusion of the CI attempt 44806099739/1 on the selected uv main revision?",
+      "questionFr": "Quelle est la conclusion de la tentative CI 44806099739/1 sur la révision uv sélectionnée de main ?",
+      "expected": "Attempt 1 completed with success, on main at the exact pinned commit, with verified repository commit provenance.",
+      "oracle": "Captured GitHub attempt, packaged Actions collection/read API, immutable attempt URL.",
+      "url": "https://github.com/astral-sh/uv/actions/runs/44806099739/attempts/1"
+    },
+    {
+      "id": "actions-unknown-executed-yaml",
+      "surface": "actions",
+      "question": "Can the product prove which exact YAML definition was executed by the selected CI attempt?",
+      "expected": "No. The known definition blob belongs to the selected commit and can be reopened, while executedDefinition remains unknown.",
+      "oracle": "Git workflow blob and GitHubActions.executedDefinition. The captured provider record has no executed-definition digest."
+    },
+    {
+      "id": "cross-feature-provenance",
+      "surface": "crossFeature",
+      "question": "Do the current source snapshot, history comparison and observed CI attempt agree about the exact child commit? Which parent was compared?",
+      "questionFr": "La copie locale, la comparaison historique et la tentative CI observée désignent-elles le même commit, et avec quel parent a-t-il été comparé ?",
+      "expected": "All three records name the pinned child commit, and history names the exact parent. A failed graph projection and an unknown executed workflow remain explicit limitations.",
+      "oracle": "Cross-check the independently pinned Git tree and parent against current manifest, history materialization and captured provider attempt."
+    }
+  ]
+}

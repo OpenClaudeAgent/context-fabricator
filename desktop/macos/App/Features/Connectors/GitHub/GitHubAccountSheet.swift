@@ -29,7 +29,7 @@ struct GitHubAccountSheet: View {
         }
         Section {
           LabeledContent("GitHub") {
-            Menu("Create Token", systemImage: "arrow.up.right") {
+            Menu("Create Token") {
               if let url = URL(string: snapshot.authorizationUrl) {
                 Link("Repository contents", destination: url)
               }

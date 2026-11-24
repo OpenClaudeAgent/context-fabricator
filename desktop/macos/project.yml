@@ -1,5 +1,6 @@
 name: ContextFabricator
 options:
+  developmentLanguage: en
   deploymentTarget:
     macOS: "14.0"
 settings:
@@ -20,12 +21,17 @@ targets:
     type: application
     platform: macOS
     sources: App
+    configFiles:
+      Debug: Debug.xcconfig
     settings:
       base:
         PRODUCT_NAME: Context Fabricator
         PRODUCT_MODULE_NAME: ContextFabricator
         PRODUCT_BUNDLE_IDENTIFIER: org.contextfabricator.desktop
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: "1"
         GENERATE_INFOPLIST_FILE: YES
+        SWIFT_EMIT_LOC_STRINGS: YES
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.developer-tools
     dependencies:
@@ -42,21 +48,48 @@ targets:
           - $(TARGET_BUILD_DIR)/$(EXECUTABLE_FOLDER_PATH)/ctxfab
         script: |
           set -euo pipefail
-          source "$SRCROOT/../../quality/toolchain.sh"
+          source "$SRCROOT/../../quality/toolchain/environment.sh"
           profile=debug
           flags=()
           if [[ "$CONFIGURATION" == Release ]]; then
               profile=release
               flags+=(--release)
+          else
+              unset CTXFAB_RUNTIME_ARCHIVE_BYTES CTXFAB_RUNTIME_ARCHIVE_EXPANDED_BYTES CTXFAB_RUNTIME_BUNDLE_BYTES CTXFAB_RUNTIME_BUNDLE_MANIFEST_SHA256 CTXFAB_RUNTIME_ARCHIVE_SHA256 CTXFAB_RUNTIME_APPLE_TEAM_ID CTXFAB_RUNTIME_RELEASE_URL
           fi
+          quality_bound_cargo_cache "$quality_root/backend"
+          quality_bound_cargo_cache "$quality_root/cli"
           cargo build --locked ${flags[@]+"${flags[@]}"} --manifest-path "$quality_root/backend/Cargo.toml" -p ctxfab-server
           cargo build --locked ${flags[@]+"${flags[@]}"} --manifest-path "$quality_root/cli/Cargo.toml"
           helper="$TARGET_BUILD_DIR/$EXECUTABLE_FOLDER_PATH/ctxfab-server"
           /usr/bin/install -m 755 "$quality_root/backend/target/$profile/ctxfab-server" "$helper"
-          /usr/bin/codesign --force --sign - --identifier org.contextfabricator.backend "$helper"
+          identity="${CTXFAB_BACKEND_SIGNING_IDENTITY:-${EXPANDED_CODE_SIGN_IDENTITY:--}}"
+          /usr/bin/codesign --force --sign "$identity" --timestamp=none --identifier org.contextfabricator.backend "$helper"
           cli="$TARGET_BUILD_DIR/$EXECUTABLE_FOLDER_PATH/ctxfab"
           /usr/bin/install -m 755 "$quality_root/cli/target/$profile/ctxfab" "$cli"
           /usr/bin/codesign --force --sign - "$cli"
+          quality_bound_cargo_cache "$quality_root/backend"
+          quality_bound_cargo_cache "$quality_root/cli"
+      - name: Embed local inference runtime
+        shell: /bin/bash
+        basedOnDependencyAnalysis: false
+        script: |
+          set -euo pipefail
+          source "$SRCROOT/../../quality/toolchain/environment.sh"
+          # Xcode launched from Finder does not inherit Homebrew's shell PATH.
+          export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+          for tool in python3 cmake ninja; do
+              if ! command -v "$tool" >/dev/null 2>&1; then
+                  echo "error: $tool is required to build the pinned local inference runtime. Install it and build again." >&2
+                  exit 1
+              fi
+          done
+          if ! python3 -c 'import sys; sys.exit(sys.version_info < (3, 12))'; then
+              echo "error: Python 3.12 or newer is required to verify the local inference runtime." >&2
+              exit 1
+          fi
+          python3 -B "$quality_root/quality/release/embed_runtime.py" \
+              "$TARGET_BUILD_DIR/$WRAPPER_NAME" "$quality_cache_dir/runtime-source-cache"
   ContextFabricatorUITests:
     type: bundle.ui-testing
     platform: macOS
@@ -71,7 +104,7 @@ targets:
       - name: Stage native inference fixture
         shell: /bin/bash
         inputFiles:
-          - $(SRCROOT)/../../quality/m09/mock_worker.py
+          - $(SRCROOT)/../../quality/answers/mock_worker.py
         outputFiles:
           - $(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/llama-server
         script: |
@@ -85,5 +118,6 @@ schemes:
         ContextFabricator: all
     test:
       gatherCoverageData: true
+      language: en
       targets:
         - ContextFabricatorUITests

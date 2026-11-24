@@ -1,0 +1,262 @@
+{
+  "repository": "apache/commons-cli",
+  "commit": "d74613321325f6081fa0206c4ab608ab65d80e2e",
+  "cases": [
+    {
+      "id": "long-option-default",
+      "split": "dev",
+      "style": "identifier",
+      "questions": {
+        "en": "Does DefaultParser accept an unambiguous abbreviation for a long option by default, and what matching behavior remains when that is disabled?",
+        "fr": "Par défaut, DefaultParser accepte-t-il une abréviation non ambiguë d’une option longue, et quel type de recherche reste possible si l’on désactive ce comportement ?"
+      },
+      "facts": [
+        {
+          "expected": "Partial matching defaults to enabled.",
+          "anchors": [
+            {
+              "path": "src/main/java/org/apache/commons/cli/DefaultParser.java",
+              "blob": "da7960b3da3bc57c7e9d3b734ed03a974aa0f891",
+              "startLine": 50,
+              "endLine": 54,
+              "text": "     */\n    public static final class Builder implements Supplier<DefaultParser> {\n\n        /** Flag indicating if partial matching of long options is supported. */\n        private boolean allowPartialMatching = true;"
+            }
+          ]
+        },
+        {
+          "expected": "When disabled, only an existing exact long option is accepted.",
+          "anchors": [
+            {
+              "path": "src/main/java/org/apache/commons/cli/DefaultParser.java",
+              "blob": "da7960b3da3bc57c7e9d3b734ed03a974aa0f891",
+              "startLine": 373,
+              "endLine": 381,
+              "text": "    private List<String> getMatchingLongOptions(final String token) {\n        if (allowPartialMatching) {\n            return options.getMatchingOptions(token);\n        }\n        final List<String> matches = new ArrayList<>(1);\n        if (options.hasLongOption(token)) {\n            matches.add(options.getOption(token).getLongOpt());\n        }\n        return matches;"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "option-terminator",
+      "split": "dev",
+      "style": "prose",
+      "questions": {
+        "en": "Which standalone token makes the remaining command-line tokens positional arguments, and where is that token defined?",
+        "fr": "Quel jeton isolé transforme les arguments suivants en arguments positionnels, et où sa valeur est-elle définie ?"
+      },
+      "facts": [
+        {
+          "expected": "The standalone terminator is --, defined as OptionFormatter.DEFAULT_LONG_OPT_PREFIX.",
+          "anchors": [
+            {
+              "path": "src/main/java/org/apache/commons/cli/help/OptionFormatter.java",
+              "blob": "54e292ffff041514ed6dce4381b8ef38d196eb87",
+              "startLine": 281,
+              "endLine": 284,
+              "text": "    /**\n     * Default prefix for long options: {@value}.\n     */\n    public static final String DEFAULT_LONG_OPT_PREFIX = \"--\";"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "unexpected-switch",
+      "split": "dev",
+      "style": "identifier",
+      "questions": {
+        "en": "Contrast THROW and IGNORE when DefaultParser sees an unknown hyphen-prefixed option longer than one character.",
+        "fr": "Comment les comportements THROW et IGNORE diffèrent-ils quand DefaultParser rencontre une option inconnue commençant par un tiret et de longueur supérieure à un ?"
+      },
+      "facts": [
+        {
+          "expected": "THROW raises UnrecognizedOptionException.",
+          "anchors": [
+            {
+              "path": "src/main/java/org/apache/commons/cli/DefaultParser.java",
+              "blob": "da7960b3da3bc57c7e9d3b734ed03a974aa0f891",
+              "startLine": 642,
+              "endLine": 645,
+              "text": "    protected void handleUnknownToken(final String token) throws ParseException {\n        if (token.startsWith(OptionFormatter.DEFAULT_OPT_PREFIX) && token.length() > 1 && nonOptionAction == NonOptionAction.THROW) {\n            throw new UnrecognizedOptionException(\"Unrecognized option: \" + token, token);\n        }"
+            }
+          ]
+        },
+        {
+          "expected": "IGNORE does not add the unknown option as a positional argument.",
+          "anchors": [
+            {
+              "path": "src/main/java/org/apache/commons/cli/DefaultParser.java",
+              "blob": "da7960b3da3bc57c7e9d3b734ed03a974aa0f891",
+              "startLine": 646,
+              "endLine": 649,
+              "text": "        if (!token.startsWith(OptionFormatter.DEFAULT_OPT_PREFIX) || token.equals(OptionFormatter.DEFAULT_OPT_PREFIX)\n                || token.length() > 1 && nonOptionAction != NonOptionAction.IGNORE) {\n            addArg(token);\n        }"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "default-flag-values",
+      "split": "dev",
+      "style": "prose",
+      "questions": {
+        "en": "Which values in the properties file make an argumentless default option present?",
+        "fr": "Quelles valeurs du fichier de propriétés activent par défaut une option qui ne prend pas d’argument ?"
+      },
+      "facts": [
+        {
+          "expected": "The parser accepts yes, true, and 1. Word matching is case-insensitive.",
+          "anchors": [
+            {
+              "path": "src/main/java/org/apache/commons/cli/DefaultParser.java",
+              "blob": "da7960b3da3bc57c7e9d3b734ed03a974aa0f891",
+              "startLine": 516,
+              "endLine": 526,
+              "text": "                final String value = properties.getProperty(option);\n\n                if (opt.hasArg()) {\n                    if (opt.isValuesEmpty()) {\n                        opt.processValue(stripLeadingAndTrailingQuotesDefaultOff(value));\n                    }\n                } else if (!(\"yes\".equalsIgnoreCase(value) || \"true\".equalsIgnoreCase(value) || \"1\".equalsIgnoreCase(value))) {\n                    // if the value is not yes, true or 1 then don't add the option to the CommandLine\n                    continue;\n                }\n                handleOption(opt);"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "default-precedence",
+      "split": "dev",
+      "style": "prose",
+      "questions": {
+        "en": "When a caller supplies an option explicitly and a default for that same option, which value wins? Can a default choose another member of its already selected option group?",
+        "fr": "Une option est fournie explicitement et a aussi une valeur par défaut. Laquelle prévaut ? Une valeur par défaut peut-elle sélectionner un autre membre du groupe déjà choisi ?"
+      },
+      "facts": [
+        {
+          "expected": "An explicit option suppresses the property default for that option.",
+          "anchors": [
+            {
+              "path": "src/main/java/org/apache/commons/cli/DefaultParser.java",
+              "blob": "da7960b3da3bc57c7e9d3b734ed03a974aa0f891",
+              "startLine": 505,
+              "endLine": 516,
+              "text": "        for (final Enumeration<?> e = properties.propertyNames(); e.hasMoreElements();) {\n            final String option = e.nextElement().toString();\n            final Option opt = options.getOption(option);\n            if (opt == null) {\n                throw new UnrecognizedOptionException(\"Default option wasn't defined\", option);\n            }\n            // if the option is part of a group, check if another option of the group has been selected\n            final OptionGroup optionGroup = options.getOptionGroup(opt);\n            final boolean selected = optionGroup != null && optionGroup.isSelected();\n            if (!cmd.hasOption(option) && !selected) {\n                // get the value from the properties\n                final String value = properties.getProperty(option);"
+            }
+          ]
+        },
+        {
+          "expected": "A default is skipped for a group with an existing selection.",
+          "anchors": [
+            {
+              "path": "src/main/java/org/apache/commons/cli/DefaultParser.java",
+              "blob": "da7960b3da3bc57c7e9d3b734ed03a974aa0f891",
+              "startLine": 511,
+              "endLine": 516,
+              "text": "            // if the option is part of a group, check if another option of the group has been selected\n            final OptionGroup optionGroup = options.getOptionGroup(opt);\n            final boolean selected = optionGroup != null && optionGroup.isSelected();\n            if (!cmd.hasOption(option) && !selected) {\n                // get the value from the properties\n                final String value = properties.getProperty(option);"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "quote-defaults",
+      "split": "dev",
+      "style": "prose",
+      "questions": {
+        "en": "With quote stripping left at its default, how does the parser handle a surrounding pair of double quotes, with no interior double quotes, in the next argument token versus a property default?",
+        "fr": "Avec le réglage par défaut, comment le parseur traite-t-il une paire de guillemets doubles sans autre guillemet à l’intérieur, dans le jeton d’argument suivant puis dans une valeur par défaut des propriétés ?"
+      },
+      "facts": [
+        {
+          "expected": "A following token used as an option argument calls the default-on stripping path.",
+          "anchors": [
+            {
+              "path": "src/main/java/org/apache/commons/cli/DefaultParser.java",
+              "blob": "da7960b3da3bc57c7e9d3b734ed03a974aa0f891",
+              "startLine": 618,
+              "endLine": 619,
+              "text": "            } else if (currentOption != null && currentOption.acceptsArg() && isArgument(token)) {\n                currentOption.processValue(stripLeadingAndTrailingQuotesDefaultOn(token));"
+            }
+          ]
+        },
+        {
+          "expected": "Default-on strips when the explicit preference is null.",
+          "anchors": [
+            {
+              "path": "src/main/java/org/apache/commons/cli/DefaultParser.java",
+              "blob": "da7960b3da3bc57c7e9d3b734ed03a974aa0f891",
+              "startLine": 840,
+              "endLine": 844,
+              "text": "    private String stripLeadingAndTrailingQuotesDefaultOn(final String token) {\n        if (stripLeadingAndTrailingQuotes == null || stripLeadingAndTrailingQuotes) {\n            return Util.stripLeadingAndTrailingQuotes(token);\n        }\n        return token;"
+            }
+          ]
+        },
+        {
+          "expected": "A property-supplied value uses the default-off path, which leaves it intact when the preference is null.",
+          "anchors": [
+            {
+              "path": "src/main/java/org/apache/commons/cli/DefaultParser.java",
+              "blob": "da7960b3da3bc57c7e9d3b734ed03a974aa0f891",
+              "startLine": 518,
+              "endLine": 520,
+              "text": "                if (opt.hasArg()) {\n                    if (opt.isValuesEmpty()) {\n                        opt.processValue(stripLeadingAndTrailingQuotesDefaultOff(value));"
+            }
+          ]
+        },
+        {
+          "expected": "Default-off strips only when the preference is explicitly true.",
+          "anchors": [
+            {
+              "path": "src/main/java/org/apache/commons/cli/DefaultParser.java",
+              "blob": "da7960b3da3bc57c7e9d3b734ed03a974aa0f891",
+              "startLine": 826,
+              "endLine": 831,
+              "text": "    private String stripLeadingAndTrailingQuotesDefaultOff(final String token) {\n        if (stripLeadingAndTrailingQuotes != null && stripLeadingAndTrailingQuotes) {\n            return Util.stripLeadingAndTrailingQuotes(token);\n        }\n        return token;\n    }"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "option-group-reset",
+      "split": "dev",
+      "style": "cross-file",
+      "questions": {
+        "en": "What stops a previous parse's choice leaking into the next parse, and what happens when the next parse tries to choose two different members of the same option group?",
+        "fr": "Qu’est-ce qui empêche la sélection d’un appel de survivre à l’appel suivant, et que se passe-t-il si ce second appel choisit deux options différentes dans le même groupe ?"
+      },
+      "facts": [
+        {
+          "expected": "Parse resets every option group's selection.",
+          "anchors": [
+            {
+              "path": "src/main/java/org/apache/commons/cli/DefaultParser.java",
+              "blob": "da7960b3da3bc57c7e9d3b734ed03a974aa0f891",
+              "startLine": 752,
+              "endLine": 760,
+              "text": "        this.options = Objects.requireNonNull(options, \"options\");\n        this.nonOptionAction = nonOptionAction;\n        skipParsing = false;\n        currentOption = null;\n        expectedOpts = new ArrayList<>(options.getRequiredOptions());\n        // clear the data from the groups\n        for (final OptionGroup optionGroup : options.getOptionGroups()) {\n            optionGroup.setSelected(null);\n        }"
+            }
+          ]
+        },
+        {
+          "expected": "OptionGroup.setSelected clears on null and throws AlreadySelectedException when a different option is selected.",
+          "anchors": [
+            {
+              "path": "src/main/java/org/apache/commons/cli/OptionGroup.java",
+              "blob": "ed574dc10c3c2e41d5981144d54853a6e5cce5dc",
+              "startLine": 131,
+              "endLine": 142,
+              "text": "    public void setSelected(final Option option) throws AlreadySelectedException {\n        if (option == null) {\n            // reset the option previously selected\n            selected = null;\n            return;\n        }\n        // if no option has already been selected or the\n        // same option is being reselected then set the\n        // selected member variable\n        if (selected != null && !selected.equals(option.getKey())) {\n            throw new AlreadySelectedException(this, option);\n        }"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "private-command",
+      "split": "dev",
+      "style": "abstention",
+      "questions": {
+        "en": "Which option did I pass to my private application in its most recent command line, after migrating it to Commons CLI?",
+        "fr": "Quelle option ai-je passée à mon application privée lors de sa dernière exécution après l’avoir migrée vers Commons CLI ?"
+      },
+      "facts": [],
+      "insufficientReason": "A private runtime invocation or production configuration is outside the pinned public source."
+    }
+  ]
+}

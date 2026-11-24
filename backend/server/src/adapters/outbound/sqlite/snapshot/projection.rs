@@ -8,9 +8,15 @@ use crate::domain::corpus::{passage::passages, snapshot::Location};
 
 const TARGET_PASSAGE_BYTES: usize = 2_048;
 
-pub(super) fn publish(tx: &Connection, stored: &Stored) -> Result<(), SnapshotError> {
+pub(super) fn publish(
+    tx: &Connection,
+    stored: &Stored,
+    general: bool,
+) -> Result<(), SnapshotError> {
     verify_immutable_sources(tx, stored)?;
-    index_files(tx, stored)?;
+    if general {
+        index_files(tx, stored)?;
+    }
     replace_publication(tx, stored)
 }
 
@@ -104,20 +110,26 @@ fn index_files(tx: &Connection, stored: &Stored) -> Result<(), SnapshotError> {
 
 fn replace_publication(tx: &Connection, stored: &Stored) -> Result<(), SnapshotError> {
     let identity = params![stored.collection, stored.snapshot.id];
+    // Passage coordinates can shift. Reuse each profile's earliest matching input.
     tx.execute(
-        "INSERT INTO document_vectors (document_id, profile, embedding)
-         SELECT replacement.id, v.profile, v.embedding FROM documents replacement
-         JOIN document_vectors v ON v.document_id = (
-             SELECT previous.id FROM documents previous
-             JOIN document_vectors available ON available.document_id = previous.id
-             WHERE previous.collection = replacement.collection AND previous.source = replacement.source
-               AND previous.title = replacement.title AND previous.content = replacement.content
-               AND previous.publication_id <> ?2
-             ORDER BY previous.id LIMIT 1
+        "WITH retained AS (
+             SELECT replacement.id AS document_id, v.profile, min(previous.id) AS previous_id
+             FROM documents replacement
+             JOIN documents previous
+               ON previous.collection = replacement.collection AND previous.source = replacement.source
+              AND previous.title = replacement.title AND previous.content = replacement.content
+              AND previous.publication_id = ?3
+             JOIN document_vectors v ON v.document_id = previous.id
+             WHERE replacement.collection = ?1 AND replacement.publication_id = ?2
+             GROUP BY replacement.id, v.profile
          )
-         WHERE replacement.collection = ?1 AND replacement.publication_id = ?2
-         ON CONFLICT(document_id) DO NOTHING",
-        identity,
+         INSERT INTO document_vectors (document_id, profile, embedding)
+         SELECT retained.document_id, v.profile, v.embedding
+         FROM retained JOIN document_vectors v
+           ON (v.document_id, v.profile) = (retained.previous_id, retained.profile)
+         WHERE true
+         ON CONFLICT(document_id, profile) DO NOTHING",
+        params![stored.collection, stored.snapshot.id, stored.predecessor],
     ).map_err(storage)?;
     tx.execute(
         "DELETE FROM documents WHERE collection = ?1 AND publication_id <> ?2",

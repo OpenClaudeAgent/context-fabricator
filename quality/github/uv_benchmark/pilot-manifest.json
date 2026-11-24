@@ -1,0 +1,174 @@
+{
+  "commit": "a58e7cd639ef2ce0f4e6717b3e06269c3e1001ad",
+  "selectionVersion": 1,
+  "files": [
+    {
+      "path": ".github/workflows/check-release.yml",
+      "blob": "1cf3eb5721221fc148c7498f9d001560dc856155",
+      "bytes": 849,
+      "role": "hash-control"
+    },
+    {
+      "path": "Cargo.toml",
+      "blob": "6082af50961b8d69065c3dcc8d078d8960b39377",
+      "bytes": 24785,
+      "role": "judged"
+    },
+    {
+      "path": "crates/uv-build/rust-toolchain.toml",
+      "blob": "580617b59669ee5daa1eb69db8d21ac1ecbcce68",
+      "bytes": 32,
+      "role": "path-token"
+    },
+    {
+      "path": "crates/uv-cache-info/Cargo.toml",
+      "blob": "d8d38e225c6550cb52cc87c492adee39f8d98a91",
+      "bytes": 831,
+      "role": "path-token"
+    },
+    {
+      "path": "crates/uv-cache-key/Cargo.toml",
+      "blob": "2957b6049bca6a0c246c195153671416e636d533",
+      "bytes": 534,
+      "role": "path-token"
+    },
+    {
+      "path": "crates/uv-cache-key/README.md",
+      "blob": "71303c99146382032946bbb3a7aef845b19f4a5d",
+      "bytes": 541,
+      "role": "path-token"
+    },
+    {
+      "path": "crates/uv-cache-key/src/cache_key.rs",
+      "blob": "033ca38840d40e2abd53fdf4121d5e2834157997",
+      "bytes": 8422,
+      "role": "judged"
+    },
+    {
+      "path": "crates/uv-cache-key/src/canonical_url.rs",
+      "blob": "d30bc6fccf61586eeef1c43e974c011233cdc680",
+      "bytes": 14757,
+      "role": "judged"
+    },
+    {
+      "path": "crates/uv-cache-key/src/digest.rs",
+      "blob": "775448469e95157d8a09bd53e59b1a18972e6678",
+      "bytes": 4316,
+      "role": "judged"
+    },
+    {
+      "path": "crates/uv-cache-key/src/lib.rs",
+      "blob": "f0e799cb968a8cf71ec50509b833acf5f8d44f1e",
+      "bytes": 206,
+      "role": "path-token"
+    },
+    {
+      "path": "crates/uv-cache/Cargo.toml",
+      "blob": "c05f8f59310508d564571fe34228a68fd31ce74a",
+      "bytes": 1169,
+      "role": "path-token"
+    },
+    {
+      "path": "crates/uv-configuration/Cargo.toml",
+      "blob": "d659635e714643afb19a12a409463725c8387505",
+      "bytes": 1838,
+      "role": "path-token"
+    },
+    {
+      "path": "crates/uv-configuration/src/project_build_backend.rs",
+      "blob": "8c5db4b55a3b08230668dac8b99c7ec4a1fe4233",
+      "bytes": 1732,
+      "role": "path-token"
+    },
+    {
+      "path": "crates/uv-configuration/src/proxy_url.rs",
+      "blob": "88bb2161ab14943ce9c246542588a35d37cbd05f",
+      "bytes": 8531,
+      "role": "path-token"
+    },
+    {
+      "path": "crates/uv-distribution-types/src/variant_json.rs",
+      "blob": "931fa9e6436fc1ce46cc39214dd2768cf5c2afe2",
+      "bytes": 1611,
+      "role": "hash-control"
+    },
+    {
+      "path": "crates/uv-fastid/Cargo.toml",
+      "blob": "d8cbd3f82c29db1dbb7ed5fad8cd637b8785feda",
+      "bytes": 484,
+      "role": "path-token"
+    },
+    {
+      "path": "crates/uv-fastid/src/lib.rs",
+      "blob": "208f722c1312c32e36218a0e4d6c4e8ce31f89a9",
+      "bytes": 5375,
+      "role": "judged"
+    },
+    {
+      "path": "crates/uv-performance-memory-allocator/Cargo.toml",
+      "blob": "dc4d677857a219acf41006611123434ce1bec6dc",
+      "bytes": 840,
+      "role": "hash-control"
+    },
+    {
+      "path": "crates/uv-resolver/src/flat_index.rs",
+      "blob": "adfc8344fb4a0ff708e4cbd4391882d1ac614915",
+      "bytes": 10628,
+      "role": "hash-control"
+    },
+    {
+      "path": "crates/uv-trampoline-builder/Cargo.toml",
+      "blob": "9f2d319427fb1987c45426bf31a90eb2e3787b08",
+      "bytes": 1221,
+      "role": "path-token"
+    },
+    {
+      "path": "crates/uv-trampoline/rust-toolchain.toml",
+      "blob": "6d6d84cabec7ed85dfad3ba5303d532f815b0e01",
+      "bytes": 43,
+      "role": "path-token"
+    },
+    {
+      "path": "crates/uv-unix/src/lib.rs",
+      "blob": "fc40ae00e35c29328999125b997084dc1db2d579",
+      "bytes": 227,
+      "role": "hash-control"
+    },
+    {
+      "path": "crates/uv/tests/it/snapshots/it__ecosystem__semantic-kernel-uv-lock-output.snap",
+      "blob": "65ad15228a9dcc9ef753a4a4495eccf2ab6ce387",
+      "bytes": 143,
+      "role": "hash-control"
+    },
+    {
+      "path": "docs/concepts/cache.md",
+      "blob": "4c8a6899a4a1bf53deefa81aff246c6ba4ff8274",
+      "bytes": 11562,
+      "role": "judged"
+    },
+    {
+      "path": "docs/concepts/configuration-files.md",
+      "blob": "d5e27f56ca87eb834fd4943ff9b01defc9a3dfd2",
+      "bytes": 5779,
+      "role": "judged"
+    },
+    {
+      "path": "rust-toolchain.toml",
+      "blob": "580617b59669ee5daa1eb69db8d21ac1ecbcce68",
+      "bytes": 32,
+      "role": "judged"
+    },
+    {
+      "path": "test/scenarios/requires_python/python-greater-than-current-backtrack.toml",
+      "blob": "492fabc6dec0f405bbe3448d8ad953292c58040a",
+      "bytes": 558,
+      "role": "hash-control"
+    },
+    {
+      "path": "test/workspaces/albatross-virtual-workspace/packages/bird-feeder/pyproject.toml",
+      "blob": "0d42072bea1d3ce13fb6b57e482d57c5d42a60a0",
+      "bytes": 243,
+      "role": "hash-control"
+    }
+  ]
+}

@@ -8,16 +8,27 @@ use std::sync::mpsc;
 use std::thread;
 use std::time::{Duration, Instant};
 
+use ctxfab_inference::PROFILE;
 use ctxfab_inference::generation::{
     ALTERNATE_FILE, ALTERNATE_PROFILE, GENERATION_FILE, GENERATION_PROFILE,
 };
 use ctxfab_inference::supervisor::{EMBEDDING_FILE, GUARD_ARGUMENT};
 use ctxfab_server::adapters::outbound::sqlite::SqliteStore;
 use ctxfab_server::application::ports::CorpusStore;
+use ctxfab_server::application::retrieval::VectorIndex;
 use ctxfab_server::domain::corpus::{Batch, Commit, Document, DocumentKind};
 use serde_json::{Value, json};
 
 type TestError = Box<dyn Error + Send + Sync>;
+
+#[path = "answers/answer_history.rs"]
+mod answer_history;
+#[cfg(debug_assertions)]
+#[path = "answers/formulation.rs"]
+mod formulation;
+#[cfg(debug_assertions)]
+#[path = "answers/github_evidence.rs"]
+mod github_evidence;
 
 const FIXTURE: &[Document<'_>] = &[
     Document {
@@ -65,11 +76,20 @@ struct Service {
 
 impl Service {
     fn start(executable: &Path, directory: &Path) -> Result<Self, TestError> {
+        Self::start_fixture(executable, directory, None)
+    }
+
+    fn start_fixture(
+        executable: &Path,
+        directory: &Path,
+        github_fixture: Option<(&str, &str)>,
+    ) -> Result<Self, TestError> {
         let file = directory.join("endpoint.json");
         let previous = std::fs::read(&file).ok();
         let mut command = Command::new(executable);
         command
             .env("CTXFAB_TEST_DATA_DIRECTORY", directory)
+            .env("CTXFAB_TEST_PREVIEW_RUNTIME", "1")
             .env_remove("CTXFAB_INFERENCE_DIRECTORY")
             .stdin(Stdio::piped())
             .stdout(Stdio::null())
@@ -81,6 +101,9 @@ impl Service {
             );
         } else {
             command.arg(directory).arg("--app-session");
+            if let Some((flag, port)) = github_fixture {
+                command.args([flag, port]);
+            }
         }
         let child = command.spawn()?;
         let mut service = Self {
@@ -133,7 +156,7 @@ impl Service {
         input: Option<Value>,
     ) -> Result<(u16, Value), TestError> {
         let url = format!("{}{path}", self.address);
-        let mut response = if let Some(input) = input {
+        let response = if let Some(input) = input {
             let request = if method == "PUT" {
                 self.http.put(&url)
             } else {
@@ -151,17 +174,52 @@ impl Service {
             };
             request.header("Authorization", &self.token).call()?
         };
-        let status = response.status().as_u16();
-        let body = response
-            .body_mut()
-            .with_config()
-            .limit(512 * 1024)
-            .read_to_vec()?;
-        Ok((status, serde_json::from_slice(&body)?))
+        decode_response(response)
     }
 
     fn answer(&self, question: &str) -> Result<(u16, Value), TestError> {
         self.request("/v1/answers", Some(json!({"query":question})))
+    }
+
+    fn answer_with_trace(&self, input: &Value) -> Result<((u16, Value), Value), TestError> {
+        self.answer_with_client_trace(input, "answer-fixture")
+    }
+
+    fn answer_with_client_trace(
+        &self,
+        input: &Value,
+        client: &str,
+    ) -> Result<((u16, Value), Value), TestError> {
+        let response = self
+            .http
+            .post(format!("{}/v1/answers", self.address))
+            .header("Authorization", &self.token)
+            .header("Content-Type", "application/json")
+            .header("User-Agent", client)
+            .send(input.to_string())?;
+        let id = response.headers()["x-context-trace-id"]
+            .to_str()?
+            .to_owned();
+        if input["includeModelContext"] == true && response.status().is_success() {
+            assert_eq!(response.headers()["cache-control"], "no-store");
+        }
+        let answer = decode_response(response)?;
+        Ok((answer, self.trace_detail(&id, "api_answer")?))
+    }
+
+    fn trace_detail(&self, id: &str, stage: &str) -> Result<Value, TestError> {
+        let mut detail = Value::Null;
+        wait(|| {
+            if let Ok((200, trace)) = self.request(&format!("/v1/telemetry/traces/{id}"), None)
+                && trace["spans"]
+                    .as_array()
+                    .is_some_and(|spans| spans.iter().any(|span| span["name"] == stage))
+            {
+                detail = trace;
+            }
+            !detail.is_null()
+        })?;
+        Ok(detail)
     }
 
     fn stop(&mut self) -> Result<(), TestError> {
@@ -171,6 +229,33 @@ impl Service {
         self.child.wait()?;
         Ok(())
     }
+}
+
+fn decode_response(
+    mut response: ureq::http::Response<ureq::Body>,
+) -> Result<(u16, Value), TestError> {
+    let status = response.status().as_u16();
+    let body = response
+        .body_mut()
+        .with_config()
+        .limit(512 * 1024)
+        .read_to_vec()?;
+    Ok((status, serde_json::from_slice(&body)?))
+}
+
+fn span_events<'a>(trace: &'a Value, stage: &'a str) -> impl Iterator<Item = (&'a Value, &'a str)> {
+    trace["spans"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter(move |span| span["name"] == stage)
+        .flat_map(|span| {
+            span["events"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .filter_map(move |event| event["name"].as_str().map(|name| (span, name)))
+        })
 }
 
 impl Drop for Service {
@@ -346,11 +431,368 @@ fn stage_worker_fixture(directory: &Path) -> Result<PathBuf, TestError> {
     let worker = assets.join("llama-server");
     std::fs::write(
         &worker,
-        include_bytes!("../../../quality/m09/mock_worker.py"),
+        include_bytes!("../../../quality/answers/mock_worker.py"),
     )?;
     std::fs::set_permissions(worker, Permissions::from_mode(0o700))?;
     File::create(assets.join(GENERATION_FILE))?;
     Ok(assets)
+}
+
+#[test]
+fn abstention_review_explains_empty_retrieval_and_rejected_citations_without_retaining_content()
+-> Result<(), TestError> {
+    let work = tempfile::tempdir()?;
+    let directory = work.path().join("data");
+    seed(&directory, &FIXTURE[..1])?;
+    stage_worker_fixture(&directory)?;
+    let executable = Path::new(env!("CARGO_BIN_EXE_ctxfab-server"));
+    let mut service = Service::start(executable, &directory)?;
+    let ((status, empty), trace) = service.answer_with_trace(&json!({
+        "query": "orbitalzebramarker", "includeModelContext": true
+    }))?;
+    assert_eq!(status, 200);
+    assert_eq!(empty["outcome"], "insufficientEvidence");
+    let root = answer_root(&trace)?;
+    assert_eq!(root["spanOutcome"], "insufficientEvidence");
+    assert_eq!(root["httpStatus"], 200);
+    assert_eq!(root["level"], "ok");
+    let review = &empty["evidenceReview"];
+    assert_eq!(review["question"], "orbitalzebramarker");
+    assert_eq!(review["reason"], "noCandidates");
+    assert_eq!(
+        review["searches"][0],
+        json!({"source":"localPassages","candidateCount":0})
+    );
+    assert_eq!(review["candidates"], json!([]));
+    assert!(!trace.to_string().contains("orbitalzebramarker"));
+
+    let question = "Fabricate a quote about the cooldown.";
+    let (answer, trace) = service.answer_with_trace(&json!({
+        "query": question, "includeModelContext": true
+    }))?;
+    insufficient(&answer);
+    let review = &answer.1["evidenceReview"];
+    assert_eq!(review["question"], question);
+    assert_eq!(review["reason"], "citationsUnverified");
+    assert_eq!(
+        review["searches"][0],
+        json!({"source":"localPassages","candidateCount":1})
+    );
+    let candidate = &review["candidates"][0];
+    assert_eq!(candidate["reference"], "src/outbound.rs");
+    assert_eq!(candidate["revision"], "r-current");
+    assert_eq!(candidate["disposition"], "citationUnverified");
+    assert_eq!(candidate["slot"], 1);
+    assert!(
+        candidate["preview"]
+            .as_str()
+            .is_some_and(|text| text.contains("47 seconds"))
+    );
+    assert!(!trace.to_string().contains(question));
+    assert!(!trace.to_string().contains("src/outbound.rs"));
+    assert!(service.answer(question)?.1.get("evidenceReview").is_none());
+    service.stop()?;
+    Ok(())
+}
+
+#[test]
+fn pipeline_capture_preserves_the_inputs_and_draft_of_a_rejected_answer() -> Result<(), TestError> {
+    let work = tempfile::tempdir()?;
+    let directory = work.path().join("data");
+    seed(&directory, &FIXTURE[..1])?;
+    stage_worker_fixture(&directory)?;
+    let executable = Path::new(env!("CARGO_BIN_EXE_ctxfab-server"));
+    let mut service = Service::start(executable, &directory)?;
+    assert_eq!(
+        service
+            .call(
+                "PUT",
+                "/v1/answer-history/settings",
+                Some(json!({
+                    "revision": 0, "enabled": true, "retentionDays": 7
+                }))
+            )?
+            .0,
+        200
+    );
+    let question = "Fabricate a quote about the cooldown.";
+    let (answer, trace) = service.answer_with_trace(&json!({
+        "query": question, "inspectPipeline": true
+    }))?;
+    insufficient(&answer);
+    let result = &answer.1;
+    assert_eq!(result["evidenceReview"]["reason"], "citationsUnverified");
+    assert_eq!(result["modelContext"]["question"], question);
+    assert!(
+        result["modelContext"]["sources"][0]["parts"][0]["text"]
+            .as_str()
+            .is_some_and(|text| text.contains("47 seconds"))
+    );
+    let capture = &result["evidenceReview"]["pipeline"];
+    assert_ne!(
+        capture["draft"]["citations"]
+            .as_array()
+            .ok_or("draft citations missing")?
+            .as_slice(),
+        &[] as &[Value]
+    );
+    assert!(
+        capture["completionInput"]
+            .as_str()
+            .is_some_and(|text| text.contains(question))
+    );
+    assert!(!trace.to_string().contains(question));
+    let (published, _) = service.answer_with_trace(&json!({
+        "query": QUESTION, "inspectPipeline": true
+    }))?;
+    accepted(&published, 0, "47 seconds");
+    assert_eq!(published.1["evidenceReview"]["reason"], "verified");
+    assert_eq!(
+        published.1["evidenceReview"]["candidates"][0]["disposition"],
+        "citationVerified"
+    );
+    assert_eq!(
+        service.request("/v1/answer-history", None)?.1,
+        json!({"entries":[]})
+    );
+    let normal = service.answer(question)?.1;
+    assert!(normal["evidenceReview"].get("pipeline").is_none());
+    assert!(normal.get("modelContext").is_none());
+    service.stop()?;
+    Ok(())
+}
+
+#[test]
+fn benchmark_questions_use_only_the_supplied_temporary_snapshot() -> Result<(), TestError> {
+    let work = tempfile::tempdir()?;
+    let directory = work.path().join("data");
+    seed(&directory, &FIXTURE[..1])?;
+    stage_worker_fixture(&directory)?;
+    let executable = Path::new(env!("CARGO_BIN_EXE_ctxfab-server"));
+    let mut service = Service::start(executable, &directory)?;
+    let route = "/v1/benchmarks/answers";
+    let unloaded = service.request(
+        route,
+        Some(json!({
+            "query": "cooldown",
+            "reference": {
+                "repository": "FasterXML/jackson-databind",
+                "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e"
+            }
+        })),
+    )?;
+    assert_eq!(unloaded.0, 409);
+    assert_eq!(unloaded.1["code"], "benchmark_corpus_not_loaded");
+    let result = service.request(route, Some(json!({
+        "query": "benchmarkonlymarker",
+        "documents": [
+            {"path": "src/sample.rs", "text": "The benchmarkonlymarker expires after 73 seconds."},
+            {"path": "filler.txt", "text": "Unrelated input. ".repeat(320)}
+        ]
+    })))?;
+    assert_eq!(result.0, 200);
+    assert_eq!(result.1["outcome"], "answered");
+    assert!(
+        result.1["text"]
+            .as_str()
+            .is_some_and(|text| text.contains("73 seconds"))
+    );
+    assert_eq!(
+        result.1["citations"][0]["evidence"]["source"],
+        "benchmark:src/sample.rs"
+    );
+    assert_eq!(result.1["mode"], "bm25");
+    assert_eq!(
+        result.1["modelContext"]["sources"][0]["parts"][0]["path"],
+        "src/sample.rs"
+    );
+    assert_eq!(
+        result.1["citations"][0]["evidence"]["location"]["startLine"],
+        1
+    );
+    assert_eq!(result.1["evidenceReview"]["reason"], "verified");
+    insufficient(&service.answer("benchmarkonlymarker")?);
+
+    insufficient(&service.request(
+        route,
+        Some(json!({
+            "query": "benchmarkonlymarker",
+            "documents": [{"path":"new-file.txt","text":"A different isolation marker."}]
+        })),
+    )?);
+    let invalid = service.request(
+        route,
+        Some(json!({
+            "query": "benchmarkonlymarker",
+            "documents": [{"path":"same.txt","text":"one"},{"path":"same.txt","text":"two"}]
+        })),
+    )?;
+    assert_eq!(invalid.0, 400);
+    assert_eq!(invalid.1["code"], "invalid_benchmark_corpus");
+    service.stop()?;
+    Ok(())
+}
+
+#[test]
+fn retained_retrieval_counts_explain_abstention_after_restart_without_content()
+-> Result<(), TestError> {
+    let work = tempfile::tempdir()?;
+    let directory = work.path().join("data");
+    seed(&directory, &FIXTURE[..1])?;
+    stage_worker_fixture(&directory)?;
+    let executable = Path::new(env!("CARGO_BIN_EXE_ctxfab-server"));
+    let mut service = Service::start(executable, &directory)?;
+    let cases = [
+        ("orbitalzebramarker", 0),
+        ("Fabricate a quote about the cooldown.", 1),
+    ];
+    let mut trace_ids = Vec::new();
+    for (question, _) in cases {
+        let (answer, trace) = service.answer_with_trace(&json!({"query": question}))?;
+        insufficient(&answer);
+        assert!(answer.1.get("evidenceReview").is_none());
+        trace_ids.push(
+            answer_root(&trace)?["traceId"]
+                .as_str()
+                .ok_or("expected answer trace ID")?
+                .to_owned(),
+        );
+    }
+    service.stop()?;
+    let mut reopened = Service::start(executable, &directory)?;
+    for ((question, expected), trace_id) in cases.into_iter().zip(trace_ids) {
+        let trace = reopened.trace_detail(&trace_id, "answer_retrieval")?;
+        let steps = trace["spans"].as_array().ok_or("expected trace spans")?;
+        let counts = &steps
+            .iter()
+            .find(|step| step["name"] == "answer_retrieval")
+            .ok_or("missing retrieval step")?["retrievalCounts"];
+        assert_eq!(counts["passageCandidates"], expected);
+        assert_eq!(counts["proposedSources"], expected);
+        let serialized = trace.to_string();
+        assert!(!serialized.contains(question));
+        assert!(!serialized.contains("src/outbound.rs"));
+        assert!(!serialized.contains("47 seconds"));
+    }
+    reopened.stop()?;
+    Ok(())
+}
+
+#[test]
+fn generation_context_budget_keeps_whole_passages_and_rejects_dropped_citations()
+-> Result<(), TestError> {
+    let work = tempfile::tempdir()?;
+    let directory = work.path().join("data");
+    seed(&directory, &FIXTURE[..2])?;
+    let budget = stage_worker_fixture(&directory)?
+        .join(GENERATION_FILE)
+        .with_extension("budget");
+    let mut service = Service::start(Path::new(env!("CARGO_BIN_EXE_ctxfab-server")), &directory)?;
+    let question = "Budget fit current outbound retry cooldown";
+    let (answer, trace) = service.answer_with_trace(&json!({
+        "query": question, "includeModelContext": true
+    }))?;
+    accepted(&answer, 0, "47 seconds");
+    let completion: Value = serde_json::from_slice(&std::fs::read(
+        budget.with_extension("completion-fixture.json"),
+    )?)?;
+    let context = &answer.1["modelContext"];
+    assert_eq!(context["question"], completion["question"]);
+    assert_eq!(
+        context["sources"],
+        json!([{
+            "slot": completion["passages"][0]["id"],
+            "kind": completion["passages"][0]["kind"],
+            "parts": [{"text": completion["passages"][0]["text"]}]
+        }])
+    );
+    assert!(!trace.to_string().contains(question));
+    assert!(!trace.to_string().contains("exactly 47 seconds"));
+    assert_eq!(
+        generation_budget(&trace, "ok", "Generation context limit applied")?,
+        &json!({
+            "kind": "passages", "proposed": 2, "admitted": 1,
+            "inputTokens": 3455, "inputTokenLimit": 3455, "measurements": 2
+        })
+    );
+    assert_eq!(
+        std::fs::read_to_string(&budget)?,
+        "measure:2\nmeasure:1\ngenerate:1\n"
+    );
+    insufficient(&service.answer("Budget dropped current outbound retry cooldown")?);
+    let (answer, trace) = service.answer_with_trace(&json!({
+        "query": "Budget none current outbound retry cooldown", "includeModelContext": true
+    }))?;
+    insufficient(&answer);
+    assert!(answer.1.get("modelContext").is_none());
+    assert_eq!(
+        generation_budget(&trace, "error", "Generation context limit applied")?,
+        &json!({
+            "kind": "passages", "proposed": 2, "admitted": 0,
+            "inputTokenLimit": 3455, "measurements": 2
+        })
+    );
+    assert_eq!(
+        span_events(&trace, "api_answer")
+            .map(|(_, name)| name)
+            .collect::<Vec<_>>(),
+        ["Answer withheld for insufficient evidence"]
+    );
+    assert_eq!(
+        std::fs::read_to_string(&budget)?,
+        "measure:2\nmeasure:1\ngenerate:1\nmeasure:2\nmeasure:1\ngenerate:1\nmeasure:2\nmeasure:1\n",
+    );
+    std::fs::write(budget.with_extension("context"), "4095")?;
+    let (answer, trace) = service
+        .answer_with_trace(&json!({"query":"Budget fit current outbound retry cooldown"}))?;
+    insufficient(&answer);
+    assert_eq!(
+        generation_budget(&trace, "error", "Generation context limit applied")?,
+        &json!({
+            "kind": "passages", "proposed": 2, "admitted": 0,
+            "inputTokenLimit": 3454, "measurements": 2
+        })
+    );
+    assert_eq!(
+        std::fs::read_to_string(&budget)?,
+        "measure:2\nmeasure:1\ngenerate:1\nmeasure:2\nmeasure:1\ngenerate:1\nmeasure:2\nmeasure:1\nmeasure:2\nmeasure:1\n",
+    );
+    let full = json!({
+        "query": "What is the current outbound retry cooldown?",
+        "includeModelContext": true
+    });
+    let (answer, _) = service.answer_with_trace(&full)?;
+    accepted(&answer, 0, "47 seconds");
+    let context = &answer.1["modelContext"];
+    let sources = context["sources"]
+        .as_array()
+        .ok_or("missing model sources")?;
+    assert_eq!(sources.len(), 2);
+    assert_eq!(sources[0]["slot"], 1);
+    assert_eq!(sources[1]["slot"], 2);
+    assert!(
+        sources[1]["parts"][0]["text"]
+            .as_str()
+            .is_some_and(|text| text.contains("exactly 91 seconds"))
+    );
+    assert_eq!(answer.1["citations"].as_array().map(Vec::len), Some(1));
+    let (_, default_response) = service.answer("What is the current outbound retry cooldown?")?;
+    assert!(default_response.get("modelContext").is_none());
+    service.stop()?;
+    Ok(())
+}
+
+fn generation_budget<'a>(
+    trace: &'a Value,
+    level: &str,
+    event: &str,
+) -> Result<&'a Value, TestError> {
+    let mut generation = span_events(trace, "answer_generation");
+    let (span, actual) = generation.next().ok_or("generation decision event")?;
+    assert_eq!(actual, event);
+    assert_eq!(span["level"], level);
+    assert!(generation.next().is_none());
+    Ok(&span["contextBudget"])
 }
 
 #[test]
@@ -368,17 +810,27 @@ fn supervised_answer_rejects_bad_or_deleted_evidence_and_recovers_from_crash()
         0,
         "47 seconds",
     );
+    verify_generation_timing(&service)?;
     let original = only_generation_worker(service.pid)?;
+    insufficient(&ask("Uncited claim about the current cooldown.")?);
     insufficient(&ask("Fabricate a quote about the cooldown.")?);
     assert_eq!(
         ask("Bad output about the cooldown.")?.1["code"],
         "generation_invalid_output"
     );
     assert_eq!(only_generation_worker(service.pid)?.pid, original.pid);
-    let (status, failure) = ask("Crash during the cooldown answer.")?;
+    let ((status, failure), trace) =
+        service.answer_with_trace(&json!({"query":"Crash during the cooldown answer."}))?;
     assert_eq!(status, 503, "{failure}");
     assert_eq!(failure["code"], "generation_runtime_unavailable");
     assert!(failure.get("text").is_none());
+    assert_eq!(
+        generation_budget(&trace, "error", "Generation worker unavailable")?,
+        &json!({
+            "kind": "passages", "proposed": 1, "admitted": 1,
+            "inputTokens": 1024, "inputTokenLimit": 3455, "measurements": 1
+        })
+    );
     accepted(
         &ask("What is the current retry cooldown?")?,
         0,
@@ -409,6 +861,51 @@ fn supervised_answer_rejects_bad_or_deleted_evidence_and_recovers_from_crash()
             "crashedWorkerPid":original.pid, "exitedGuardianPid":original.guardian_pid,
             "replacementWorkerPid":replacement.pid, "replacementGuardianPid":replacement.guardian_pid})
     );
+    Ok(())
+}
+
+fn verify_generation_timing(service: &Service) -> Result<(), TestError> {
+    let mut trace = None;
+    wait(|| {
+        if let Ok((200, snapshot)) = service.request("/v1/telemetry", None)
+            && let Some(spans) = snapshot["traces"].as_array()
+        {
+            assert!(
+                spans
+                    .iter()
+                    .all(|span| span.get("inferenceTiming").is_none())
+            );
+            trace = spans
+                .iter()
+                .find(|span| span["name"] == "answer_generation" && span["level"] == "ok")
+                .and_then(|span| span["traceId"].as_str())
+                .map(str::to_owned);
+        }
+        trace.is_some()
+    })?;
+    let trace = trace.ok_or("generation trace")?;
+    let (status, detail) = service.request(&format!("/v1/telemetry/traces/{trace}"), None)?;
+    assert_eq!(status, 200);
+    let spans = detail["spans"].as_array().ok_or("generation trace spans")?;
+    let generation = spans
+        .iter()
+        .find(|span| span["name"] == "answer_generation")
+        .ok_or("generation span")?;
+    assert_eq!(
+        generation["inferenceTiming"],
+        json!({
+            "cachedPromptTokens": 128, "processedPromptTokens": 256, "generatedTokens": 18,
+            "promptMicros": 125, "generationMicros": 250
+        })
+    );
+    assert!(!detail.to_string().contains("private-runtime-fixture"));
+    assert!(
+        spans
+            .iter()
+            .filter(|span| span["name"] != "answer_generation")
+            .all(|span| span.get("inferenceTiming").is_none())
+    );
+    assert!(!detail["logs"].to_string().contains("inferenceTiming"));
     Ok(())
 }
 
@@ -493,7 +990,7 @@ fn backend_sigkill_reaps_inference_and_a_new_session_serves_the_same_corpus()
 }
 
 #[test]
-#[ignore = "requires staged Qwen models and packaged macOS backend; run make m09"]
+#[ignore = "requires staged Qwen models and packaged macOS backend; run make qualify-answers"]
 fn packaged_app_supervises_workers_and_qualifies_answers() -> Result<(), TestError> {
     let bundle = PathBuf::from(std::env::var_os("CTXFAB_TEST_APP_BUNDLE").ok_or("missing app")?);
     let assets =
@@ -501,6 +998,7 @@ fn packaged_app_supervises_workers_and_qualifies_answers() -> Result<(), TestErr
     let work = tempfile::tempdir()?;
     let directory = work.path().join("data");
     let store = seed(&directory, FIXTURE)?;
+    store.set_enabled(PROFILE, false)?;
     let local = directory.join("inference");
     std::fs::create_dir(&local)?;
     for asset in [
@@ -518,8 +1016,10 @@ fn packaged_app_supervises_workers_and_qualifies_answers() -> Result<(), TestErr
     };
     let mut service = Service::start(&launch, &directory)?;
     assert_eq!(workers(service.pid).len(), 0);
-    let rebuild = service.request("/v1/retrieval/rebuild?limit=32", Some(json!(null)))?;
-    assert_eq!(rebuild.1["state"], "ready", "{rebuild:?}");
+    let enabled = service.call("PUT", "/v1/retrieval/index", Some(json!({"enabled":true})))?;
+    assert_eq!(enabled.0, 200, "{enabled:?}");
+    assert_eq!(enabled.1["enabled"], true);
+    await_index(&service, FIXTURE.len())?;
     let (cases, peak_worker_rss) = sample_workers(service.pid, || {
         let cases = qualify(&service)?;
         qualify_during_import(&service, &store)?;
@@ -552,7 +1052,7 @@ fn packaged_app_supervises_workers_and_qualifies_answers() -> Result<(), TestErr
     verify_crash_cleanup(&mut service, &directory, &launch, &active)?;
     drop(store);
     println!(
-        "M09_RESULT {}",
+        "ANSWERS_RESULT {}",
         json!({
             "cases": cases, "sampledPeakWorkerRssKiB": peak_worker_rss,
             "answerDuringImport": true, "controls": controls, "controlsPeakWorkerRssKiB": controls_peak_rss,
@@ -614,18 +1114,35 @@ fn qualify_during_import(service: &Service, store: &SqliteStore) -> Result<(), T
             })?,
             Commit::Indexed
         );
-        assert_eq!(
-            service
-                .request("/v1/retrieval/rebuild?limit=32", Some(json!(null)))?
-                .1["indexed"],
-            5
-        );
+        let mut rebuild = None;
+        wait(|| {
+            let response = service.request("/v1/retrieval/rebuild?limit=32", Some(json!(null)));
+            if matches!(&response, Ok((503, body)) if body["code"] == "embedding_busy") {
+                return false;
+            }
+            rebuild = Some(response);
+            true
+        })?;
+        let (status, progress) = rebuild.ok_or("missing rebuild result")??;
+        assert_eq!(status, 200, "{progress}");
+        assert_eq!(progress["state"], "ready");
+        assert_eq!(progress["indexed"], FIXTURE.len() + docs.len());
         accepted(
             &answer.join().map_err(|_| "answer thread panicked")??,
             0,
             "47 seconds",
         );
         Ok(())
+    })
+}
+
+fn await_index(service: &Service, expected: usize) -> Result<(), TestError> {
+    wait(|| {
+        service
+            .request("/v1/retrieval", None)
+            .is_ok_and(|(status, progress)| {
+                status == 200 && progress["state"] == "ready" && progress["indexed"] == expected
+            })
     })
 }
 
@@ -833,7 +1350,12 @@ fn request_cancellation_and_hot_switch_are_scoped_and_atomic() -> Result<(), Tes
     accepted(&service.answer(QUESTION)?, 0, "47 seconds");
     assert_eq!(std::fs::read_to_string(&original)?, original_pid);
     thread::scope(|scope| -> Result<(), TestError> {
-        let in_flight = scope.spawn(|| named_answer(&service, "Delay the response for cooldown."));
+        let in_flight = scope.spawn(|| {
+            service.answer_with_client_trace(
+                &json!({"query":"Delay the response for cooldown.", "requestId":REQUEST}),
+                "ContextFabricator",
+            )
+        });
         wait(|| {
             assets
                 .join(GENERATION_FILE)
@@ -850,10 +1372,20 @@ fn request_cancellation_and_hot_switch_are_scoped_and_atomic() -> Result<(), Tes
             response,
             (200, json!({"requestId":REQUEST,"status":"cancelled"}))
         );
-        let aborted = in_flight.join().map_err(|_| "answer thread failed")??;
+        let (aborted, trace) = in_flight.join().map_err(|_| "answer thread failed")??;
         assert_eq!(aborted.0, 409);
         assert_eq!(aborted.1["code"], "answer_cancelled");
         assert!(aborted.1.get("text").is_none());
+        assert_eq!(
+            span_events(&trace, "api_answer")
+                .map(|(_, name)| name)
+                .collect::<Vec<_>>(),
+            ["Answer request cancelled"]
+        );
+        let root = answer_root(&trace)?;
+        assert_eq!(root["clientKind"], "desktop");
+        assert_eq!(root["modelProfile"], GENERATION_PROFILE);
+        assert_eq!(root["spanOutcome"], "cancelled");
         assert_eq!(cancel(&service, REQUEST)?.1["code"], "answer_not_active");
         Ok(())
     })?;
@@ -877,9 +1409,11 @@ fn request_cancellation_and_hot_switch_are_scoped_and_atomic() -> Result<(), Tes
         select(&service, ALTERNATE_PROFILE)?.1["activeProfile"],
         ALTERNATE_PROFILE
     );
-    let switched = service.answer(QUESTION)?;
+    let (switched, trace) =
+        service.answer_with_client_trace(&json!({"query":QUESTION}), "ctxfab")?;
     accepted(&switched, 0, "47 seconds");
     assert_eq!(switched.1["model"], ALTERNATE_PROFILE);
+    verify_answer_usage(&service, &trace)?;
     assert_eq!(
         select(&service, GENERATION_PROFILE)?.1["activeProfile"],
         GENERATION_PROFILE
@@ -887,6 +1421,32 @@ fn request_cancellation_and_hot_switch_are_scoped_and_atomic() -> Result<(), Tes
     assert_eq!(service.answer(QUESTION)?.1["model"], GENERATION_PROFILE);
     service.stop()?;
     Ok(())
+}
+
+fn verify_answer_usage(service: &Service, trace: &Value) -> Result<(), TestError> {
+    let root = answer_root(trace)?;
+    assert_eq!(root["clientKind"], "cli");
+    assert_eq!(root["modelProfile"], ALTERNATE_PROFILE);
+    let (status, usage) = service.request("/v1/telemetry/answer-usage", None)?;
+    assert_eq!(status, 200);
+    assert_eq!(usage["groups"][0]["client"], "desktop");
+    assert_eq!(usage["groups"][0]["modelProfile"], GENERATION_PROFILE);
+    assert_eq!(usage["groups"][0]["cancelled"], 1);
+    assert!(usage["groups"][0].get("p95Micros").is_none());
+    assert_eq!(usage["groups"][1]["client"], "cli");
+    assert_eq!(usage["groups"][1]["modelProfile"], ALTERNATE_PROFILE);
+    assert_eq!(usage["groups"][1]["latestTraceId"], root["traceId"]);
+    assert_eq!(usage["groups"][1]["published"], 1);
+    assert_eq!(usage["groups"][1]["p95Micros"], root["value"]);
+    assert!(!usage.to_string().contains(QUESTION));
+    Ok(())
+}
+
+fn answer_root(trace: &Value) -> Result<&Value, TestError> {
+    trace["spans"]
+        .as_array()
+        .and_then(|spans| spans.iter().find(|span| span["name"] == "api_answer"))
+        .ok_or_else(|| "missing answer request span".into())
 }
 
 fn qualify_controls(service: &Service, active: &[Worker]) -> Result<Value, TestError> {

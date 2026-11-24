@@ -4,7 +4,7 @@ use rusqlite::{Connection, named_params, params, types::Type};
 use super::{CODE_COLLECTION, SqliteStore};
 use crate::application::{
     CodeScope, SearchHit,
-    retrieval::{Passage, Progress, RetrievalError, VectorIndex},
+    retrieval::{IndexDeletion, IndexState, Passage, Progress, RetrievalError, VectorIndex},
 };
 use crate::domain::corpus::snapshot::Location;
 
@@ -14,17 +14,52 @@ pub(super) const CANDIDATE_COLUMNS: &str = "
     d.source, d.revision, d.kind, nullif(d.tracked_ref, ''), d.title, c.access_lost, d.source_location";
 
 impl VectorIndex for SqliteStore {
+    fn state(&self, profile: &str) -> Result<IndexState, RetrievalError> {
+        let db = self.read().map_err(|_| RetrievalError::Storage)?;
+        index_state(&db, profile).map_err(|_| RetrievalError::Storage)
+    }
+    fn set_enabled(&self, profile: &str, enabled: bool) -> Result<IndexState, RetrievalError> {
+        let mut db = self.write().map_err(|_| RetrievalError::Storage)?;
+        let tx = db
+            .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
+            .map_err(|_| RetrievalError::Storage)?;
+        let state =
+            set_index_enabled(&tx, profile, enabled).map_err(|_| RetrievalError::Storage)?;
+        tx.commit().map_err(|_| RetrievalError::Storage)?;
+        Ok(state)
+    }
+    fn delete_index(&self, profile: &str) -> Result<IndexDeletion, RetrievalError> {
+        let mut db = self.write().map_err(|_| RetrievalError::Storage)?;
+        let tx = db
+            .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
+            .map_err(|_| RetrievalError::Storage)?;
+        tx.execute("INSERT INTO embedding_index_state(profile, enabled, epoch) VALUES (?1, 0, 1) ON CONFLICT(profile) DO UPDATE SET enabled = 0, epoch = epoch + 1", [profile]).map_err(|_| RetrievalError::Storage)?;
+        let (removed_vectors, removed_bytes): (i64, i64) = tx.query_row("SELECT count(*), coalesce(sum(length(embedding)), 0) FROM document_vectors WHERE profile = ?1", [profile], |row| Ok((row.get(0)?, row.get(1)?))).map_err(|_| RetrievalError::Storage)?;
+        tx.execute("DELETE FROM document_vectors WHERE profile = ?1", [profile])
+            .map_err(|_| RetrievalError::Storage)?;
+        let state = index_state(&tx, profile).map_err(|_| RetrievalError::Storage)?;
+        tx.commit().map_err(|_| RetrievalError::Storage)?;
+        Ok(IndexDeletion {
+            state,
+            removed_vectors,
+            removed_bytes,
+        })
+    }
     fn progress(
         &self,
-        profile: &'static str,
+        profile: &str,
         scope: Option<&CodeScope>,
     ) -> Result<Progress, RetrievalError> {
         let database = self.read().map_err(|_| RetrievalError::Storage)?;
         progress(&database, profile, scope).map_err(|_| RetrievalError::Storage)
     }
 
-    fn pending(&self, profile: &'static str, limit: u16) -> Result<Vec<Passage>, RetrievalError> {
+    fn pending(&self, profile: &str, limit: u16) -> Result<Vec<Passage>, RetrievalError> {
         let database = self.read().map_err(|_| RetrievalError::Storage)?;
+        let state = index_state(&database, profile).map_err(|_| RetrievalError::Storage)?;
+        if !state.enabled {
+            return Ok(Vec::new());
+        }
         let sql = format!(
             "SELECT {CANDIDATE_COLUMNS}, d.id, d.collection, d.content, c.generation
              FROM documents d JOIN collections c ON c.name = d.collection
@@ -39,6 +74,7 @@ impl VectorIndex for SqliteStore {
                 Ok(Passage {
                     evidence: hit(row)?,
                     id: row.get(7)?,
+                    index_epoch: state.epoch,
                     collection: row.get(8)?,
                     content: row.get(9)?,
                     generation: row.get(10)?,
@@ -51,7 +87,7 @@ impl VectorIndex for SqliteStore {
 
     fn save_vector(
         &self,
-        profile: &'static str,
+        profile: &str,
         passage: &Passage,
         vector: &Embedding,
     ) -> Result<bool, RetrievalError> {
@@ -60,37 +96,75 @@ impl VectorIndex for SqliteStore {
             .iter()
             .flat_map(|value| value.to_le_bytes())
             .collect();
-        self.write().map_err(|_| RetrievalError::Storage)?.execute(
-            "INSERT INTO document_vectors (document_id, profile, embedding)
+        let mut connection = self.write().map_err(|_| RetrievalError::Storage)?;
+        let tx = connection
+            .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
+            .map_err(|_| RetrievalError::Storage)?;
+        let before = super::github::storage::used(&tx).map_err(|_| RetrievalError::Storage)?;
+        let changed = tx
+            .execute(
+                "INSERT INTO document_vectors (document_id, profile, embedding)
              SELECT id, ?2, ?3 FROM documents WHERE id = ?1
                AND collection = ?4 AND source = ?5 AND revision = ?6 AND kind = ?7
                AND tracked_ref = ?8 AND title = ?9 AND content = ?10
                AND passage_start = coalesce(?12, -1)
                AND EXISTS (SELECT 1 FROM collections WHERE name = ?4 AND generation = ?11)
-             ON CONFLICT(document_id) DO UPDATE SET profile = excluded.profile, embedding = excluded.embedding",
-            params![
-                passage.id, profile, blob,
-                passage.collection, passage.evidence.source, passage.evidence.revision,
-                passage.evidence.kind, passage.evidence.tracked_ref.as_deref().unwrap_or(""),
-                passage.evidence.title, passage.content, passage.generation, passage.evidence.passage_start(),
-            ],
-        ).map(|rows| rows == 1).map_err(|_| RetrievalError::Storage)
+               AND coalesce((SELECT enabled FROM embedding_index_state WHERE profile = ?2), 1) = 1
+               AND coalesce((SELECT epoch FROM embedding_index_state WHERE profile = ?2), 0) = ?13
+             ON CONFLICT(document_id, profile) DO UPDATE SET embedding = excluded.embedding",
+                params![
+                    passage.id,
+                    profile,
+                    blob,
+                    passage.collection,
+                    passage.evidence.source,
+                    passage.evidence.revision,
+                    passage.evidence.kind,
+                    passage.evidence.tracked_ref.as_deref().unwrap_or(""),
+                    passage.evidence.title,
+                    passage.content,
+                    passage.generation,
+                    passage.evidence.passage_start(),
+                    passage.index_epoch,
+                ],
+            )
+            .map_err(|_| RetrievalError::Storage)?;
+        if !super::github::storage::fits(&tx, before).map_err(|_| RetrievalError::Storage)? {
+            return Err(RetrievalError::StorageLimit);
+        }
+        tx.commit().map_err(|_| RetrievalError::Storage)?;
+        Ok(changed == 1)
     }
 
     fn rank(
         &self,
-        profile: &'static str,
+        profile: &str,
         vector: &Embedding,
         lexical: Vec<SearchHit>,
         scope: Option<&CodeScope>,
-    ) -> Result<(Vec<SearchHit>, Vec<SearchHit>), RetrievalError> {
-        ranking::rank(self, profile, vector, lexical, scope)
+        formulation: Option<(&Embedding, std::time::Instant)>,
+        inspect: bool,
+    ) -> Result<crate::application::retrieval::VectorRanking, RetrievalError> {
+        ranking::rank(self, profile, vector, lexical, scope, formulation, inspect)
     }
+}
+
+pub(super) fn set_index_enabled(
+    db: &Connection,
+    profile: &str,
+    enabled: bool,
+) -> rusqlite::Result<IndexState> {
+    db.execute("INSERT INTO embedding_index_state(profile, enabled, epoch) VALUES (?1, ?2, CASE WHEN ?2 THEN 0 ELSE 1 END) ON CONFLICT(profile) DO UPDATE SET epoch = epoch + (enabled != excluded.enabled), enabled = excluded.enabled", params![profile, enabled])?;
+    index_state(db, profile)
+}
+
+pub(super) fn index_state(db: &Connection, profile: &str) -> rusqlite::Result<IndexState> {
+    db.query_row("SELECT coalesce((SELECT enabled FROM embedding_index_state WHERE profile = ?1), 1), coalesce((SELECT epoch FROM embedding_index_state WHERE profile = ?1), 0)", [profile], |row| Ok(IndexState { profile: profile.to_owned(), enabled: row.get(0)?, epoch: row.get(1)? }))
 }
 
 fn progress(
     database: &Connection,
-    profile: &'static str,
+    profile: &str,
     scope: Option<&CodeScope>,
 ) -> rusqlite::Result<Progress> {
     if let Some(scope) = scope {

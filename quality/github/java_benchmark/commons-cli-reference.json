@@ -1,0 +1,18 @@
+{
+  "repository": "apache/commons-cli",
+  "repositoryId": 212343,
+  "releaseTag": "rel/commons-cli-1.11.0",
+  "license": "Apache-2.0",
+  "commit": "d74613321325f6081fa0206c4ab608ab65d80e2e",
+  "parent": "966ddd66b31e0608ecbd650a3eb2bb2426e26c22",
+  "tree": "5fc4f19b456f568aab1fbbbef9b6f631a2394f51",
+  "trackedPaths": 143,
+  "blobs": {
+    "LICENSE.txt": "4fa588fe19bdc7bb5166aaf2855e6d321206f049",
+    "NOTICE.txt": "10eb78eb44a99a38f4888f92cad0314d1d6417a9"
+  },
+  "expectedPublication": {
+    "paths": 136,
+    "manifestSha256": "14d7cb92bcf181c64a5101ae5164d5950f8fc3698a0784a020f2ab3d27acdd3b"
+  }
+}

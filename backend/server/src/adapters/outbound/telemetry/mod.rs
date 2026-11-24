@@ -6,13 +6,14 @@ use std::sync::{Arc, Mutex};
 use std::thread::{self, JoinHandle};
 use std::time::Duration;
 
-use opentelemetry::Context;
+use ctxfab_inference::generation::{GenerationTiming, valid_generation_alias};
 use opentelemetry::logs::{LogRecord, Logger, LoggerProvider, Severity};
 use opentelemetry::metrics::{Counter, MeterProvider};
 use opentelemetry::trace::{
     Span, SpanContext, SpanId, Status, TraceContextExt, TraceFlags, TraceId, TraceState, Tracer,
     TracerProvider,
 };
+use opentelemetry::{Context, KeyValue};
 use opentelemetry_sdk::logs::{SdkLogger, SdkLoggerProvider};
 use opentelemetry_sdk::metrics::{PeriodicReader, SdkMeterProvider};
 use opentelemetry_sdk::trace::{Sampler, SdkTracer, SdkTracerProvider};
@@ -20,13 +21,25 @@ use opentelemetry_sdk::trace::{Sampler, SdkTracer, SdkTracerProvider};
 use crate::application::{
     Failure, Settings,
     telemetry::{
-        Command, Event, LogFilter, LogPage, Observation, Observer, Snapshot, Stage, Telemetry,
-        TraceLink, TracePage,
+        AnswerUsage, ClientKind, Command, Event, FusionRanking, GenerationContext, LogFilter,
+        LogPage, Observation, Observer, Snapshot, SpanOutcome, Stage, Telemetry, TraceLink,
+        TracePage,
     },
 };
 
 mod exporters;
+mod fusion;
+mod generation;
 mod store;
+
+const HTTP_STATUS: &str = "http.response.status_code";
+const HTTP_METHOD: &str = "http.request.method";
+const HTTP_ROUTE: &str = "http.route";
+const CLIENT_KIND: &str = "ctxfab.client.kind";
+const MODEL_PROFILE: &str = "ctxfab.model.profile";
+const PROBLEM_CODE: &str = "ctxfab.problem.code";
+const WORK_TRACE: &str = "ctxfab.work.trace_id";
+const ANSWER_OUTCOME: &str = "ctxfab.answer.outcome";
 pub use store::Limits;
 
 use exporters::{Ingress, Metrics};
@@ -139,6 +152,10 @@ impl Telemetry for EmbeddedTelemetry {
         self.store.snapshot(now())
     }
 
+    fn answer_usage(&self) -> Result<AnswerUsage, Failure> {
+        self.store.answer_usage(now()).map_err(|_| Failure::Storage)
+    }
+
     fn logs(&self, filter: &LogFilter) -> Result<LogPage, Failure> {
         self.store.logs(filter, now()).map_err(|_| Failure::Storage)
     }
@@ -189,7 +206,65 @@ impl Observation for Operation {
     }
 
     fn event(&mut self, event: Event) {
+        if let Some(outcome) = SpanOutcome::from_event(event) {
+            self.span
+                .set_attribute(KeyValue::new(ANSWER_OUTCOME, outcome.code()));
+        }
         self.span.add_event(event.name(), Vec::new());
+    }
+
+    fn generation_timing(&mut self, timing: GenerationTiming) {
+        self.span.set_attributes(generation::attributes(timing));
+    }
+
+    fn context_budget(&mut self, context: &GenerationContext) {
+        if let Some(attribute) = generation::context_attribute(context) {
+            self.span.set_attribute(attribute);
+        }
+    }
+
+    fn fusion_ranking(&mut self, ranking: &FusionRanking) {
+        if let Some(attribute) = fusion::attribute(ranking) {
+            self.span.set_attribute(attribute);
+        }
+    }
+
+    fn retrieval_counts(&mut self, counts: crate::application::telemetry::RetrievalCounts) {
+        self.span.set_attributes(fusion::count_attributes(counts));
+    }
+
+    fn http_status(&mut self, status: u16) {
+        self.span
+            .set_attribute(KeyValue::new(HTTP_STATUS, i64::from(status)));
+    }
+
+    fn http_request(&mut self, method: &'static str, route: Option<&str>) {
+        self.span.set_attribute(KeyValue::new(HTTP_METHOD, method));
+        if let Some(route) = route {
+            self.span
+                .set_attribute(KeyValue::new(HTTP_ROUTE, route.to_owned()));
+        }
+    }
+
+    fn client_kind(&mut self, client: ClientKind) {
+        self.span
+            .set_attribute(KeyValue::new(CLIENT_KIND, client.code()));
+    }
+
+    fn model_profile(&mut self, profile: &str) {
+        if valid_generation_alias(profile) {
+            self.span
+                .set_attribute(KeyValue::new(MODEL_PROFILE, profile.to_owned()));
+        }
+    }
+
+    fn problem_code(&mut self, code: &'static str) {
+        self.span.set_attribute(KeyValue::new(PROBLEM_CODE, code));
+    }
+
+    fn work_trace(&mut self, link: TraceLink) {
+        let id = TraceId::from_bytes(link.trace).to_string();
+        self.span.set_attribute(KeyValue::new(WORK_TRACE, id));
     }
 
     fn finish(mut self: Box<Self>, success: bool) {

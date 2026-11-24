@@ -15,9 +15,13 @@ use opentelemetry_sdk::metrics::data::{
 use opentelemetry_sdk::metrics::exporter::PushMetricExporter;
 use opentelemetry_sdk::trace::{SpanData, SpanExporter};
 
-use crate::application::telemetry::{Event, SpanEvent, SpanTiming, Stage};
+use crate::application::telemetry::{ClientKind, Event, SpanEvent, SpanOutcome, SpanTiming, Stage};
 
-use super::store::{LocalStore, Row, Signal, now, timestamp};
+use super::{
+    ANSWER_OUTCOME, CLIENT_KIND, HTTP_METHOD, HTTP_ROUTE, HTTP_STATUS, MODEL_PROFILE, PROBLEM_CODE,
+    WORK_TRACE, fusion, generation,
+    store::{LocalStore, Row, Signal, now, timestamp},
+};
 
 #[derive(Clone, Debug)]
 pub(super) struct Ingress {
@@ -66,12 +70,71 @@ impl SpanExporter for Ingress {
                         })
                         .take(Event::MAX_PER_SPAN as usize)
                         .collect(),
+                    answer_outcome: text_attribute(&span.attributes, ANSWER_OUTCOME, 24)
+                        .as_deref()
+                        .and_then(SpanOutcome::from_code),
+                    inference_timing: if name == Stage::AnswerGeneration.code()
+                        && row.level == Some("ok")
+                    {
+                        generation::read(&span.attributes)
+                    } else {
+                        None
+                    },
+                    context_budget: if name == Stage::AnswerGeneration.code() {
+                        generation::read_context(&span.attributes)
+                    } else {
+                        None
+                    },
+                    fusion_ranking: if name == Stage::AnswerRetrieval.code()
+                        || name == Stage::VectorRetrieval.code()
+                    {
+                        fusion::read(&span.attributes)
+                    } else {
+                        None
+                    },
+                    retrieval_counts: if name == Stage::AnswerRetrieval.code() {
+                        fusion::read_counts(&span.attributes)
+                    } else {
+                        None
+                    },
+                    http_status: span.attributes.iter().find_map(|attribute| {
+                        if attribute.key.as_str() != HTTP_STATUS {
+                            return None;
+                        }
+                        if let opentelemetry::Value::I64(value @ 100..=599) = attribute.value {
+                            return u16::try_from(value).ok();
+                        }
+                        None
+                    }),
+                    http_method: text_attribute(&span.attributes, HTTP_METHOD, 7),
+                    http_route: text_attribute(&span.attributes, HTTP_ROUTE, 160),
+                    client_kind: text_attribute(&span.attributes, CLIENT_KIND, 7)
+                        .as_deref()
+                        .and_then(ClientKind::from_code),
+                    model_profile: text_attribute(&span.attributes, MODEL_PROFILE, 67)
+                        .filter(|profile| super::valid_generation_alias(profile)),
+                    problem_code: text_attribute(&span.attributes, PROBLEM_CODE, 80),
+                    work_trace_id: text_attribute(&span.attributes, WORK_TRACE, 32),
                 });
                 let _ = self.send(row);
             }
         }
         ready(Ok(()))
     }
+}
+
+fn text_attribute(
+    attributes: &[opentelemetry::KeyValue],
+    key: &str,
+    max_len: usize,
+) -> Option<String> {
+    let attribute = attributes
+        .iter()
+        .find(|attribute| attribute.key.as_str() == key)?;
+    let opentelemetry::Value::String(value) = &attribute.value else {
+        return None;
+    };
+    (value.as_str().len() <= max_len).then(|| value.as_str().to_owned())
 }
 
 impl LogExporter for Ingress {

@@ -1,0 +1,21 @@
+{
+  "repository": "tokio-rs/bytes",
+  "repositoryId": 30062547,
+  "defaultBranch": "master",
+  "license": "MIT",
+  "commit": "62207901b65e4fc51459b2d558fad8aa882f5d33",
+  "parent": "c08f87663a04eac3b9ab2dfa1976852d9b525a8c",
+  "tree": "399f1265cc872375fe08c72217589a5b18548b56",
+  "trackedPaths": 46,
+  "blobs": {
+    "LICENSE": "58fb29a12384e4a5f41a97bcfc7f6f9b2016903d",
+    "Cargo.toml": "15564def57d28abae069e8733a368057c32a5af3",
+    ".github/workflows/ci.yml": "79b57dafde126db315a7a104a7aaa200be29f9c8",
+    "src/lib.rs": "1916b604327f0ca61a87218dcba054960f02aeb9",
+    "README.md": "90d631c97fce70e2469494cdb645740ed7ce7579"
+  },
+  "expectedPublication": {
+    "paths": 46,
+    "manifestSha256": "cd62b122c04700cdb0e9e74ceb0352a6d9fdc76c9e25a91d5bc0230a752c11f8"
+  }
+}

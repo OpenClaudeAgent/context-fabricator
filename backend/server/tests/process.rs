@@ -49,11 +49,13 @@ fn app_session_stops_when_owner_pipe_closes() -> Result<(), Box<dyn Error>> {
             .spawn()?,
     );
     wait_for(|| Ok(endpoint.exists().then_some(())))?;
-    assert!(
-        !server(&data).status()?.success(),
-        "a second process acquired the same directory"
+    let original = std::fs::read(&endpoint)?;
+    assert_eq!(
+        server(&data).status()?.code(),
+        Some(75),
+        "a second process must report that the directory already has an owner"
     );
-    assert!(endpoint.exists());
+    assert!(std::fs::read(&endpoint)? == original);
     drop(backend.0.stdin.take());
     let exit: ExitStatus = wait_for(|| backend.0.try_wait())?;
     assert!(exit.success());
@@ -61,6 +63,15 @@ fn app_session_stops_when_owner_pipe_closes() -> Result<(), Box<dyn Error>> {
         !endpoint.exists(),
         "discovery was left behind after shutdown"
     );
+    let mut replacement = Running(
+        server(&data)
+            .arg("--app-session")
+            .stdin(Stdio::piped())
+            .spawn()?,
+    );
+    wait_for(|| Ok(endpoint.exists().then_some(())))?;
+    drop(replacement.0.stdin.take());
+    assert!(wait_for(|| replacement.0.try_wait())?.success());
     Ok(())
 }
 
@@ -91,7 +102,7 @@ fn fixture_arguments_require_an_explicit_valid_correlation() -> Result<(), Box<d
 mod corpus_fixtures;
 
 #[test]
-#[ignore = "requires the macOS app bundle; run make m04"]
+#[ignore = "requires the macOS app bundle; run make package-debug check-packaged-corpus"]
 fn packaged_helper_serves_fresh_and_migrated_corpus() -> Result<(), Box<dyn Error>> {
     use std::os::unix::fs::DirBuilderExt;
 
@@ -225,7 +236,7 @@ fn scheduler_stops_with_its_owner_and_reconciles_a_killed_session() -> Result<()
 
 #[cfg(debug_assertions)]
 #[test]
-#[ignore = "requires the macOS app bundle; run make m05"]
+#[ignore = "requires the macOS app bundle; run make package-debug check-packaged-outbound"]
 fn packaged_scheduler_recovers_incrementally_and_accounts_for_crash() -> Result<(), Box<dyn Error>>
 {
     let bundle = std::env::var_os("CTXFAB_TEST_APP_BUNDLE")
@@ -327,7 +338,7 @@ fn embedded_telemetry_is_served_by_the_live_backend() -> Result<(), Box<dyn Erro
 
 #[cfg(debug_assertions)]
 #[test]
-#[ignore = "requires the macOS app bundle; run make m06"]
+#[ignore = "requires the macOS app bundle; run make package-debug check-packaged-telemetry"]
 fn packaged_backend_persists_correlated_signals() -> Result<(), Box<dyn Error>> {
     let bundle = std::env::var_os("CTXFAB_TEST_APP_BUNDLE")
         .map(std::path::PathBuf::from)
@@ -540,4 +551,232 @@ fn unavailable_telemetry_keeps_the_backend_and_startup_diagnostics_available()
     drop(backend.0.stdin.take());
     assert!(wait_for(|| backend.0.try_wait())?.success());
     Ok(())
+}
+
+#[test]
+fn restarted_backend_offers_only_verified_imports_to_the_inference_picker()
+-> Result<(), Box<dyn Error>> {
+    use ctxfab_server::adapters::outbound::sqlite::SqliteStore;
+    use ctxfab_server::application::model_management::ModelInventory;
+    use serde_json::Value;
+    use std::os::unix::fs::DirBuilderExt;
+
+    let directory = tempfile::tempdir()?;
+    let data = directory.path().join("data");
+    std::fs::DirBuilder::new().mode(0o700).create(&data)?;
+    let assets = data.join("inference");
+    std::fs::create_dir(&assets)?;
+    std::fs::write(assets.join("llama-server"), b"fixture worker")?;
+    let profiles = {
+        let store = SqliteStore::open(&data.join("context.sqlite3"))?;
+        [("registered", true), ("interrupted", false)]
+            .into_iter()
+            .map(|(publisher, verified)| {
+                let model = imported_fixture(publisher);
+                std::fs::write(assets.join(model.file.as_ref()), b"GGUF")?;
+                store.retain_model(&model)?;
+                store.mark_verified(&model.profile, verified)?;
+                Ok::<_, Box<dyn Error>>(model.profile)
+            })
+            .collect::<Result<Vec<_>, _>>()?
+    };
+
+    let mut backend = Running(
+        server(&data)
+            .arg("--app-session")
+            .env_remove("CTXFAB_INFERENCE_DIRECTORY")
+            .stdin(Stdio::piped())
+            .spawn()?,
+    );
+    let endpoint_path = data.join("endpoint.json");
+    let endpoint = wait_for(|| {
+        let bytes = match std::fs::read(&endpoint_path) {
+            Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(None),
+            result => result?,
+        };
+        serde_json::from_slice::<Value>(&bytes)
+            .map(Some)
+            .map_err(io::Error::other)
+    })?;
+    let agent: ureq::Agent = ureq::Agent::config_builder()
+        .proxy(None)
+        .max_redirects(0)
+        .timeout_global(Some(Duration::from_secs(5)))
+        .build()
+        .into();
+    let url = endpoint["url"].as_str().ok_or("no backend endpoint")?;
+    let token = endpoint["token"].as_str().ok_or("no backend token")?;
+    let get = |path| -> Result<Value, Box<dyn Error>> {
+        let body = agent
+            .get(format!("{url}{path}"))
+            .header("Authorization", format!("Bearer {token}"))
+            .call()?
+            .body_mut()
+            .read_to_vec()?;
+        Ok(serde_json::from_slice(&body)?)
+    };
+    let generation = get("/v1/generation/models")?;
+    assert_eq!(
+        generation,
+        serde_json::json!({
+            "activeProfile": profiles[0],
+            "profiles": [{"id": profiles[0], "label": "Fixture registered"}],
+        })
+    );
+    let downloads = get("/v1/model-downloads")?;
+    let downloads = downloads.as_array().ok_or("no model downloads")?;
+    assert!(downloads.iter().any(|model| {
+        model["profile"] == profiles[0].as_ref()
+            && model["state"] == "installed"
+            && model["deletionBlock"].is_string()
+    }));
+    assert!(downloads.iter().any(|model| {
+        model["profile"] == profiles[1].as_ref()
+            && model["state"] == "notInstalled"
+            && model.get("deletionBlock").is_none()
+    }));
+    drop(backend.0.stdin.take());
+    assert!(wait_for(|| backend.0.try_wait())?.success());
+    assert!(!endpoint_path.exists());
+    Ok(())
+}
+
+fn imported_fixture(publisher: &str) -> ctxfab_server::domain::model::Artifact {
+    use ctxfab_server::domain::model::{
+        Artifact, ArtifactKind, ModelSource, discovery::managed_profile,
+    };
+
+    let repository = format!("{publisher}/qwen-catalog");
+    let revision = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    let file = "Fixture-Q4_K_M.gguf";
+    let profile = managed_profile(&repository, revision, file);
+    Artifact {
+        label: Some(format!("Fixture {publisher}").into()),
+        source: Some(ModelSource {
+            license: None,
+            label: "Hugging Face fixture".into(),
+            url: format!("https://huggingface.co/{repository}/tree/{revision}").into(),
+            repository: repository.into(),
+            revision: revision.into(),
+        }),
+        kind: Some(ArtifactKind::Generation),
+        file: format!("{profile}.gguf").into(),
+        profile: profile.into(),
+        remote_file: Some(file.into()),
+        sha256: "b83633aa785344791618f2fddf131b010ea04912a60430760b070bad293f65bd".into(),
+        bytes: 4,
+    }
+}
+
+#[cfg(debug_assertions)]
+#[test]
+fn downloaded_model_is_selectable_without_backend_restart() -> Result<(), Box<dyn Error>> {
+    use serde_json::{Value, json};
+    use std::os::unix::fs::{DirBuilderExt, PermissionsExt};
+
+    let directory = tempfile::tempdir()?;
+    let project = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let (_hub, port) = start_model_hub(directory.path(), &project)?;
+    let data = directory.path().join("data");
+    std::fs::DirBuilder::new().mode(0o700).create(&data)?;
+    let assets = data.join("inference");
+    std::fs::create_dir(&assets)?;
+    std::fs::copy(
+        project.join("quality/answers/mock_worker.py"),
+        assets.join("llama-server"),
+    )?;
+    std::fs::set_permissions(
+        assets.join("llama-server"),
+        std::fs::Permissions::from_mode(0o755),
+    )?;
+    let mut backend = Running(
+        server(&data)
+            .arg("--app-session")
+            .env_remove("CTXFAB_INFERENCE_DIRECTORY")
+            .env("CTXFAB_TEST_HUGGING_FACE_PORT", port.to_string())
+            .stdin(Stdio::piped())
+            .spawn()?,
+    );
+    let endpoint: Value = wait_for(|| match std::fs::read(data.join("endpoint.json")) {
+        Ok(bytes) => serde_json::from_slice(&bytes)
+            .map(Some)
+            .map_err(io::Error::other),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(None),
+        Err(error) => Err(error),
+    })?;
+    let agent: ureq::Agent = ureq::Agent::config_builder()
+        .proxy(None)
+        .timeout_global(Some(Duration::from_secs(10)))
+        .build()
+        .into();
+    let url = endpoint["url"].as_str().ok_or("missing URL")?;
+    let authorization = format!(
+        "Bearer {}",
+        endpoint["token"].as_str().ok_or("missing token")?
+    );
+    let get = |path: &str| -> Result<Value, Box<dyn Error>> {
+        Ok(serde_json::from_slice(
+            &agent
+                .get(format!("{url}{path}"))
+                .header("Authorization", &authorization)
+                .call()?
+                .body_mut()
+                .read_to_vec()?,
+        )?)
+    };
+    let initial = get("/v1/generation/models")?;
+    assert_eq!(initial["profiles"], json!([]));
+    assert!(initial.get("activeProfile").is_none());
+    let choice = json!({"repository":"fixture/catalog-qwen", "revision":"a".repeat(40),
+        "file":"Qwen3-4B-Instruct-2507-Q4_K_M.gguf"});
+    let body = agent
+        .post(format!("{url}/v1/model-catalog/downloads"))
+        .header("Authorization", &authorization)
+        .header("Content-Type", "application/json")
+        .send(choice.to_string().as_bytes())?
+        .body_mut()
+        .read_to_vec()?;
+    let accepted: Value = serde_json::from_slice(&body)?;
+    let profile = accepted["profile"].as_str().ok_or("missing profile")?;
+    wait_for(|| {
+        let models =
+            get("/v1/generation/models").map_err(|error| io::Error::other(error.to_string()))?;
+        Ok(models["profiles"]
+            .as_array()
+            .is_some_and(|models| models.iter().any(|model| model["id"] == profile))
+            .then_some(()))
+    })?;
+    let response = agent
+        .put(format!("{url}/v1/generation/models"))
+        .header("Authorization", &authorization)
+        .header("Content-Type", "application/json")
+        .send(json!({"profile":profile}).to_string().as_bytes())?
+        .body_mut()
+        .read_to_vec()?;
+    let selected: Value = serde_json::from_slice(&response)?;
+    assert_eq!(selected["activeProfile"], profile);
+    assert_eq!(get("/v1/generation/models")?["activeProfile"], profile);
+    drop(backend.0.stdin.take());
+    assert!(wait_for(|| backend.0.try_wait())?.success());
+    Ok(())
+}
+
+#[cfg(debug_assertions)]
+fn start_model_hub(directory: &Path, project: &Path) -> Result<(Running, u16), Box<dyn Error>> {
+    let fixture_dir = directory.join("hub");
+    std::fs::create_dir(&fixture_dir)?;
+    let hub = Running(
+        Command::new("/usr/bin/python3")
+            .arg(project.join("quality/models/hugging_face_fixture.py"))
+            .arg(&fixture_dir)
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .spawn()?,
+    );
+    let port = wait_for(|| match std::fs::read_to_string(fixture_dir.join("port")) {
+        Ok(value) => value.parse().map(Some).map_err(io::Error::other),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(None),
+        Err(error) => Err(error),
+    })?;
+    Ok((hub, port))
 }

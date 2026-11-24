@@ -1,31 +1,40 @@
+pub mod answer_history;
+mod answer_language;
 pub mod answers;
+pub mod artifact_storage;
 pub mod credentials;
 pub mod github;
+pub mod inference_setup;
+pub mod model_management;
 pub mod ports;
 pub mod retrieval;
+pub mod runtime_setup;
+mod search_references;
 pub mod sync;
 pub mod telemetry;
 
 use crate::domain::corpus::snapshot::Location;
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "lowercase")]
-pub enum AnswerLanguage {
-    #[default]
-    Auto,
-    En,
-    Fr,
-}
+pub use answer_language::{AnswerLanguage, AnswerLanguageOption};
+
+pub const DEFAULT_INFERENCE_ARTIFACT_LIMIT_GB: u16 = 16;
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Settings {
     pub revision: u32,
+    #[serde(deserialize_with = "AnswerLanguage::deserialize_legacy")]
     pub answer_language: AnswerLanguage,
     pub diagnostic_retention_hours: u16,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub answer_locale: Option<AnswerLanguage>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub answer_language_options: Option<Vec<AnswerLanguageOption>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub diagnostic_storage_limit_mb: Option<u16>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub inference_artifact_limit_gb: Option<u16>,
 }
 
 #[derive(Debug, Serialize)]
@@ -92,17 +101,45 @@ pub enum Failure {
     Storage,
     #[error("Settings changed. Reload the latest revision and try again.")]
     Conflict,
+    #[error("Answer history retention must be between 1 and 365 days.")]
+    InvalidAnswerHistoryRetention,
     #[error("Diagnostic retention must be between 1 and 168 hours.")]
     InvalidRetention,
     #[error("Diagnostic storage limit must be between 2 and 1000 MB.")]
     InvalidStorageLimit,
+    #[error("Inference artifact limit must be between 1 and 1000 GB.")]
+    InvalidInferenceArtifactLimit,
     #[error("Search text must contain 1 to 512 characters.")]
     InvalidQuery,
     #[error("Supply a positive GitHub repository ID and its branch name together.")]
     InvalidSearchScope,
+    #[error("Supply a repository, a tracked branch and a full Git commit ID for history answers.")]
+    InvalidHistoryScope,
+    #[error("Supply the repository, tracked branch, run ID and attempt for an Actions answer.")]
+    InvalidActionsScope,
+    #[error("Select a single GitHub evidence family for each answer.")]
+    ConflictingAnswerScopes,
 }
 
 impl Settings {
+    #[must_use]
+    pub fn preferred_answer_language(&self) -> AnswerLanguage {
+        self.answer_locale.unwrap_or(self.answer_language)
+    }
+
+    pub(crate) fn with_answer_language_options(mut self) -> Self {
+        self.answer_language_options = Some(AnswerLanguage::options());
+        self
+    }
+
+    #[must_use]
+    pub fn inference_artifact_limit_bytes(&self) -> u64 {
+        u64::from(
+            self.inference_artifact_limit_gb
+                .unwrap_or(DEFAULT_INFERENCE_ARTIFACT_LIMIT_GB),
+        ) * 1_000_000_000
+    }
+
     /// # Errors
     /// Returns an invalid settings error when retention or storage is outside its supported range.
     pub fn validate(&self) -> Result<(), Failure> {
@@ -114,6 +151,12 @@ impl Settings {
             .is_some_and(|limit| !(2..=1_000).contains(&limit))
         {
             return Err(Failure::InvalidStorageLimit);
+        }
+        if self
+            .inference_artifact_limit_gb
+            .is_some_and(|limit| !(1..=1_000).contains(&limit))
+        {
+            return Err(Failure::InvalidInferenceArtifactLimit);
         }
         Ok(())
     }
@@ -192,4 +235,27 @@ impl SearchQuery {
     pub const fn scope(&self) -> Option<&CodeScope> {
         self.scope.as_ref()
     }
+
+    pub(crate) fn is_scoped_prose(&self) -> bool {
+        self.scope.is_some() && !has_source_literal(self.original())
+    }
+
+    pub(crate) fn can_reformulate(&self) -> bool {
+        self.terms.len() >= 4 && !has_source_literal(self.original())
+    }
+}
+
+fn has_source_literal(query: &str) -> bool {
+    query.split_whitespace().nth(1).is_none()
+        || query.contains(['`', '"'])
+        || query.split_whitespace().any(|word| {
+            let source = word
+                .trim_matches(|character: char| !character.is_alphanumeric() && character != '_');
+            let camel_case = source
+                .as_bytes()
+                .first()
+                .is_some_and(u8::is_ascii_lowercase)
+                && source.bytes().any(|byte| byte.is_ascii_uppercase());
+            camel_case || source.contains(['_', '.', '/']) || source.contains("::")
+        })
 }

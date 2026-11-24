@@ -1,27 +1,55 @@
 import ComposableArchitecture
 import DesktopFeature
-import Foundation
 import SwiftUI
 
 struct AnswersView: View {
+  @Environment(\.locale) private var locale
+  private enum HistoryDestination {
+    case settings
+    case trace(String)
+  }
+
   let store: StoreOf<Answers>
-  let modelLibrary: StoreOf<ModelLibrary>
+  let history: StoreOf<AnswerHistory>
+  @State private var showsHistory = false
+  @State private var pendingHistoryDestination: HistoryDestination?
   let connection: Dashboard.Connection
-  let inferenceDirectory: URL
   let restart: () -> Void
+  let showModelLibrary: () -> Void
+  let showSetup: () -> Void
+  let showPipeline: () -> Void
+  let showHistorySettings: () -> Void
   let showTrace: (String) -> Void
-  @State private var showingModelLibrary = false
 
   var body: some View {
-    WorkspacePage {
-      WorkspaceHeading(title: "Answers")
-      AnswerComposer(store: store, connection: connection, restart: restart) {
-        showingModelLibrary = true
+    WorkspacePage(fillsViewport: true) {
+      HStack {
+        WorkspaceHeading(title: "Answers")
+        Spacer()
+        Button("Inspect Pipeline…", systemImage: "scope", action: showPipeline)
+          .disabled(connection != .ready || store.answerBusy || store.modelSwitching)
+          .accessibilityIdentifier("open-answer-pipeline")
+        Button("History…", systemImage: "clock.arrow.circlepath") { showsHistory = true }
+          .disabled(connection != .ready)
+          .accessibilityIdentifier("answer-history")
       }
+      if connection == .ready, store.models != nil, store.activeModel == nil {
+        HStack {
+          Label("Set up a local model to start asking questions.", systemImage: "sparkles")
+          Spacer()
+          Button("Choose a Model…", action: showSetup)
+            .buttonStyle(.borderedProminent)
+            .accessibilityIdentifier("set-up-answers")
+        }
+        .padding(12)
+        .background(.quaternary, in: .rect(cornerRadius: 8))
+      }
+      AnswerComposer(
+        store: store, connection: connection, restart: restart, showModelLibrary: showModelLibrary)
       if let message = store.answerFeedback {
         HStack(spacing: 8) {
           Image(systemName: "info.circle").accessibilityHidden(true)
-          Text(message).accessibilityIdentifier("answer-feedback")
+          Text(locale.localizedKey(message)).accessibilityIdentifier("answer-feedback")
           Spacer()
           if let id = store.answerTraceID { traceButton(id) }
         }
@@ -38,19 +66,36 @@ struct AnswersView: View {
           systemImage: "text.bubble",
           description: Text("Answers appear here with citations from your local sources.")
         )
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
       }
     }
-    .sheet(isPresented: $showingModelLibrary) {
-      ModelLibraryView(
-        store: modelLibrary,
-        inferenceDirectory: inferenceDirectory,
-        backendReady: connection == .ready,
-        restartBlocked: store.answerBusy || store.modelSwitching
-      ) { restart() }
+    .sheet(
+      isPresented: $showsHistory,
+      onDismiss: {
+        let destination = pendingHistoryDestination
+        pendingHistoryDestination = nil
+        switch destination {
+        case .settings: showHistorySettings()
+        case .trace(let id): showTrace(id)
+        case nil: break
+        }
+      }
+    ) {
+      AnswerHistoryView(
+        store: history, answers: store,
+        showSettings: {
+          pendingHistoryDestination = .settings
+          showsHistory = false
+        }
+      ) { id in
+        pendingHistoryDestination = .trace(id)
+        showsHistory = false
+      }
     }
     .task(id: connection == .ready) {
-      if connection == .ready { await store.send(.loadModels).finish() }
+      if connection == .ready {
+        await store.send(.loadModels).finish()
+      }
     }
   }
 

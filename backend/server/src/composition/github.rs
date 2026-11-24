@@ -1,4 +1,5 @@
 use std::num::NonZeroU16;
+use std::path::Path;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -22,6 +23,7 @@ mod github_fixture;
 pub(crate) fn connect(
     outbound: &OutboundPool,
     store: Arc<SqliteStore>,
+    directory: &Path,
     fixture: Option<(u16, bool)>,
     clock: Clock,
 ) -> Result<Arc<GitHub>, Box<dyn std::error::Error>> {
@@ -36,10 +38,10 @@ pub(crate) fn connect(
     let provider = if let Some((port, _)) = fixture {
         GitHubRest::fixture(gate, port)?
     } else {
-        GitHubRest::production(gate)?
+        GitHubRest::production(gate, directory)?
     };
     #[cfg(not(debug_assertions))]
-    let provider = GitHubRest::production(gate)?;
+    let provider = GitHubRest::production(gate, directory)?;
     #[cfg(target_os = "macos")]
     let credentials = {
         use ctxfab_server::adapters::outbound::keychain::Keychain;
@@ -54,7 +56,22 @@ pub(crate) fn connect(
                 as Arc<dyn ctxfab_server::application::credentials::CredentialStore + Send + Sync>
         })
     };
-    #[cfg(not(target_os = "macos"))]
+    #[cfg(target_os = "linux")]
+    let credentials = {
+        use ctxfab_server::adapters::outbound::secret_service::SecretServiceStore;
+        let store = SecretServiceStore::providers();
+        #[cfg(debug_assertions)]
+        let store = if fixture.is_some() {
+            store.github_fixture()
+        } else {
+            store
+        };
+        Some(Arc::new(store)
+            as Arc<
+                dyn ctxfab_server::application::credentials::CredentialStore + Send + Sync,
+            >)
+    };
+    #[cfg(not(any(target_os = "macos", target_os = "linux")))]
     let credentials = None;
     #[cfg(debug_assertions)]
     let credentials = if matches!(fixture, Some((_, false))) {
@@ -72,7 +89,9 @@ pub(crate) fn connect(
                 .map(|nonce| format!("github/{nonce}"))
                 .map_err(|_| Error::Credentials)
         })
-        .with_current_code(provider, store, move || clock.now()),
+        .with_current_code(provider.clone(), store.clone(), move || clock.now())
+        .with_history(provider.clone(), store.clone(), move || clock.now())
+        .with_actions(provider, store, move || clock.now()),
     ))
 }
 

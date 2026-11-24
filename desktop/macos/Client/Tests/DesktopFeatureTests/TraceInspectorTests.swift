@@ -1,8 +1,37 @@
 import ComposableArchitecture
+import Foundation
 import LocalAPI
 import Testing
 
 @testable import DesktopFeature
+
+@Test
+func diagnosticsDecodesServerOutcomesAndKeepsEarlierPayloadsReadable() throws {
+  let payload = Data(
+    """
+    [
+      {"id":1,"timestamp":1,"name":"api_answer","httpStatus":200,"level":"ok",
+       "spanOutcome":"insufficientEvidence"},
+      {"id":2,"timestamp":1,"name":"api_request","traceRequestKind":"backgroundCheck"},
+      {"id":3,"timestamp":1,"name":"api_answer"}
+    ]
+    """.utf8)
+  let samples = try JSONDecoder().decode([Components.Schemas.SignalSample].self, from: payload)
+  #expect(samples.map(\.spanOutcome) == [.insufficientEvidence, nil, nil])
+  #expect(samples.map(\.traceRequestKind) == [nil, .backgroundCheck, nil])
+}
+
+@Test
+func answerPaneRequiresAnswerSpansFromTheDisplayedTrace() {
+  var state = TraceInspector.State()
+  state.traceID = "history"
+  state.spans = [.init(id: 1, timestamp: 1, name: "github_history")]
+  #expect(!state.isAnswerTrace("history"))
+  state.traceID = "answer"
+  state.spans = [.init(id: 2, timestamp: 2, name: "api_answer")]
+  #expect(state.isAnswerTrace("answer"))
+  #expect(!state.isAnswerTrace("history"))
+}
 
 @MainActor
 @Test
@@ -109,4 +138,107 @@ func unavailableTraceStopsAfterTheBoundedRetry() async {
   #expect(reads.value == 2)
   #expect(!store.state.hasRecords && store.state.feedback == nil)
   await store.finish()
+}
+
+@MainActor
+@Test
+func savedAnswerLoadsOnlyOnRequestAndExpires() async {
+  let clock = TestClock()
+  let reads = LockIsolated(0)
+  let answer = Components.Schemas.LocalAnswer(
+    outcome: .answered, model: "fixture", mode: .bm25, text: "Private answer", citations: [])
+  let entry = Components.Schemas.AnswerHistoryEntry(
+    id: 1, question: "Private question", completedAtMs: 1, expiresAtMs: 2000,
+    scope: .init(), answer: answer)
+  let span = Components.Schemas.SignalSample(id: 1, timestamp: 1, name: "root")
+  let store = TestStore(initialState: TraceInspector.State()) {
+    TraceInspector(readSavedAnswer: { _ in
+      reads.withValue { $0 += 1 }
+      return entry
+    }) { _, _ in
+      .init(spans: [span], logs: [])
+    }
+  } withDependencies: {
+    $0.continuousClock = clock
+    $0.date.now = Date(timeIntervalSince1970: 1)
+    $0.uuid = .incrementing
+  }
+  await store.send(.load("trace")) {
+    $0.traceID = "trace"
+    $0.isLoading = true
+  }
+  await store.receive(\.loaded) {
+    $0.spans = [span]
+    $0.isLoading = false
+  }
+  #expect(reads.value == 0)
+  await store.send(.loadSavedAnswer) {
+    $0.savedAnswerRequest = UUID(0)
+    $0.loadingSavedAnswer = true
+  }
+  await store.receive(\.savedAnswerLoaded) {
+    $0.savedAnswerRequest = nil
+    $0.loadingSavedAnswer = false
+    $0.savedAnswer = entry
+    $0.expiryToken = UUID(1)
+  }
+  await clock.advance(by: .seconds(1))
+  await store.receive(\.savedAnswerExpired) {
+    $0.savedAnswer = nil
+    $0.expiryToken = nil
+  }
+  #expect(reads.value == 1)
+}
+
+@MainActor
+@Test
+func discardedSavedAnswerIgnoresLateResults() async {
+  let request = UUID()
+  let answer = Components.Schemas.LocalAnswer(
+    outcome: .answered, model: "fixture", mode: .bm25, text: "Private answer", citations: [])
+  let entry = Components.Schemas.AnswerHistoryEntry(
+    id: 1, question: "Private question", completedAtMs: 1, scope: .init(), answer: answer)
+  var state = TraceInspector.State()
+  state.traceID = "trace"
+  state.savedAnswerRequest = request
+  state.loadingSavedAnswer = true
+  let store = TestStore(initialState: state) {
+    TraceInspector { _, _ in .init(spans: [], logs: []) }
+  }
+  await store.send(.discardSavedAnswer) {
+    $0.savedAnswerRequest = nil
+    $0.loadingSavedAnswer = false
+  }
+  await store.send(.savedAnswerLoaded(request, entry))
+}
+
+@MainActor
+@Test(arguments: [false, true])
+func missingOrFailedSavedAnswerDoesNotExposePrivateErrorDetails(fails: Bool) async {
+  var state = TraceInspector.State()
+  state.traceID = "trace"
+  let store = TestStore(initialState: state) {
+    TraceInspector(readSavedAnswer: { _ in
+      if fails { throw BackendConnectionError.helperExited }
+      return nil
+    }) { _, _ in .init(spans: [], logs: []) }
+  } withDependencies: {
+    $0.uuid = .incrementing
+  }
+  await store.send(.loadSavedAnswer) {
+    $0.savedAnswerRequest = UUID(0)
+    $0.loadingSavedAnswer = true
+  }
+  if fails {
+    await store.receive(\.savedAnswerFailed) {
+      $0.savedAnswerRequest = nil
+      $0.loadingSavedAnswer = false
+      $0.savedAnswerFeedback = "Could not load the saved answer."
+    }
+  } else {
+    await store.receive(\.savedAnswerLoaded) {
+      $0.savedAnswerRequest = nil
+      $0.loadingSavedAnswer = false
+    }
+  }
 }

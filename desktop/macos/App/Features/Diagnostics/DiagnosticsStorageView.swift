@@ -33,8 +33,11 @@ struct DiagnosticsStorageView: View {
             Text(Date(timeIntervalSince1970: TimeInterval(oldest)), style: .relative)
           }
         }
-        Button("Purge expired", systemImage: "clock.arrow.circlepath", action: purge)
-          .disabled(!commandsEnabled)
+        HStack {
+          Spacer(minLength: 0)
+          Button("Purge expired", systemImage: "clock.arrow.circlepath", action: purge)
+            .disabled(!commandsEnabled)
+        }
       }
       Section("Record Handling") {
         LabeledContent("Queued records", value: health.queued.formatted())

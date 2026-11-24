@@ -33,8 +33,14 @@ struct GitHubPickerSheet: View {
     return matches.contains { $0.id == input.selected }
   }
 
+  private var loadingCandidates: Bool {
+    !input.enterURL && store.busy && store.candidates.isEmpty
+  }
+
   var body: some View {
-    GitHubSheet(title: "Add Repository", message: store.feedback, busy: store.busy) {
+    GitHubSheet(
+      title: "Add Repository", message: store.feedback, busy: store.busy && !loadingCandidates
+    ) {
       VStack(alignment: .leading, spacing: 12) {
         if input.enterURL { urlEntry } else { browse }
         Button(input.enterURL ? "Browse Repositories" : "Use a Repository URL…") {
@@ -71,8 +77,9 @@ struct GitHubPickerSheet: View {
         .onSubmit { continueSelection() }
       candidateList
       HStack {
-        if store.candidates.isEmpty, !store.busy {
+        if store.candidates.isEmpty {
           Button("Reload Repositories") { store.send(.discover) }
+            .disabled(store.busy)
         }
         Spacer()
         if store.nextPage != nil {
@@ -130,7 +137,9 @@ struct GitHubPickerSheet: View {
     }
     .frame(minHeight: 150, idealHeight: 206, maxHeight: 280)
     .overlay {
-      if matches.isEmpty, !store.busy {
+      if loadingCandidates {
+        LoadingStateView("Loading repositories…")
+      } else if matches.isEmpty, !store.busy {
         if input.filter.isEmpty {
           Text("No repositories in the loaded list.")
             .font(.callout)

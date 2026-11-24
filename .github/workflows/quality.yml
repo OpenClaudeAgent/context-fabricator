@@ -1,93 +1,143 @@
 name: Quality
 
-on: [push, pull_request, workflow_dispatch]
+on:
+  push:
+    paths: &macos_inputs
+      - 'backend/**'
+      - 'cli/**'
+      - 'contracts/**'
+      - 'desktop/macos/**'
+      - 'quality/**'
+      - 'Makefile'
+      - 'rust-toolchain.toml'
+      - 'LICENSE'
+      - '.github/workflows/quality.yml'
+  pull_request:
+    paths: *macos_inputs
+  workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event_name == 'workflow_dispatch' && github.run_id || github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+
 jobs:
-  m01:
+  toolchain:
     name: Swift and Rust quality gates
     runs-on: macos-26
     timeout-minutes: 30
-    defaults:
-      run:
-        shell: bash
-    env:
-      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Install pinned tools
         run: |
           mkdir -p .quality/reports
           make bootstrap 2>&1 | tee .quality/reports/bootstrap.log
       - name: Run gates and prove fixture failures
-        run: make quality
+        run: make qualify-tools
       - name: Retain quality reports
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: m01-quality-reports
+          name: toolchain-reports
           path: .quality/reports/
           if-no-files-found: error
+          include-hidden-files: true
           retention-days: 14
 
-  foundation:
-    name: macOS app foundation
-    needs: m01
+  macos-product:
+    name: macOS product and packaged backend
     runs-on: macos-26
     timeout-minutes: 35
-    defaults:
-      run:
-        shell: bash
-    env:
-      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Install app and integration tools
         run: |
           brew install k6 uv
           make bootstrap-app
-      - name: Validate the app foundation
-        run: make foundation
+      - name: Check product code, coverage and API contracts
+        run: make check-product
+      - name: Build signed Debug app
+        run: make package-debug
+      - name: Verify packaged launcher, helper and CLI
+        run: make check-packaged-smoke
       - name: Qualify runtime diagnostics and controlled failures
-        run: make m02
+        run: make qualify-runtime-diagnostics
       - name: Verify packaged SQLite migration and corpus retrieval
-        run: make m04
+        run: make check-packaged-corpus
       - name: Qualify packaged sync and outbound admission
-        run: make m05
+        run: make check-packaged-outbound
       - name: Qualify embedded telemetry and retention
-        run: make m06
-      - name: Retain foundation reports
+        run: make check-packaged-telemetry
+      - name: Retain product verification reports
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: foundation-reports
+          name: macos-product-reports
           path: .quality/reports/
           if-no-files-found: error
+          include-hidden-files: true
+          retention-days: 14
+
+  release-package:
+    name: macOS arm64 release package
+    runs-on: macos-26
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install pinned app tools
+        run: |
+          mkdir -p .quality/reports
+          make bootstrap-app 2>&1 | tee .quality/reports/release-bootstrap.log
+      - name: Verify the Release ZIP and embedded binaries
+        run: make qualify-release 2>&1 | tee .quality/reports/release-package.log
+      - name: Retain release verification results
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-package-reports
+          path: |
+            .quality/reports/release-bootstrap.log
+            .quality/reports/release-package.log
+            .quality/reports/release-package.*/package/manifest.json
+            .quality/reports/release-package.*/results.json
+            .quality/reports/release-package.*/notices.log
+          if-no-files-found: error
+          include-hidden-files: true
           retention-days: 14
 
   native-ui:
     name: macOS UI tests (${{ matrix.shard }})
-    needs: m01
     runs-on: macos-26
     timeout-minutes: 25
     strategy:
       fail-fast: false
       matrix:
         shard: [foundation, answers, github]
-    defaults:
-      run:
-        shell: bash
     env:
-      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
       CTXFAB_UI_SHARD: ${{ matrix.shard }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Install app tools
         run: make bootstrap-app
       - name: Run packaged XCUI shard
-        run: make app-test
+        run: make test-native-ui
       - name: Retain XCUI results
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -95,6 +145,7 @@ jobs:
           name: native-ui-${{ matrix.shard }}
           path: .quality/reports/app.*/
           if-no-files-found: error
+          include-hidden-files: true
           retention-days: 14
 
   native-ui-coverage:
@@ -102,16 +153,16 @@ jobs:
     needs: native-ui
     runs-on: macos-26
     timeout-minutes: 10
-    env:
-      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           pattern: native-ui-*
           path: .quality/ui-shards
       - name: Merge XCUI coverage and enforce the gate
-        run: /bin/bash quality/app.sh merge-ui "$GITHUB_WORKSPACE/.quality/ui-shards"
+        run: make check-native-coverage
       - name: Retain merged coverage
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -119,4 +170,5 @@ jobs:
           name: native-app-coverage
           path: .quality/reports/app-coverage.*/
           if-no-files-found: error
+          include-hidden-files: true
           retention-days: 14

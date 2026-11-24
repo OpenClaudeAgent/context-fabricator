@@ -57,6 +57,31 @@ public struct SessionClient: Sendable {
     }
   }
 
+  public func embeddingModels() async throws -> Components.Schemas.EmbeddingModelSelection {
+    switch try await client.listEmbeddingModels() {
+    case .ok(let response): return try response.body.json
+    case .serviceUnavailable(let response):
+      throw AnswerRejection(message: try response.body.json.message)
+    default: throw URLError(.badServerResponse)
+    }
+  }
+
+  public func selectEmbeddingModel(_ profile: String) async throws
+    -> Components.Schemas.EmbeddingModelSelection
+  {
+    switch try await longRequestClient.selectEmbeddingModel(
+      .init(body: .json(.init(profile: profile))))
+    {
+    case .ok(let response): return try response.body.json
+    case .badRequest(let response): throw AnswerRejection(message: try response.body.json.message)
+    case .notFound(let response): throw AnswerRejection(message: try response.body.json.message)
+    case .conflict(let response): throw AnswerRejection(message: try response.body.json.message)
+    case .serviceUnavailable(let response):
+      throw AnswerRejection(message: try response.body.json.message)
+    default: throw URLError(.badServerResponse)
+    }
+  }
+
   public func status() async throws -> Components.Schemas.Status {
     try await client.readStatus().ok.body.json
   }
@@ -102,10 +127,12 @@ public struct SettingsRejection: Error, Equatable, Sendable {
 public struct AnswerRejection: LocalizedError, Equatable, Sendable {
   public let message: String
   public let traceID: String?
+  public let problemCode: String?
 
-  init(message: String, traceID: String? = nil) {
+  init(message: String, traceID: String? = nil, problemCode: String? = nil) {
     self.message = message
     self.traceID = traceID
+    self.problemCode = problemCode
   }
 
   public var errorDescription: String? { message }
@@ -123,6 +150,7 @@ private struct LocalAuthorization: ClientMiddleware {
   ) async throws -> (HTTPResponse, HTTPBody?) {
     var request = request
     request.headerFields[.authorization] = "Bearer \(token)"
+    request.headerFields[.userAgent] = "ContextFabricator"
     return try await next(request, body, baseURL)
   }
 }

@@ -31,6 +31,7 @@ impl SnapshotStore for SqliteStore {
         let tx = writer
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(storage)?;
+        let before = super::github::storage::used(&tx).map_err(storage)?;
         tx.execute(
             "INSERT INTO collections(name) VALUES (?1) ON CONFLICT(name) DO NOTHING",
             [plan.collection],
@@ -75,6 +76,9 @@ impl SnapshotStore for SqliteStore {
             |row| row.get(0),
         ).map_err(storage)?;
         let created = by_id(&tx, id)?.snapshot;
+        if !super::github::storage::fits(&tx, before).map_err(storage)? {
+            return Err(SnapshotError::StorageLimit);
+        }
         tx.commit().map_err(storage)?;
         Ok(created)
     }
@@ -123,6 +127,7 @@ impl SnapshotStore for SqliteStore {
         if stored.snapshot.phase != Phase::Staging || stored.snapshot.sequence != sequence {
             return Err(SnapshotError::Conflict);
         }
+        let before = super::github::storage::used(&tx).map_err(storage)?;
         for file in files {
             stage_file(&tx, id, &stored.collection, file)?;
         }
@@ -144,10 +149,40 @@ impl SnapshotStore for SqliteStore {
             params![id, next_cursor],
         )
         .map_err(storage)?;
+        if !super::github::storage::fits(&tx, before).map_err(storage)? {
+            return Err(SnapshotError::StorageLimit);
+        }
         tx.commit().map_err(storage)
     }
 
     fn publish_snapshot(&self, id: i64) -> Result<(), SnapshotError> {
+        self.publish_with_projection(id, true, |_| Ok(()))
+    }
+
+    fn discard_snapshot(&self, id: i64) -> Result<(), SnapshotError> {
+        let mut writer = self.write().map_err(|_| SnapshotError::Storage)?;
+        let tx = writer
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .map_err(storage)?;
+        let stored = by_id(&tx, id)?;
+        guard_generation(&tx, &stored.collection, stored.snapshot.generation)?;
+        if stored.snapshot.phase == Phase::Published {
+            return Err(SnapshotError::Conflict);
+        }
+        tx.execute("DELETE FROM source_snapshots WHERE id = ?1", [id])
+            .map_err(storage)?;
+        projection::collect_unused_blobs(&tx, &stored.collection)?;
+        tx.commit().map_err(storage)
+    }
+}
+
+impl SqliteStore {
+    pub(super) fn publish_with_projection(
+        &self,
+        id: i64,
+        general: bool,
+        additional: impl FnOnce(&Connection) -> Result<(), SnapshotError>,
+    ) -> Result<(), SnapshotError> {
         let mut writer = self.write().map_err(|_| SnapshotError::Storage)?;
         let tx = writer
             .transaction_with_behavior(TransactionBehavior::Immediate)
@@ -164,23 +199,12 @@ impl SnapshotStore for SqliteStore {
             return Err(SnapshotError::Conflict);
         }
 
-        projection::publish(&tx, &stored)?;
-        tx.commit().map_err(storage)
-    }
-
-    fn discard_snapshot(&self, id: i64) -> Result<(), SnapshotError> {
-        let mut writer = self.write().map_err(|_| SnapshotError::Storage)?;
-        let tx = writer
-            .transaction_with_behavior(TransactionBehavior::Immediate)
-            .map_err(storage)?;
-        let stored = by_id(&tx, id)?;
-        guard_generation(&tx, &stored.collection, stored.snapshot.generation)?;
-        if stored.snapshot.phase == Phase::Published {
-            return Err(SnapshotError::Conflict);
+        let before = super::github::storage::used(&tx).map_err(storage)?;
+        additional(&tx)?;
+        projection::publish(&tx, &stored, general)?;
+        if !super::github::storage::fits(&tx, before).map_err(storage)? {
+            return Err(SnapshotError::StorageLimit);
         }
-        tx.execute("DELETE FROM source_snapshots WHERE id = ?1", [id])
-            .map_err(storage)?;
-        projection::collect_unused_blobs(&tx, &stored.collection)?;
         tx.commit().map_err(storage)
     }
 }

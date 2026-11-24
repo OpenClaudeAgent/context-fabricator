@@ -1,0 +1,175 @@
+{
+  "version": 1,
+  "cases": [
+    {
+      "id": "current-server",
+      "family": "current",
+      "corpus": "context-fabricator",
+      "questions": {
+        "en": "Which class starts the HTTP server in the current quality/m07/github_fixture.py?",
+        "fr": "Quelle classe démarre le serveur HTTP dans la version actuelle de quality/m07/github_fixture.py ?"
+      },
+      "facts": [
+        {"expected": "LoopbackHTTPServer starts the current server.", "anchors": [{"kind": "current", "path": "quality/m07/github_fixture.py", "contains": "with LoopbackHTTPServer("}]}
+      ]
+    },
+    {
+      "id": "current-bind",
+      "family": "current",
+      "corpus": "context-fabricator",
+      "questions": {
+        "en": "At what IP address does quality/m07/github_fixture.py bind the HTTP server?",
+        "fr": "À quelle adresse IP le serveur HTTP de quality/m07/github_fixture.py écoute-t-il ?"
+      },
+      "facts": [
+        {"expected": "The bind address is 127.0.0.1.", "anchors": [{"kind": "current", "path": "quality/m07/github_fixture.py", "contains": "with LoopbackHTTPServer((\"127.0.0.1\", 0)"}]}
+      ]
+    },
+    {
+      "id": "current-private-port",
+      "family": "current",
+      "corpus": "context-fabricator",
+      "questions": {
+        "en": "Which exact ephemeral TCP port did quality/m07/github_fixture.py bind on my last private run yesterday?",
+        "fr": "Sur quel port TCP éphémère exact quality/m07/github_fixture.py a-t-il écouté lors de mon dernier lancement privé hier ?"
+      },
+      "facts": [],
+      "insufficientReason": "A source declaration of port 0 does not identify the port assigned in a specific private execution."
+    },
+    {
+      "id": "history-server-class",
+      "family": "history",
+      "corpus": "context-fabricator",
+      "questions": {
+        "en": "How did the HTTP server class in quality/m07/github_fixture.py change between the previous and current commits?",
+        "fr": "Comment la classe du serveur HTTP dans quality/m07/github_fixture.py a-t-elle changé entre le commit précédent et le commit actuel ?"
+      },
+      "facts": [
+        {"expected": "Before the change, the server was opened with ThreadingHTTPServer.", "anchors": [{"kind": "history", "path": "quality/m07/github_fixture.py", "side": "before", "contains": "with ThreadingHTTPServer("}]},
+        {"expected": "After the change, it opens with LoopbackHTTPServer.", "anchors": [{"kind": "history", "path": "quality/m07/github_fixture.py", "side": "after", "contains": "with LoopbackHTTPServer("}]}
+      ]
+    },
+    {
+      "id": "history-bound-address",
+      "family": "history",
+      "corpus": "context-fabricator",
+      "questions": {
+        "en": "Did the server-class change in quality/m07/github_fixture.py also change the bind address?",
+        "fr": "Le changement de classe du serveur dans quality/m07/github_fixture.py a-t-il aussi changé l’adresse d’écoute ?"
+      },
+      "facts": [
+        {"expected": "The bind address stayed 127.0.0.1 on both sides.", "anchors": [
+          {"kind": "history", "path": "quality/m07/github_fixture.py", "side": "before", "contains": "with ThreadingHTTPServer((\"127.0.0.1\", 0)"},
+          {"kind": "history", "path": "quality/m07/github_fixture.py", "side": "after", "contains": "with LoopbackHTTPServer((\"127.0.0.1\", 0)"}
+        ]}
+      ]
+    },
+    {
+      "id": "history-unseen-commit",
+      "family": "history",
+      "corpus": "context-fabricator",
+      "questions": {
+        "en": "What retry timeout did commit 1111111111111111111111111111111111111111 introduce in quality/m07/github_fixture.py?",
+        "fr": "Quel délai de nouvelle tentative le commit 1111111111111111111111111111111111111111 a-t-il introduit dans quality/m07/github_fixture.py ?"
+      },
+      "facts": [],
+      "insufficientReason": "The named commit is absent from the published history."
+    },
+    {
+      "id": "actions-run-conclusion",
+      "family": "actions",
+      "corpus": "context-fabricator",
+      "questions": {
+        "en": "What conclusion did GitHub Actions report for run 44723025441 attempt 1 on OpenClaudeAgent/context-fabricator?",
+        "fr": "Quelle conclusion GitHub Actions a-t-il enregistrée pour la tentative 1 du run 44723025441 sur OpenClaudeAgent/context-fabricator ?"
+      },
+      "facts": [
+        {"expected": "GitHub recorded cancelled for that exact run and attempt.", "anchors": [{"kind": "workflow", "runId": 44723025441, "attempt": 1, "contains": "Conclusion: cancelled"}]}
+      ]
+    },
+    {
+      "id": "actions-public-event",
+      "family": "actions",
+      "corpus": "uv",
+      "questions": {
+        "en": "What triggered GitHub Actions run 44806099739 in astral-sh/uv and how did its first attempt conclude?",
+        "fr": "Qu’est-ce qui a déclenché le run GitHub Actions 44806099739 dans astral-sh/uv et quelle a été la conclusion de sa première tentative ?"
+      },
+      "facts": [
+        {"expected": "A push triggered the run.", "anchors": [{"kind": "workflow", "runId": 44806099739, "attempt": 1, "contains": "Event: push"}]},
+        {"expected": "The first attempt succeeded.", "anchors": [{"kind": "workflow", "runId": 44806099739, "attempt": 1, "contains": "Conclusion: success"}]}
+      ]
+    },
+    {
+      "id": "actions-unknown-executed-definition",
+      "family": "actions",
+      "corpus": "uv",
+      "questions": {
+        "en": "Give the exact contents of the workflow YAML actually executed by astral-sh/uv run 44806099739 attempt 1.",
+        "fr": "Donne le contenu exact du YAML réellement exécuté par la tentative 1 du run 44806099739 d’astral-sh/uv."
+      },
+      "facts": [],
+      "insufficientReason": "The captured record identifies the attempt, but does not prove which complete YAML actually executed."
+    },
+    {
+      "id": "actions-unknown-attempt",
+      "family": "actions",
+      "corpus": "uv",
+      "questions": {
+        "en": "What did GitHub report for astral-sh/uv run 44806099739 attempt 8?",
+        "fr": "Quel résultat GitHub a-t-il enregistré pour la tentative 8 du run 44806099739 d’astral-sh/uv ?"
+      },
+      "facts": [],
+      "insufficientReason": "Only attempt 1 is recorded for this run; its result cannot be applied to attempt 8."
+    },
+    {
+      "id": "mixed-code-workflow",
+      "family": "mixed",
+      "corpus": "context-fabricator",
+      "questions": {
+        "en": "Name the class that starts the current server in quality/m07/github_fixture.py and the conclusion of GitHub Actions run 44723025441 attempt 1.",
+        "fr": "Donne la classe qui démarre le serveur actuel dans quality/m07/github_fixture.py et la conclusion de la tentative 1 du run GitHub Actions 44723025441."
+      },
+      "facts": [
+        {"expected": "The current server uses LoopbackHTTPServer.", "anchors": [{"kind": "current", "path": "quality/m07/github_fixture.py", "contains": "with LoopbackHTTPServer("}]},
+        {"expected": "The named Actions attempt was cancelled.", "anchors": [{"kind": "workflow", "runId": 44723025441, "attempt": 1, "contains": "Conclusion: cancelled"}]}
+      ]
+    },
+    {
+      "id": "graph-definition",
+      "family": "graph",
+      "corpus": "rust-graph",
+      "questions": {
+        "en": "Where is the Rust function `crate::target::run` defined?",
+        "fr": "Dans quel fichier la fonction Rust `crate::target::run` est-elle définie ?"
+      },
+      "facts": [
+        {"expected": "It is defined in src/target.rs.", "anchors": [{"kind": "current", "path": "src/target.rs", "contains": "pub fn run() {}"}]}
+      ]
+    },
+    {
+      "id": "graph-caller",
+      "family": "graph",
+      "corpus": "rust-graph",
+      "questions": {
+        "en": "Which function calls `crate::target::run` directly, and where is the target defined?",
+        "fr": "Quelle fonction appelle directement `crate::target::run` et dans quel fichier la cible est-elle définie ?"
+      },
+      "facts": [
+        {"expected": "invoke directly calls crate::target::run in src/lib.rs.", "anchors": [{"kind": "current", "path": "src/lib.rs", "contains": "fn invoke() { /*é*/ crate::target::run();"}]},
+        {"expected": "run is defined in src/target.rs.", "anchors": [{"kind": "current", "path": "src/target.rs", "contains": "pub fn run() {}"}]}
+      ]
+    },
+    {
+      "id": "graph-removed-target",
+      "family": "graph",
+      "corpus": "rust-graph-after-removal",
+      "questions": {
+        "en": "Give the body of the current definition of `crate::target::run`.",
+        "fr": "Donne le corps de la définition actuelle de `crate::target::run`."
+      },
+      "facts": [],
+      "insufficientReason": "The latest published commit removed src/target.rs. Remaining references do not provide the definition."
+    }
+  ]
+}

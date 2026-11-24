@@ -1,0 +1,67 @@
+{
+  "version": 6,
+  "configurePresets": [
+    {
+      "name": "dev",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": true
+      }
+    },
+    {
+      "name": "quality",
+      "inherits": "dev",
+      "cacheVariables": {
+        "CTXFAB_QUALITY_TOOLS": true
+      }
+    },
+    {
+      "name": "coverage",
+      "inherits": "quality",
+      "cacheVariables": {
+        "CTXFAB_COVERAGE": true
+      }
+    },
+    {
+      "name": "sanitizers",
+      "inherits": "dev",
+      "cacheVariables": {
+        "CTXFAB_SANITIZERS": true
+      }
+    },
+    {
+      "name": "linux-release",
+      "inherits": "dev",
+      "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Linux" },
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "BUILD_TESTING": false,
+        "CTXFAB_LINUX_DEPLOYMENT": true
+      }
+    }
+  ],
+  "buildPresets": [
+    { "name": "dev", "configurePreset": "dev" },
+    { "name": "quality", "configurePreset": "quality" },
+    { "name": "coverage", "configurePreset": "coverage", "targets": ["ctxfab-coverage"] },
+    { "name": "sanitizers", "configurePreset": "sanitizers" },
+    { "name": "linux-release", "configurePreset": "linux-release" }
+  ],
+  "testPresets": [
+    {
+      "name": "dev",
+      "configurePreset": "dev",
+      "output": { "outputOnFailure": true, "outputJUnitFile": "tests.xml" },
+      "execution": { "noTestsAction": "error" }
+    },
+    { "name": "quality", "inherits": "dev", "configurePreset": "quality" },
+    {
+      "name": "sanitizers",
+      "inherits": "dev",
+      "configurePreset": "sanitizers",
+      "environment": { "UBSAN_OPTIONS": "halt_on_error=1" }
+    }
+  ]
+}

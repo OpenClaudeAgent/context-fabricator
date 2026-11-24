@@ -12,11 +12,13 @@ use super::clock::{Clock, milliseconds};
 use crate::application::telemetry::{Observer, Stage, TraceLink};
 use crate::application::{
     Failure,
+    answer_history::Journal,
     sync::{PageSource, SyncStorage},
 };
 use crate::domain::corpus::{Batch, Checkpoint, CollectionAccess, Commit, Record};
 use crate::domain::sync::{JobState, JobTransition, Page, Phase, Reply, RequestKind};
 
+mod embedding;
 mod github;
 
 #[derive(Clone)]
@@ -52,6 +54,33 @@ impl Default for Scheduler {
 }
 
 impl Scheduler {
+    #[must_use]
+    pub fn with_answer_history(mut self, journal: Arc<dyn Journal>, clock: Clock) -> Self {
+        let mut stop = self.stop.subscribe();
+        self.workers.spawn(async move {
+            let mut interval = tokio::time::interval(Duration::from_secs(60));
+            interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+            loop {
+                tokio::select! {
+                    biased;
+                    _ = stop.wait_for(|stopping| *stopping) => break,
+                    _ = interval.tick() => {}
+                }
+                let journal = journal.clone();
+                if !matches!(
+                    tokio::task::spawn_blocking(move || journal.prune(clock.now())).await,
+                    Ok(Ok(()))
+                ) {
+                    tracing::warn!(
+                        code = "answer_history_prune_unavailable",
+                        "Could not prune local answer history"
+                    );
+                }
+            }
+        });
+        self
+    }
+
     #[must_use]
     pub fn stop_signal(&self) -> watch::Sender<bool> {
         self.stop.clone()

@@ -1,0 +1,2 @@
+Checks: '-*,bugprone-use-after-move,bugprone-dangling-handle,clang-analyzer-*,performance-unnecessary-value-param'
+WarningsAsErrors: '*'

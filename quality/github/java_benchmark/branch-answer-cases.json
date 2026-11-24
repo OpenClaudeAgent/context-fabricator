@@ -1,0 +1,3077 @@
+{
+  "version": 1,
+  "exposure": "Previously evaluated or prospectively frozen questions and known diagnostic; public regression set, not a blind holdout.",
+  "references": {
+    "commons-current": "commons-cli-current-reference.json",
+    "jackson": "jackson-databind-reference.json"
+  },
+  "fixtureBranches": {
+    "commons-current": "master",
+    "jackson": "validation"
+  },
+  "cases": [
+    {
+      "id": "ts-c1",
+      "intentId": "ts-c1",
+      "language": "en",
+      "query": "When MissingOptionException is created from a list, how does its message differ for one missing option versus multiple missing options?",
+      "repository": "commons-current",
+      "kind": "positive",
+      "expectation": "For a list of one: Missing required option: followed by list contents. For multiple: Missing required options: followed by list contents; brackets removed.",
+      "provenance": "prospectively frozen or previously evaluated request",
+      "witnesses": [
+        {
+          "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+          "path": "src/main/java/org/apache/commons/cli/MissingOptionException.java",
+          "blob": "23e73a10f802922cfb9cfb3dd728e1544aed2495",
+          "startLine": 35,
+          "endLine": 39,
+          "startByte": 1257,
+          "endByte": 1618,
+          "text": "    private static String createMessage(final List<?> missingOptions) {\n        final StringBuilder buf = new StringBuilder(\"Missing required option\");\n        buf.append(missingOptions.size() == 1 ? \"\" : \"s\").append(\": \");\n        final String string = missingOptions.toString();\n        return buf.append(string.substring(1, string.length() - 1)).toString();\n"
+        },
+        {
+          "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+          "path": "src/main/java/org/apache/commons/cli/MissingOptionException.java",
+          "blob": "23e73a10f802922cfb9cfb3dd728e1544aed2495",
+          "startLine": 51,
+          "endLine": 54,
+          "startByte": 1919,
+          "endByte": 2079,
+          "text": "    public MissingOptionException(final List missingOptions) {\n        this(createMessage(missingOptions));\n        this.missingOptions = missingOptions;\n    }\n"
+        }
+      ]
+    },
+    {
+      "id": "ts-c1-fr",
+      "intentId": "ts-c1",
+      "language": "fr",
+      "query": "Quand MissingOptionException est créé à partir d’une liste, quelle différence y a-t-il dans son message entre une option manquante et plusieurs ?",
+      "repository": "commons-current",
+      "kind": "positive",
+      "expectation": "For a list of one: Missing required option: followed by list contents. For multiple: Missing required options: followed by list contents; brackets removed.",
+      "provenance": "prospectively frozen or previously evaluated request",
+      "witnesses": [
+        {
+          "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+          "path": "src/main/java/org/apache/commons/cli/MissingOptionException.java",
+          "blob": "23e73a10f802922cfb9cfb3dd728e1544aed2495",
+          "startLine": 35,
+          "endLine": 39,
+          "startByte": 1257,
+          "endByte": 1618,
+          "text": "    private static String createMessage(final List<?> missingOptions) {\n        final StringBuilder buf = new StringBuilder(\"Missing required option\");\n        buf.append(missingOptions.size() == 1 ? \"\" : \"s\").append(\": \");\n        final String string = missingOptions.toString();\n        return buf.append(string.substring(1, string.length() - 1)).toString();\n"
+        },
+        {
+          "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+          "path": "src/main/java/org/apache/commons/cli/MissingOptionException.java",
+          "blob": "23e73a10f802922cfb9cfb3dd728e1544aed2495",
+          "startLine": 51,
+          "endLine": 54,
+          "startByte": 1919,
+          "endByte": 2079,
+          "text": "    public MissingOptionException(final List missingOptions) {\n        this(createMessage(missingOptions));\n        this.missingOptions = missingOptions;\n    }\n"
+        }
+      ]
+    },
+    {
+      "id": "ts-c2",
+      "intentId": "ts-c2",
+      "language": "en",
+      "query": "If AlreadySelectedException is constructed with only a message, what option and option group does it retain?",
+      "repository": "commons-current",
+      "kind": "positive",
+      "expectation": "Message-only constructor retains null for both option and option group; corresponding accessors return them.",
+      "provenance": "prospectively frozen or previously evaluated request",
+      "witnesses": [
+        {
+          "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+          "path": "src/main/java/org/apache/commons/cli/AlreadySelectedException.java",
+          "blob": "99024c1979e912a2fb5b1208c0959baeb459c215",
+          "startLine": 53,
+          "endLine": 60,
+          "startByte": 1983,
+          "endByte": 2292,
+          "text": "    public AlreadySelectedException(final String message) {\n        this(message, null, null);\n    }\n\n    private AlreadySelectedException(final String message, final OptionGroup optionGroup, final Option option) {\n        super(message);\n        this.optionGroup = optionGroup;\n        this.option = option;\n"
+        },
+        {
+          "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+          "path": "src/main/java/org/apache/commons/cli/AlreadySelectedException.java",
+          "blob": "99024c1979e912a2fb5b1208c0959baeb459c215",
+          "startLine": 69,
+          "endLine": 80,
+          "startByte": 2455,
+          "endByte": 2738,
+          "text": "    public Option getOption() {\n        return option;\n    }\n\n    /**\n     * Gets the option group where another option has been selected.\n     *\n     * @return The related option group.\n     * @since 1.2\n     */\n    public OptionGroup getOptionGroup() {\n        return optionGroup;\n"
+        }
+      ]
+    },
+    {
+      "id": "ts-n1",
+      "intentId": "ts-n1",
+      "language": "en",
+      "query": "How many times was MissingOptionException raised in production yesterday?",
+      "repository": "commons-current",
+      "kind": "unavailable_runtime",
+      "expectation": "The pinned source does not observe yesterday’s production exception count; withhold the requested count.",
+      "provenance": "prospectively frozen or previously evaluated request",
+      "witnesses": [
+        {
+          "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+          "path": "src/main/java/org/apache/commons/cli/MissingOptionException.java",
+          "blob": "23e73a10f802922cfb9cfb3dd728e1544aed2495",
+          "startLine": 35,
+          "endLine": 39,
+          "startByte": 1257,
+          "endByte": 1618,
+          "text": "    private static String createMessage(final List<?> missingOptions) {\n        final StringBuilder buf = new StringBuilder(\"Missing required option\");\n        buf.append(missingOptions.size() == 1 ? \"\" : \"s\").append(\": \");\n        final String string = missingOptions.toString();\n        return buf.append(string.substring(1, string.length() - 1)).toString();\n"
+        },
+        {
+          "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+          "path": "src/main/java/org/apache/commons/cli/MissingOptionException.java",
+          "blob": "23e73a10f802922cfb9cfb3dd728e1544aed2495",
+          "startLine": 51,
+          "endLine": 54,
+          "startByte": 1919,
+          "endByte": 2079,
+          "text": "    public MissingOptionException(final List missingOptions) {\n        this(createMessage(missingOptions));\n        this.missingOptions = missingOptions;\n    }\n"
+        }
+      ]
+    },
+    {
+      "id": "ts-j1",
+      "intentId": "ts-j1",
+      "language": "en",
+      "query": "For ByteBufferBackedInputStream, what does a single-byte read return when the buffer is empty, and when the next byte is 0xFF?",
+      "repository": "jackson",
+      "kind": "positive",
+      "expectation": "Empty buffer returns -1; byte 0xFF returns 255 after masking.",
+      "provenance": "prospectively frozen or previously evaluated request",
+      "witnesses": [
+        {
+          "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+          "path": "src/main/java/com/fasterxml/jackson/databind/util/ByteBufferBackedInputStream.java",
+          "blob": "72a4d1de21d849e3ea517f2cb4b7b532cd8ddf8f",
+          "startLine": 14,
+          "endLine": 19,
+          "startByte": 352,
+          "endByte": 597,
+          "text": "    public ByteBufferBackedInputStream(ByteBuffer buf) { _b = buf; }\n\n    @Override public int available() { return _b.remaining(); }\n\n    @Override\n    public int read() throws IOException { return _b.hasRemaining() ? (_b.get() & 0xFF) : -1; }\n"
+        }
+      ]
+    },
+    {
+      "id": "ts-n2",
+      "intentId": "ts-n2",
+      "language": "en",
+      "query": "How does ByteBufferBackedInputStream automatically decompress gzip data from its buffer?",
+      "repository": "jackson",
+      "kind": "absent_in_file",
+      "expectation": "No gzip-decompression implementation in the complete class; deny premise or withhold rather than invent behavior.",
+      "provenance": "prospectively frozen or previously evaluated request",
+      "witness": {
+        "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+        "path": "src/main/java/com/fasterxml/jackson/databind/util/ByteBufferBackedInputStream.java",
+        "blob": "72a4d1de21d849e3ea517f2cb4b7b532cd8ddf8f",
+        "startLine": 1,
+        "endLine": 28,
+        "startByte": 0,
+        "endByte": 833,
+        "text": "package com.fasterxml.jackson.databind.util;\n\nimport java.io.IOException;\nimport java.io.InputStream;\nimport java.nio.ByteBuffer;\n\n/**\n * Simple {@link InputStream} implementation that exposes currently\n * available content of a {@link ByteBuffer}.\n */\npublic class ByteBufferBackedInputStream extends InputStream {\n    protected final ByteBuffer _b;\n\n    public ByteBufferBackedInputStream(ByteBuffer buf) { _b = buf; }\n\n    @Override public int available() { return _b.remaining(); }\n\n    @Override\n    public int read() throws IOException { return _b.hasRemaining() ? (_b.get() & 0xFF) : -1; }\n\n    @Override\n    public int read(byte[] bytes, int off, int len) throws IOException {\n        if (!_b.hasRemaining()) return -1;\n        len = Math.min(len, _b.remaining());\n        _b.get(bytes, off, len);\n        return len;\n    }\n}"
+      },
+      "absence": {
+        "path": "src/main/java/com/fasterxml/jackson/databind/util/ByteBufferBackedInputStream.java",
+        "blob": "72a4d1de21d849e3ea517f2cb4b7b532cd8ddf8f",
+        "pattern": "(?i)gzip|decompress"
+      },
+      "absenceLimit": "Regex checks only the complete file text; evaluator must assess the source meaning and must not infer global absence."
+    },
+    {
+      "id": "ra-c1",
+      "intentId": "ra-c1",
+      "language": "en",
+      "query": "According to the Commons CLI README, what indentation should contributors use and what kind of diffs should they submit?",
+      "repository": "commons-current",
+      "kind": "positive",
+      "expectation": "Use spaces rather than tabs; create minimal diffs and avoid unrelated automatic reformat/organize imports.",
+      "provenance": "prospectively frozen or previously evaluated request",
+      "witnesses": [
+        {
+          "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+          "path": "README.md",
+          "blob": "c241c798bdc322848214fe909d0fe05f66146d1b",
+          "startLine": 88,
+          "endLine": 90,
+          "startByte": 4849,
+          "endByte": 5128,
+          "text": "+ No tabs! Please use spaces for indentation.\n+ Respect the existing code style for each file.\n+ Create minimal diffs - disable on save actions like reformat source code or organize imports. If you feel the source code should be reformatted create a separate PR for this change.\n"
+        }
+      ]
+    },
+    {
+      "id": "ra-j1",
+      "intentId": "ra-j1",
+      "language": "en",
+      "query": "According to the Jackson Databind README, what happens to the core and annotations dependencies when I use Maven or Gradle, and what should I do if my tool does not resolve dependencies?",
+      "repository": "jackson",
+      "kind": "positive",
+      "expectation": "Maven/Gradle include the two dependencies automatically; without a dependency-resolving tool download and include both jars explicitly.",
+      "provenance": "prospectively frozen or previously evaluated request",
+      "witnesses": [
+        {
+          "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+          "path": "README.md",
+          "blob": "283b8cc20a9156812116b798f57ad959b7744953",
+          "startLine": 49,
+          "endLine": 54,
+          "startByte": 2595,
+          "endByte": 3016,
+          "text": "Package also depends on `jackson-core` and `jackson-annotations` packages, but when using build tools\nlike Maven or Gradle, dependencies are automatically included.\nYou may, however, want to use [jackson-bom](../../../jackson-bom) to ensure compatible versions\nof dependencies.\nIf not using build tool that can handle dependencies using project's `pom.xml`, you will need to download\nand include these 2 jars explicitly.\n"
+        }
+      ]
+    },
+    {
+      "id": "ra-j2",
+      "intentId": "ra-j2",
+      "language": "en",
+      "query": "According to the Jackson Databind README, from which versions does the jar include Java module information and Gradle module metadata?",
+      "repository": "jackson",
+      "kind": "positive",
+      "expectation": "Java module info since 2.10; Gradle 6 module metadata since 2.12.",
+      "provenance": "prospectively frozen or previously evaluated request",
+      "witnesses": [
+        {
+          "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+          "path": "README.md",
+          "blob": "283b8cc20a9156812116b798f57ad959b7744953",
+          "startLine": 63,
+          "endLine": 65,
+          "startByte": 3408,
+          "endByte": 3622,
+          "text": "Jackson 2.10 and above include `module-info.class` definitions so the jar is also a proper Java Module (JPMS).\n\nJackson 2.12 and above include additional Gradle 6 Module Metadata for version alignment with Gradle.\n"
+        }
+      ]
+    },
+    {
+      "id": "ra-n1",
+      "intentId": "ra-n1",
+      "language": "en",
+      "query": "According to the Jackson Databind README, what default maximum JSON nesting depth does it specify?",
+      "repository": "jackson",
+      "kind": "absent_in_file",
+      "expectation": "README does not specify a default maximum JSON nesting depth; withhold.",
+      "provenance": "prospectively frozen or previously evaluated request",
+      "witness": {
+        "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+        "path": "README.md",
+        "blob": "283b8cc20a9156812116b798f57ad959b7744953",
+        "startLine": 1,
+        "endLine": 7,
+        "startByte": 0,
+        "endByte": 403,
+        "text": "# Overview\n\nThis project contains the general-purpose data-binding functionality\nand tree-model for [Jackson Data Processor](../../../jackson).\nIt builds on [Streaming API](../../../jackson-core) (stream parser/generator) package,\nand uses [Jackson Annotations](../../../jackson-annotations) for configuration.\nProject is licensed under [Apache License 2.0](http://www.apache.org/licenses/LICENSE-2.0).\n"
+      },
+      "absence": {
+        "path": "README.md",
+        "blob": "283b8cc20a9156812116b798f57ad959b7744953",
+        "pattern": "(?i)nest(?:ing|ed)"
+      },
+      "absenceLimit": "Regex checks only the complete file text; evaluator must assess the source meaning and must not infer global absence."
+    },
+    {
+      "id": "ef-j1",
+      "intentId": "ef-j1",
+      "language": "en",
+      "query": "When comparing two RawValue instances, what happens when their wrapped values are the same reference, and when the first wrapped value is null but the second is not?",
+      "repository": "jackson",
+      "kind": "positive",
+      "expectation": "Same wrapped object reference returns true; a null first value and non-null second returns false.",
+      "provenance": "previously exposed RawValue diagnostic",
+      "witnesses": [
+        {
+          "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+          "path": "src/main/java/com/fasterxml/jackson/databind/util/RawValue.java",
+          "blob": "634aeccf3d1fca6d0757b003297e490ed46f0d54",
+          "startLine": 103,
+          "endLine": 112,
+          "startByte": 3382,
+          "endByte": 3699,
+          "text": "    @Override\n    public boolean equals(Object o) {\n        if (o == this) return true;\n        if (!(o instanceof RawValue)) return false;\n        RawValue other = (RawValue) o;\n\n        if (_value == other._value) {\n            return true;\n        }\n        return (_value != null) && _value.equals(other._value);\n"
+        }
+      ]
+    },
+    {
+      "id": "ll-c1",
+      "intentId": "ll-c1",
+      "language": "en",
+      "query": "In Option, what does hasValueSeparator return after the separator is set to the null character versus '='?",
+      "repository": "commons-current",
+      "kind": "positive",
+      "expectation": "Setting zero makes hasValueSeparator false; setting = makes it true, since it checks > 0.",
+      "provenance": "literal-layout baseline prospectively frozen and previously evaluated; not blind",
+      "witnesses": [
+        {
+          "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+          "path": "src/main/java/org/apache/commons/cli/Option.java",
+          "blob": "6062d9d801f0e67d510715c826107a5485b6ef79",
+          "startLine": 806,
+          "endLine": 808,
+          "startByte": 26282,
+          "endByte": 26364,
+          "text": "    public boolean hasValueSeparator() {\n        return valueSeparator > 0;\n    }\n"
+        },
+        {
+          "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+          "path": "src/main/java/org/apache/commons/cli/Option.java",
+          "blob": "6062d9d801f0e67d510715c826107a5485b6ef79",
+          "startLine": 979,
+          "endLine": 981,
+          "startByte": 31311,
+          "endByte": 31426,
+          "text": "    public void setValueSeparator(final char valueSeparator) {\n        this.valueSeparator = valueSeparator;\n    }\n"
+        }
+      ]
+    },
+    {
+      "id": "ll-j1",
+      "intentId": "ll-j1",
+      "language": "en",
+      "query": "In IgnorePropertiesUtil, how does combineNamesToInclude handle a null previous set versus two non-null sets?",
+      "repository": "jackson",
+      "kind": "positive",
+      "expectation": "If previous is null returns new set; if both nonnull returns intersection.",
+      "provenance": "literal-layout baseline prospectively frozen and previously evaluated; not blind",
+      "witnesses": [
+        {
+          "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+          "path": "src/main/java/com/fasterxml/jackson/databind/util/IgnorePropertiesUtil.java",
+          "blob": "81bcafa793db860eae9f0b5e08c41ed26edbea03",
+          "startLine": 61,
+          "endLine": 77,
+          "startByte": 2152,
+          "endByte": 2729,
+          "text": "    public static Set<String> combineNamesToInclude(Set<String> prevToInclude,\n            Set<String> newToInclude) {\n        if (prevToInclude == null) {\n            return newToInclude;\n        }\n        if (newToInclude == null) {\n            return prevToInclude;\n        }\n        final Set<String> result = new HashSet<>();\n\n        // Make the intersection with the previously included properties\n        for (String prop : newToInclude) {\n            if (prevToInclude.contains(prop)) {\n                result.add(prop);\n            }\n        }\n        return result;\n"
+        }
+      ]
+    },
+    {
+      "id": "ll-j2-fr",
+      "intentId": "ll-j2",
+      "language": "fr",
+      "query": "Dans ISO8601DateFormat, comment les deux surcharges parse traitent-elles une erreur d'analyse, avec et sans ParsePosition ?",
+      "repository": "jackson",
+      "kind": "positive",
+      "expectation": "Parse with ParsePosition catches ParseException and returns null; parse(String) delegates and allows ParseException to propagate.",
+      "provenance": "literal-layout baseline prospectively frozen and previously evaluated; not blind",
+      "witnesses": [
+        {
+          "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+          "path": "src/main/java/com/fasterxml/jackson/databind/util/ISO8601DateFormat.java",
+          "blob": "fef574fe7e7e17c93a98a5c202e5fa4ed6e2aef2",
+          "startLine": 33,
+          "endLine": 48,
+          "startByte": 982,
+          "endByte": 1488,
+          "text": "    @Override\n    public Date parse(String source, ParsePosition pos) {\n        try {\n            return ISO8601Utils.parse(source, pos);\n        }\n        catch (ParseException e) {\n            return null;\n        }\n    }\n\n    //supply our own parse(String) since pos isn't updated during parsing,\n    //but the exception should have the right error offset.\n    @Override\n    public Date parse(String source) throws ParseException {\n        return ISO8601Utils.parse(source, new ParsePosition(0));\n    }\n"
+        }
+      ]
+    },
+    {
+      "id": "ll-n1",
+      "intentId": "ll-n1",
+      "language": "en",
+      "query": "How many times did ISO8601DateFormat parse fail in production yesterday?",
+      "repository": "jackson",
+      "kind": "unavailable_runtime",
+      "expectation": "Production failure count yesterday is unavailable from pinned source; withhold.",
+      "provenance": "literal-layout baseline prospectively frozen and previously evaluated; not blind",
+      "witnesses": [
+        {
+          "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+          "path": "src/main/java/com/fasterxml/jackson/databind/util/ISO8601DateFormat.java",
+          "blob": "fef574fe7e7e17c93a98a5c202e5fa4ed6e2aef2",
+          "startLine": 33,
+          "endLine": 48,
+          "startByte": 982,
+          "endByte": 1488,
+          "text": "    @Override\n    public Date parse(String source, ParsePosition pos) {\n        try {\n            return ISO8601Utils.parse(source, pos);\n        }\n        catch (ParseException e) {\n            return null;\n        }\n    }\n\n    //supply our own parse(String) since pos isn't updated during parsing,\n    //but the exception should have the right error offset.\n    @Override\n    public Date parse(String source) throws ParseException {\n        return ISO8601Utils.parse(source, new ParsePosition(0));\n    }\n"
+        }
+      ]
+    },
+    {
+      "id": "cf-r3",
+      "intentId": "cf-r3",
+      "language": "en",
+      "query": "According to the Commons CLI README, what should someone who plans to contribute regularly consider filing?",
+      "repository": "commons-current",
+      "kind": "positive",
+      "expectation": "Consider filing a contributor license agreement.",
+      "provenance": "claims-first prospective native cohort, evaluated; not blind",
+      "witnesses": [
+        {
+          "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+          "path": "README.md",
+          "blob": "c241c798bdc322848214fe909d0fe05f66146d1b",
+          "startLine": 95,
+          "endLine": 95,
+          "startByte": 5494,
+          "endByte": 5637,
+          "text": "If you plan to contribute on a regular basis, please consider filing a [contributor license agreement](https://www.apache.org/licenses/#clas).\n"
+        }
+      ]
+    },
+    {
+      "id": "cf-r1",
+      "intentId": "cf-r1",
+      "language": "en",
+      "query": "According to the Jackson Databind README, what JDK is required to run versions 2.11–2.12, and what JDK is required to build them?",
+      "repository": "jackson",
+      "kind": "positive",
+      "expectation": "Run JDK 7, build JDK 8 for versions 2.11–2.12.",
+      "provenance": "claims-first prospective native cohort, evaluated; not blind",
+      "witnesses": [
+        {
+          "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+          "path": "README.md",
+          "blob": "283b8cc20a9156812116b798f57ad959b7744953",
+          "startLine": 72,
+          "endLine": 75,
+          "startByte": 3656,
+          "endByte": 3843,
+          "text": "Jackson-databind package baseline JDK requirements are as follows:\n\n* Versions 2.0 - 2.7 require JDK 6\n* Versions 2.8 - 2.12 require JDK 7 to run (but 2.11 - 2.12 require JDK 8 to build)\n"
+        }
+      ]
+    },
+    {
+      "id": "cf-r1-fr",
+      "intentId": "cf-r1",
+      "language": "fr",
+      "query": "Selon le README de Jackson Databind, quel JDK faut-il pour exécuter les versions 2.11–2.12, et quel JDK faut-il pour les compiler ?",
+      "repository": "jackson",
+      "kind": "positive",
+      "expectation": "Run JDK 7, build JDK 8 for versions 2.11–2.12.",
+      "provenance": "claims-first prospective native cohort, evaluated; not blind",
+      "witnesses": [
+        {
+          "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+          "path": "README.md",
+          "blob": "283b8cc20a9156812116b798f57ad959b7744953",
+          "startLine": 72,
+          "endLine": 75,
+          "startByte": 3656,
+          "endByte": 3843,
+          "text": "Jackson-databind package baseline JDK requirements are as follows:\n\n* Versions 2.0 - 2.7 require JDK 6\n* Versions 2.8 - 2.12 require JDK 7 to run (but 2.11 - 2.12 require JDK 8 to build)\n"
+        }
+      ]
+    },
+    {
+      "id": "cf-r2-fr",
+      "intentId": "cf-r2",
+      "language": "fr",
+      "query": "Selon le README de Jackson Databind, quels sont le groupId et l’artifactId de la dépendance Maven montrée ?",
+      "repository": "jackson",
+      "kind": "positive",
+      "expectation": "groupId com.fasterxml.jackson.core; artifactId jackson-databind.",
+      "provenance": "claims-first prospective native cohort, evaluated; not blind",
+      "witnesses": [
+        {
+          "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+          "path": "README.md",
+          "blob": "283b8cc20a9156812116b798f57ad959b7744953",
+          "startLine": 38,
+          "endLine": 44,
+          "startByte": 2378,
+          "endByte": 2568,
+          "text": "<dependencies>\n  ...\n  <dependency>\n    <groupId>com.fasterxml.jackson.core</groupId>\n    <artifactId>jackson-databind</artifactId>\n    <version>${jackson.version}</version>\n  </dependency>\n"
+        }
+      ]
+    },
+    {
+      "id": "cf-j1",
+      "intentId": "cf-j1",
+      "language": "en",
+      "query": "In ByteBufferBackedInputStream, how does the byte-array read handle an empty buffer and limit the number of bytes read when data remains?",
+      "repository": "jackson",
+      "kind": "positive",
+      "expectation": "If no bytes remain, return -1; else limit requested length to remaining bytes, copy that many, return that count.",
+      "provenance": "claims-first prospective native cohort, evaluated; not blind",
+      "witnesses": [
+        {
+          "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+          "path": "src/main/java/com/fasterxml/jackson/databind/util/ByteBufferBackedInputStream.java",
+          "blob": "72a4d1de21d849e3ea517f2cb4b7b532cd8ddf8f",
+          "startLine": 21,
+          "endLine": 26,
+          "startByte": 598,
+          "endByte": 826,
+          "text": "    @Override\n    public int read(byte[] bytes, int off, int len) throws IOException {\n        if (!_b.hasRemaining()) return -1;\n        len = Math.min(len, _b.remaining());\n        _b.get(bytes, off, len);\n        return len;\n"
+        }
+      ]
+    },
+    {
+      "id": "cf-j2",
+      "intentId": "cf-j2",
+      "language": "en",
+      "query": "In ISO8601DateFormat, what does clone return, and what object does format return after appending the formatted date?",
+      "repository": "jackson",
+      "kind": "positive",
+      "expectation": "clone returns this same formatter; format appends formatted date and returns the supplied StringBuffer.",
+      "provenance": "claims-first prospective native cohort, evaluated; not blind",
+      "witnesses": [
+        {
+          "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+          "path": "src/main/java/com/fasterxml/jackson/databind/util/ISO8601DateFormat.java",
+          "blob": "fef574fe7e7e17c93a98a5c202e5fa4ed6e2aef2",
+          "startLine": 27,
+          "endLine": 31,
+          "startByte": 782,
+          "endByte": 981,
+          "text": "    @Override\n    public StringBuffer format(Date date, StringBuffer toAppendTo, FieldPosition fieldPosition) {\n        toAppendTo.append(ISO8601Utils.format(date));\n        return toAppendTo;\n    }\n"
+        },
+        {
+          "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+          "path": "src/main/java/com/fasterxml/jackson/databind/util/ISO8601DateFormat.java",
+          "blob": "fef574fe7e7e17c93a98a5c202e5fa4ed6e2aef2",
+          "startLine": 50,
+          "endLine": 53,
+          "startByte": 1489,
+          "endByte": 1558,
+          "text": "    @Override\n    public Object clone() {\n        return this;\n    }\n"
+        }
+      ]
+    },
+    {
+      "id": "cf-n1",
+      "intentId": "cf-n1",
+      "language": "en",
+      "query": "How many dates did ISO8601DateFormat format in production yesterday?",
+      "repository": "jackson",
+      "kind": "unavailable_runtime",
+      "expectation": "Yesterday production count unavailable from pinned source; abstain.",
+      "provenance": "claims-first prospective native cohort, evaluated; not blind",
+      "witnesses": [
+        {
+          "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+          "path": "src/main/java/com/fasterxml/jackson/databind/util/ISO8601DateFormat.java",
+          "blob": "fef574fe7e7e17c93a98a5c202e5fa4ed6e2aef2",
+          "startLine": 27,
+          "endLine": 31,
+          "startByte": 782,
+          "endByte": 981,
+          "text": "    @Override\n    public StringBuffer format(Date date, StringBuffer toAppendTo, FieldPosition fieldPosition) {\n        toAppendTo.append(ISO8601Utils.format(date));\n        return toAppendTo;\n    }\n"
+        }
+      ]
+    },
+    {
+      "id": "cf-n2",
+      "intentId": "cf-n2",
+      "language": "en",
+      "query": "How does ByteBufferBackedInputStream getRetryDelay determine its network retry delay?",
+      "repository": "jackson",
+      "kind": "absent_in_file",
+      "expectation": "The complete class has no getRetryDelay member; do not invent behavior.",
+      "provenance": "claims-first prospective native cohort, evaluated; not blind",
+      "witness": {
+        "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+        "path": "src/main/java/com/fasterxml/jackson/databind/util/ByteBufferBackedInputStream.java",
+        "blob": "72a4d1de21d849e3ea517f2cb4b7b532cd8ddf8f",
+        "startLine": 1,
+        "endLine": 28,
+        "startByte": 0,
+        "endByte": 833,
+        "text": "package com.fasterxml.jackson.databind.util;\n\nimport java.io.IOException;\nimport java.io.InputStream;\nimport java.nio.ByteBuffer;\n\n/**\n * Simple {@link InputStream} implementation that exposes currently\n * available content of a {@link ByteBuffer}.\n */\npublic class ByteBufferBackedInputStream extends InputStream {\n    protected final ByteBuffer _b;\n\n    public ByteBufferBackedInputStream(ByteBuffer buf) { _b = buf; }\n\n    @Override public int available() { return _b.remaining(); }\n\n    @Override\n    public int read() throws IOException { return _b.hasRemaining() ? (_b.get() & 0xFF) : -1; }\n\n    @Override\n    public int read(byte[] bytes, int off, int len) throws IOException {\n        if (!_b.hasRemaining()) return -1;\n        len = Math.min(len, _b.remaining());\n        _b.get(bytes, off, len);\n        return len;\n    }\n}"
+      },
+      "absence": {
+        "path": "src/main/java/com/fasterxml/jackson/databind/util/ByteBufferBackedInputStream.java",
+        "blob": "72a4d1de21d849e3ea517f2cb4b7b532cd8ddf8f",
+        "pattern": "\\bgetRetryDelay\\s*\\("
+      },
+      "absenceLimit": "Lexical check over complete pinned class; absence of this named member is not a global absence guarantee."
+    },
+    {
+      "id": "79e6ca0776319d09977a",
+      "intentId": "readme-overview",
+      "language": "en",
+      "query": "According to the Apache Commons CLI README, what does the library let an application do with its command-line interface?",
+      "repository": "commons-current",
+      "kind": "positive",
+      "expectation": "Present a command-line interface. Process a command-line interface. Validate a command-line interface.",
+      "provenance": "English regression for previously evaluated Commons CLI README purpose behavior in French",
+      "facts": [
+        {
+          "expected": "Present a command-line interface.",
+          "sufficientAlternatives": [
+            [
+              {
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "path": "README.md",
+                "blob": "c241c798bdc322848214fe909d0fe05f66146d1b",
+                "startByte": 3413,
+                "endByte": 3523,
+                "startLine": 52,
+                "endLine": 52,
+                "text": "Apache Commons CLI provides a simple API for presenting, processing, and validating a Command Line Interface.\n"
+              }
+            ]
+          ]
+        },
+        {
+          "expected": "Process a command-line interface.",
+          "sufficientAlternatives": [
+            [
+              {
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "path": "README.md",
+                "blob": "c241c798bdc322848214fe909d0fe05f66146d1b",
+                "startByte": 3413,
+                "endByte": 3523,
+                "startLine": 52,
+                "endLine": 52,
+                "text": "Apache Commons CLI provides a simple API for presenting, processing, and validating a Command Line Interface.\n"
+              }
+            ]
+          ]
+        },
+        {
+          "expected": "Validate a command-line interface.",
+          "sufficientAlternatives": [
+            [
+              {
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "path": "README.md",
+                "blob": "c241c798bdc322848214fe909d0fe05f66146d1b",
+                "startByte": 3413,
+                "endByte": 3523,
+                "startLine": 52,
+                "endLine": 52,
+                "text": "Apache Commons CLI provides a simple API for presenting, processing, and validating a Command Line Interface.\n"
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "bbbf85026b8594a092c3",
+      "intentId": "readme-additional-resources",
+      "language": "en",
+      "query": "In the Additional Resources section of the Apache Commons CLI README, which tracker should I use to report a bug, and which Slack channel is linked?",
+      "repository": "commons-current",
+      "kind": "positive",
+      "expectation": "The Apache Issue Tracker (JIRA) for CLI, identified by CLI or the linked /jira/browse/CLI URL. The Apache Commons Slack channel, accepted by the README link label or exact channel URL/ID.",
+      "provenance": "integrated README and Java native comparison, retained as public regression material",
+      "facts": [
+        {
+          "expected": "The Apache Issue Tracker (JIRA) for CLI, identified by CLI or the linked /jira/browse/CLI URL.",
+          "sufficientAlternatives": [
+            [
+              {
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "path": "README.md",
+                "blob": "c241c798bdc322848214fe909d0fe05f66146d1b",
+                "startByte": 6174,
+                "endByte": 6249,
+                "startLine": 112,
+                "endLine": 112,
+                "text": "+ [Apache Issue Tracker (JIRA)](https://issues.apache.org/jira/browse/CLI)\n"
+              }
+            ]
+          ]
+        },
+        {
+          "expected": "The Apache Commons Slack channel, accepted by the README link label or exact channel URL/ID.",
+          "sufficientAlternatives": [
+            [
+              {
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "path": "README.md",
+                "blob": "c241c798bdc322848214fe909d0fe05f66146d1b",
+                "startByte": 6249,
+                "endByte": 6328,
+                "startLine": 113,
+                "endLine": 113,
+                "text": "+ [Apache Commons Slack Channel](https://the-asf.slack.com/archives/C60NVB8AD)\n"
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "fbc283f752150dcc1761",
+      "intentId": "named-java-lookup",
+      "language": "en",
+      "query": "I'm reading a CLI option pattern. What does PatternOptionBuilder.getValueType return for '+' and for '?'?",
+      "repository": "commons-current",
+      "kind": "positive",
+      "expectation": "For '+', the Class.class token. Naming CLASS_VALUE is acceptable if the answer explains it is Class.class. For '?', null because it has no matching case.",
+      "provenance": "integrated README and Java native comparison, retained as public regression material",
+      "facts": [
+        {
+          "expected": "For '+', the Class.class token. Naming CLASS_VALUE is acceptable if the answer explains it is Class.class.",
+          "sufficientAlternatives": [
+            [
+              {
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "path": "src/main/java/org/apache/commons/cli/PatternOptionBuilder.java",
+                "blob": "ac53dd972b22da41b87d34f850a630347d67483f",
+                "startByte": 3361,
+                "endByte": 3421,
+                "startLine": 114,
+                "endLine": 114,
+                "text": "    public static final Class<?> CLASS_VALUE = Class.class;\n"
+              },
+              {
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "path": "src/main/java/org/apache/commons/cli/PatternOptionBuilder.java",
+                "blob": "ac53dd972b22da41b87d34f850a630347d67483f",
+                "startByte": 5006,
+                "endByte": 5056,
+                "startLine": 174,
+                "endLine": 175,
+                "text": "        case '+':\n            return CLASS_VALUE;\n"
+              }
+            ]
+          ]
+        },
+        {
+          "expected": "For '?', null because it has no matching case.",
+          "sufficientAlternatives": [
+            [
+              {
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "path": "src/main/java/org/apache/commons/cli/PatternOptionBuilder.java",
+                "blob": "ac53dd972b22da41b87d34f850a630347d67483f",
+                "startByte": 4774,
+                "endByte": 5342,
+                "startLine": 166,
+                "endLine": 188,
+                "text": "    public static Class<?> getValueType(final char ch) {\n        switch (ch) {\n        case '@':\n            return OBJECT_VALUE;\n        case ':':\n            return STRING_VALUE;\n        case '%':\n            return NUMBER_VALUE;\n        case '+':\n            return CLASS_VALUE;\n        case '#':\n            return DATE_VALUE;\n        case '<':\n            return EXISTING_FILE_VALUE;\n        case '>':\n            return FILE_VALUE;\n        case '*':\n            return FILES_VALUE;\n        case '/':\n            return URL_VALUE;\n        }\n\n        return null;\n"
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "0104da758f916e7eadcd",
+      "intentId": "general-java-collection",
+      "language": "fr",
+      "query": "Quand je récupère la collection des options déclarées dans Commons CLI, est-ce que je peux supprimer une option en la retirant de la collection renvoyée ? Pourquoi ?",
+      "repository": "commons-current",
+      "kind": "positive",
+      "expectation": "Non. L'API qui liste les options déclarées renvoie une collection en lecture seule/non modifiable.",
+      "provenance": "integrated README and Java native comparison, retained as public regression material",
+      "facts": [
+        {
+          "expected": "Non. L'API qui liste les options déclarées renvoie une collection en lecture seule/non modifiable.",
+          "sufficientAlternatives": [
+            [
+              {
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "path": "src/main/java/org/apache/commons/cli/Options.java",
+                "blob": "9088a389bae99819fa7192189c0952c3b20214de",
+                "startByte": 9845,
+                "endByte": 10106,
+                "startLine": 274,
+                "endLine": 279,
+                "text": "     * Gets a read-only list of options in this set.\n     *\n     * @return read-only Collection of {@link Option} objects in this descriptor.\n     */\n    public Collection<Option> getOptions() {\n        return Collections.unmodifiableCollection(helpOptions());\n"
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "edf95f233ca9bf682800",
+      "intentId": "unsupported-private-build-duration",
+      "language": "fr",
+      "query": "Combien de temps a pris la dernière exécution de la commande mvn sur mon poste pour Apache Commons CLI ?",
+      "repository": "commons-current",
+      "kind": "unavailable_runtime",
+      "expectation": "The pinned repository can explain how to invoke Maven but cannot establish the duration of the caller's last local build. Withhold the requested duration.",
+      "provenance": "integrated README and Java native comparison, retained as public regression material",
+      "witnesses": [
+        {
+          "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+          "path": "README.md",
+          "blob": "c241c798bdc322848214fe909d0fe05f66146d1b",
+          "startLine": 78,
+          "endLine": 81,
+          "startByte": 4305,
+          "endByte": 4587,
+          "text": "Building requires a Java JDK and [Apache Maven](https://maven.apache.org/).\nThe required Java version is found in the `pom.xml` as the `maven.compiler.source` property.\n\nFrom a command shell, run `mvn` without arguments to invoke the default Maven goal to run all tests and checks.\n"
+        }
+      ]
+    },
+    {
+      "id": "2d1ba64587e4edb043eb",
+      "intentId": "readme-regular-contribution-paperwork",
+      "language": "en",
+      "query": "I expect to contribute regularly to Apache Commons CLI. What paperwork does the README suggest, and where does it send me for GitHub contribution instructions?",
+      "repository": "commons-current",
+      "kind": "positive",
+      "expectation": "The README asks regular contributors to consider filing a Contributor License Agreement (CLA). Preserve the advice, and avoid presenting it as an unconditional requirement. The README directs GitHub contributors to the project's CONTRIBUTING.md guidelines.",
+      "provenance": "Supplemental README regression with previously evaluated CLA fact (cf-r3) and fresh GitHub contribution-instructions destination",
+      "facts": [
+        {
+          "expected": "The README asks regular contributors to consider filing a Contributor License Agreement (CLA). Preserve the advice, and avoid presenting it as an unconditional requirement.",
+          "sufficientAlternatives": [
+            [
+              {
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "path": "README.md",
+                "blob": "c241c798bdc322848214fe909d0fe05f66146d1b",
+                "startByte": 5494,
+                "endByte": 5637,
+                "startLine": 95,
+                "endLine": 95,
+                "text": "If you plan to contribute on a regular basis, please consider filing a [contributor license agreement](https://www.apache.org/licenses/#clas).\n"
+              }
+            ]
+          ]
+        },
+        {
+          "expected": "The README directs GitHub contributors to the project's CONTRIBUTING.md guidelines.",
+          "sufficientAlternatives": [
+            [
+              {
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "path": "README.md",
+                "blob": "c241c798bdc322848214fe909d0fe05f66146d1b",
+                "startByte": 5637,
+                "endByte": 5737,
+                "startLine": 96,
+                "endLine": 96,
+                "text": "You can learn more about contributing via GitHub in our [contribution guidelines](CONTRIBUTING.md).\n"
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "74c468b0e57b77b5902e",
+      "intentId": "reset-and-conflict",
+      "language": "en",
+      "query": "Can I clear a group's current selection by passing null to OptionGroup.setSelected, and what happens if I select a different option without clearing the first one?",
+      "repository": "commons-current",
+      "kind": "positive",
+      "expectation": "Null clears the current selection and returns. With an existing different selected option key, a non-null option causes AlreadySelectedException.",
+      "provenance": "Dot-qualified wording of previously evaluated selection reset and conflict behaviors",
+      "witnesses": [
+        {
+          "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+          "path": "src/main/java/org/apache/commons/cli/OptionGroup.java",
+          "blob": "ce5384f4d2de06906e6d5ba28b429f3aef49e9a3",
+          "startByte": 3830,
+          "endByte": 4386,
+          "startLine": 134,
+          "endLine": 147,
+          "text": "    public void setSelected(final Option option) throws AlreadySelectedException {\n        if (option == null) {\n            // reset the option previously selected\n            selected = null;\n            return;\n        }\n        // if no option has already been selected or the\n        // same option is being reselected then set the\n        // selected member variable\n        if (selected != null && !selected.equals(option.getKey())) {\n            throw new AlreadySelectedException(this, option);\n        }\n        selected = option.getKey();\n    }\n"
+        }
+      ]
+    },
+    {
+      "id": "18e62165ec356ccc2fc2",
+      "intentId": "argument-display-name",
+      "language": "fr",
+      "query": "Que renvoie Option.hasArgName si le nom de l’argument est une chaîne vide, et que renvoie cette méthode pour un nom non vide ?",
+      "repository": "commons-current",
+      "kind": "positive",
+      "expectation": "Une chaîne vide donne false. Un nom non nul et non vide donne true.",
+      "provenance": "qualified Java member and explicit filename precedence regression",
+      "witnesses": [
+        {
+          "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+          "path": "src/main/java/org/apache/commons/cli/Option.java",
+          "blob": "6062d9d801f0e67d510715c826107a5485b6ef79",
+          "startByte": 25226,
+          "endByte": 25320,
+          "startLine": 764,
+          "endLine": 766,
+          "text": "    public boolean hasArgName() {\n        return argName != null && !argName.isEmpty();\n    }\n"
+        }
+      ]
+    },
+    {
+      "id": "1fbc7e4df3ae488c83ec",
+      "intentId": "real-filename-precedence",
+      "language": "en",
+      "query": "In OptionGroup.java, what condition does OptionGroup.isSelected check to tell whether an option is selected?",
+      "repository": "commons-current",
+      "kind": "positive",
+      "expectation": "It checks that the selected field is not null. Treat OptionGroup.java as an explicit real file, and verify that exact named-method promotion does not override the file request.",
+      "provenance": "qualified Java member and explicit filename precedence regression",
+      "witnesses": [
+        {
+          "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+          "path": "src/main/java/org/apache/commons/cli/OptionGroup.java",
+          "blob": "ce5384f4d2de06906e6d5ba28b429f3aef49e9a3",
+          "startByte": 3225,
+          "endByte": 3298,
+          "startLine": 113,
+          "endLine": 115,
+          "text": "    public boolean isSelected() {\n        return selected != null;\n    }\n"
+        }
+      ]
+    },
+    {
+      "id": "a52abaecbe4ef16be5b7",
+      "intentId": "missing-filename-precedence",
+      "language": "en",
+      "query": "According to OptionGroupOverrides.java, what does OptionGroup.setSelected do when its argument is null?",
+      "repository": "commons-current",
+      "kind": "absent_path",
+      "expectation": "The explicitly requested file does not exist in the pinned tree. Withhold claims attributed to that file. A qualified disclosure about original OptionGroup.java is distinct evidence and does not satisfy the explicitly requested file. Evaluate ordinary file-selector precedence separately.",
+      "provenance": "qualified Java member and explicit filename precedence regression",
+      "absentPath": "src/main/java/org/apache/commons/cli/OptionGroupOverrides.java",
+      "absenceLimit": "The basename is absent throughout the pinned tree. Evidence from a different file does not answer the explicit file request."
+    },
+    {
+      "id": "3221d549c221920e75b8",
+      "intentId": "deprecation-presence-predicate",
+      "language": "en",
+      "query": "If an option has deprecation metadata but is not marked for removal, will Option.isDeprecated still return true?",
+      "repository": "commons-current",
+      "kind": "positive",
+      "expectation": "Yes. It checks only that the deprecated metadata field is non-null. It does not consult the metadata's removal flag.",
+      "provenance": "Evaluated Commons CLI qualified-selector supplement; public regression",
+      "witnesses": [
+        {
+          "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+          "path": "src/main/java/org/apache/commons/cli/Option.java",
+          "blob": "6062d9d801f0e67d510715c826107a5485b6ef79",
+          "startByte": 26530,
+          "endByte": 26607,
+          "startLine": 816,
+          "endLine": 818,
+          "text": "    public boolean isDeprecated() {\n        return deprecated != null;\n    }\n"
+        }
+      ]
+    },
+    {
+      "id": "8c34f9566873a02ab64a",
+      "intentId": "group-lookup-key",
+      "language": "fr",
+      "query": "Avec Options.getOptionGroup, quelle clé sert à chercher le groupe d'une option, et que renvoie l'appel si aucun groupe ne lui est associé ?",
+      "repository": "commons-current",
+      "kind": "positive",
+      "expectation": "La recherche se fait avec option.getKey(). La méthode renvoie null si l’option n’est associée à aucun groupe.",
+      "provenance": "Evaluated Commons CLI qualified-selector supplement; public regression",
+      "witnesses": [
+        {
+          "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+          "path": "src/main/java/org/apache/commons/cli/Options.java",
+          "blob": "9088a389bae99819fa7192189c0952c3b20214de",
+          "startByte": 8909,
+          "endByte": 9269,
+          "startLine": 249,
+          "endLine": 257,
+          "text": "    /**\n     * Gets the OptionGroup the {@code opt} belongs to.\n     *\n     * @param option The option whose OptionGroup is being queried.\n     * @return The OptionGroup if {@code opt} is part of an OptionGroup, otherwise return null.\n     */\n    public OptionGroup getOptionGroup(final Option option) {\n        return optionGroups.get(option.getKey());\n    }\n"
+        }
+      ]
+    },
+    {
+      "id": "35f0a9179ca751d24d89",
+      "intentId": "private-flag-deprecation",
+      "language": "en",
+      "query": "Did Option.isDeprecated return true for my application's --legacy flag when it ran this morning?",
+      "repository": "commons-current",
+      "kind": "unavailable_runtime",
+      "expectation": "The checked-out public source establishes the predicate but not the calling application's private option metadata or runtime result. Withhold that result.",
+      "provenance": "Evaluated Commons CLI qualified-selector supplement; public regression",
+      "witnesses": [
+        {
+          "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+          "path": "src/main/java/org/apache/commons/cli/Option.java",
+          "blob": "6062d9d801f0e67d510715c826107a5485b6ef79",
+          "startLine": 398,
+          "endLine": 404,
+          "startByte": 12818,
+          "endByte": 13054,
+          "text": "    /**\n     * Specifies whether this option is deprecated, may be null.\n     * <p>\n     * If you want to serialize this field, use a serialization proxy.\n     * </p>\n     */\n    private final transient DeprecatedAttributes deprecated;\n"
+        },
+        {
+          "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+          "path": "src/main/java/org/apache/commons/cli/Option.java",
+          "blob": "6062d9d801f0e67d510715c826107a5485b6ef79",
+          "startLine": 816,
+          "endLine": 818,
+          "startByte": 26530,
+          "endByte": 26607,
+          "text": "    public boolean isDeprecated() {\n        return deprecated != null;\n    }\n"
+        }
+      ]
+    },
+    {
+      "id": "a7d493e4d5ea7b65a2ec",
+      "intentId": "exact-raw-class",
+      "language": "en",
+      "query": "If a JavaType represents ArrayList, will JavaType.hasRawClass match the List interface, or does it require the exact raw class?",
+      "repository": "jackson",
+      "kind": "positive",
+      "expectation": "It returns false for List.class. It compares the stored raw Class object with the supplied Class using == and only matches the exact raw class.",
+      "provenance": "Evaluated Jackson scoped method-presentation transfer; public regression",
+      "witnesses": [
+        {
+          "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+          "path": "src/main/java/com/fasterxml/jackson/databind/JavaType.java",
+          "blob": "b708f24e121cf172413aba9b7ab97f445bc4aa67",
+          "startByte": 10304,
+          "endByte": 10395,
+          "startLine": 275,
+          "endLine": 276,
+          "text": "    @Override\n    public final boolean hasRawClass(Class<?> clz) { return _class == clz; }\n"
+        }
+      ]
+    },
+    {
+      "id": "4dac531e64d8f5c95235",
+      "intentId": "serialization-root-name-override",
+      "language": "fr",
+      "query": "Dans SerializationConfig.useRootWrapping, un nom racine explicitement vide désactive-t-il l’enveloppe même si WRAP_ROOT_VALUE est actif ? Et que se passe-t-il si aucun nom racine n’est configuré ?",
+      "repository": "jackson",
+      "kind": "positive",
+      "expectation": "Oui, un nom racine explicitement vide désactive l’enveloppe même si la fonctionnalité est active. Si aucun nom racine n’est configuré (_rootName est null), la méthode renvoie l’état de SerializationFeature.WRAP_ROOT_VALUE.",
+      "provenance": "Evaluated Jackson scoped method-presentation transfer; public regression",
+      "witnesses": [
+        {
+          "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+          "path": "src/main/java/com/fasterxml/jackson/databind/SerializationConfig.java",
+          "blob": "d12733629a5411399c38040d286253afbd0098bc",
+          "startByte": 32389,
+          "endByte": 32653,
+          "startLine": 848,
+          "endLine": 855,
+          "text": "    @Override\n    public boolean useRootWrapping()\n    {\n        if (_rootName != null) { // empty String disables wrapping; non-empty enables\n            return !_rootName.isEmpty();\n        }\n        return isEnabled(SerializationFeature.WRAP_ROOT_VALUE);\n    }\n"
+        }
+      ]
+    },
+    {
+      "id": "842d97059b357de0c077",
+      "intentId": "private-serialization-observation",
+      "language": "en",
+      "query": "Did SerializationConfig.useRootWrapping return true when my application serialized its most recent order response?",
+      "repository": "jackson",
+      "kind": "unavailable_runtime",
+      "expectation": "The method establishes how the decision is made, but the application's private configuration and last execution are unavailable. Withhold the particular runtime result. The pinned snapshot supplies the production decision and a unit test using its own fixture mapper. The test's false result does not establish the caller's private execution.",
+      "provenance": "Evaluated Jackson scoped method-presentation transfer; public regression",
+      "witnesses": [
+        {
+          "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+          "path": "src/main/java/com/fasterxml/jackson/databind/SerializationConfig.java",
+          "blob": "d12733629a5411399c38040d286253afbd0098bc",
+          "startLine": 848,
+          "endLine": 855,
+          "startByte": 32389,
+          "endByte": 32653,
+          "text": "    @Override\n    public boolean useRootWrapping()\n    {\n        if (_rootName != null) { // empty String disables wrapping; non-empty enables\n            return !_rootName.isEmpty();\n        }\n        return isEnabled(SerializationFeature.WRAP_ROOT_VALUE);\n    }\n"
+        },
+        {
+          "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+          "path": "src/test/java/com/fasterxml/jackson/databind/cfg/SerializationConfigTest.java",
+          "blob": "0842c29652d1cfbb4e6e14b6d6b324cef460ee5a",
+          "startLine": 18,
+          "endLine": 28,
+          "startByte": 494,
+          "endByte": 1127,
+          "text": "    private final ObjectMapper MAPPER = newJsonMapper();\n\n    @Test\n    public void testSerConfig() throws Exception\n    {\n        SerializationConfig config = MAPPER.getSerializationConfig();\n        assertTrue(config.hasSerializationFeatures(SerializationFeature.FAIL_ON_EMPTY_BEANS.getMask()));\n        assertFalse(config.hasSerializationFeatures(SerializationFeature.CLOSE_CLOSEABLE.getMask()));\n        assertEquals(JsonInclude.Value.empty(), config.getDefaultPropertyInclusion());\n        assertEquals(JsonInclude.Value.empty(), config.getDefaultPropertyInclusion(String.class));\n        assertFalse(config.useRootWrapping());\n"
+        }
+      ]
+    },
+    {
+      "id": "2a0a408430bf7988333f",
+      "intentId": "readme-osgi-authority",
+      "language": "fr",
+      "query": "Selon le README de Jackson Databind, puis-je utiliser le JAR tel quel dans un conteneur OSGi ? Qu’est-ce que le JAR fournit déjà pour les imports et les exports ?",
+      "repository": "jackson",
+      "kind": "positive",
+      "expectation": "Oui. Le JAR est un bundle OSGi fonctionnel avec les déclarations d’import et d’export nécessaires.",
+      "provenance": "Evaluated Jackson README and current-branch scope contrast; public regression",
+      "witnesses": [
+        {
+          "path": "README.md",
+          "blob": "283b8cc20a9156812116b798f57ad959b7744953",
+          "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+          "startByte": 3278,
+          "endByte": 3407,
+          "startLine": 61,
+          "endLine": 61,
+          "text": "Databind jar is also a functional OSGi bundle, with proper import/export declarations, so it can be use on OSGi container as is.\n"
+        }
+      ]
+    },
+    {
+      "id": "3b19309e2e0d18bd4c4e",
+      "intentId": "value-node-null-vs-missing",
+      "language": "en",
+      "query": "In Jackson's tree model, are an explicit JSON null and a missing path both treated as value nodes? What does JsonNode.isValueNode return for each?",
+      "repository": "jackson",
+      "kind": "positive",
+      "expectation": "An explicit null is a value node (true). A MissingNode is excluded (false). NullNode reports NULL, and MissingNode reports MISSING.",
+      "provenance": "Evaluated Jackson README and current-branch scope contrast; public regression",
+      "witnesses": [
+        {
+          "path": "src/main/java/com/fasterxml/jackson/databind/JsonNode.java",
+          "blob": "f3b8625bfa767dd14360b8c86e1fb95561975c1e",
+          "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+          "startByte": 4773,
+          "endByte": 5012,
+          "startLine": 138,
+          "endLine": 147,
+          "text": "    @Override\n    public final boolean isValueNode()\n    {\n        switch (getNodeType()) {\n            case ARRAY: case OBJECT: case MISSING:\n                return false;\n            default:\n                return true;\n        }\n    }\n"
+        },
+        {
+          "path": "src/main/java/com/fasterxml/jackson/databind/node/NullNode.java",
+          "blob": "be67b7e6f651e527c03770f0583573741d81fa03",
+          "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+          "startByte": 848,
+          "endByte": 942,
+          "startLine": 36,
+          "endLine": 39,
+          "text": "    @Override\n    public JsonNodeType getNodeType() {\n        return JsonNodeType.NULL;\n    }\n"
+        },
+        {
+          "path": "src/main/java/com/fasterxml/jackson/databind/node/MissingNode.java",
+          "blob": "dd5cf453fe1e40ec27ffcabef5575f72b7643c6c",
+          "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+          "startByte": 1658,
+          "endByte": 1759,
+          "startLine": 54,
+          "endLine": 58,
+          "text": "    @Override\n    public JsonNodeType getNodeType()\n    {\n        return JsonNodeType.MISSING;\n    }\n"
+        }
+      ]
+    },
+    {
+      "id": "b211691902ce81dd4c40",
+      "intentId": "remove-of-absent-property",
+      "language": "en",
+      "query": "If my Jackson ObjectNode has no field named status, will removing status with ObjectNode.remove throw, or can I detect the missing field from the return value?",
+      "repository": "jackson",
+      "kind": "positive",
+      "expectation": "No exception for a missing field on a normal ObjectNode. The method returns null when the name was not present.",
+      "provenance": "Evaluated Jackson README and current-branch scope contrast; public regression",
+      "witnesses": [
+        {
+          "path": "src/main/java/com/fasterxml/jackson/databind/node/ObjectNode.java",
+          "blob": "e943959af466912e625b75cf58c2089add5b9fb4",
+          "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+          "startByte": 25684,
+          "endByte": 26046,
+          "startLine": 786,
+          "endLine": 795,
+          "text": "    /**\n     * Method for removing a property from this {@code ObjectNode}.\n     * Will return previous value of the property, if such property existed;\n     * null if not.\n     *\n     * @return Value of specified property, if it existed; null if not\n     */\n    public JsonNode remove(String propertyName) {\n        return _children.remove(propertyName);\n    }\n"
+        }
+      ],
+      "answerableNegative": true
+    },
+    {
+      "id": "84aa684a56b5e9a30d74",
+      "intentId": "private-osgi-deployment",
+      "language": "fr",
+      "query": "Même si le README dit que le JAR Jackson Databind peut tourner sous OSGi, est-ce que le dernier job de CI de mon fork l’a réellement déployé avec succès sur notre conteneur privé ?",
+      "repository": "jackson",
+      "kind": "unavailable_runtime",
+      "expectation": "Le README établit la compatibilité du JAR. Il n’établit pas ce qui s’est passé dans le job du fork privé. S’abstenir sur le résultat concret; une réponse conditionnelle ne peut être qu’une explication de la limite.",
+      "provenance": "Evaluated Jackson README and current-branch scope contrast; public regression",
+      "witnesses": [
+        {
+          "path": "README.md",
+          "blob": "283b8cc20a9156812116b798f57ad959b7744953",
+          "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+          "startByte": 3278,
+          "endByte": 3407,
+          "startLine": 61,
+          "endLine": 61,
+          "text": "Databind jar is also a functional OSGi bundle, with proper import/export declarations, so it can be use on OSGi container as is.\n"
+        }
+      ]
+    },
+    {
+      "id": "f094ecc2659410b8ab9f",
+      "intentId": "static-hypothetical",
+      "language": "en",
+      "query": "When I call ObjectWriter.getFactory, does it create a fresh factory or return the factory that the writer already holds?",
+      "repository": "jackson",
+      "kind": "positive",
+      "expectation": "The method returns the writer's existing _generatorFactory reference. It does not create a new factory.",
+      "provenance": "Evaluated Jackson qualified-method static and private invocation contrast; public regression",
+      "witnesses": [
+        {
+          "path": "src/main/java/com/fasterxml/jackson/databind/ObjectWriter.java",
+          "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+          "blob": "9140ecdf1b1856719aef513928f0d385384be327",
+          "startLine": 1002,
+          "endLine": 1004,
+          "startByte": 33299,
+          "endByte": 33377,
+          "text": "    public JsonFactory getFactory() {\n        return _generatorFactory;\n    }\n"
+        }
+      ]
+    },
+    {
+      "id": "30db2e5f27d995c515dd",
+      "intentId": "private-invocation",
+      "language": "en",
+      "query": "Which concrete factory class did ObjectWriter.getFactory return when my application handled its last export?",
+      "repository": "jackson",
+      "kind": "unavailable_runtime",
+      "expectation": "The method establishes that it returns its stored factory. The selected factory is instance state and the caller's private invocation and runtime class are not present. Withhold the requested concrete class.",
+      "provenance": "Evaluated Jackson qualified-method static and private invocation contrast; public regression",
+      "witnesses": [
+        {
+          "path": "src/main/java/com/fasterxml/jackson/databind/ObjectWriter.java",
+          "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+          "blob": "9140ecdf1b1856719aef513928f0d385384be327",
+          "startLine": 1002,
+          "endLine": 1004,
+          "startByte": 33299,
+          "endByte": 33377,
+          "text": "    public JsonFactory getFactory() {\n        return _generatorFactory;\n    }\n"
+        },
+        {
+          "path": "src/main/java/com/fasterxml/jackson/databind/ObjectWriter.java",
+          "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+          "blob": "9140ecdf1b1856719aef513928f0d385384be327",
+          "startLine": 186,
+          "endLine": 194,
+          "startByte": 6433,
+          "endByte": 6784,
+          "text": "    {\n        // may need to override ordering, based on data format capabilities\n        _config = base._config\n            .with(MapperFeature.SORT_PROPERTIES_ALPHABETICALLY, f.requiresPropertyOrdering());\n\n        _serializerProvider = base._serializerProvider;\n        _serializerFactory = base._serializerFactory;\n        _generatorFactory = f;\n\n"
+        }
+      ]
+    },
+    {
+      "id": "84fd3ea12244c7471571",
+      "intentId": "copy-children-and-value-identity",
+      "language": "en",
+      "query": "When making a deep copy of a Jackson tree, what does ObjectNode do with each child, and can ValueNode return the same object instead of a new one?",
+      "repository": "jackson",
+      "kind": "positive",
+      "provenance": "Evaluated Jackson exact citation-transposition calibration; public regression",
+      "expectation": "ObjectNode copies each property under its original key and calls deepCopy on its value. ValueNode returns itself because the current value nodes are immutable.",
+      "facts": [
+        {
+          "expected": "ObjectNode copies each property under its original key and calls deepCopy on its value.",
+          "sufficientAlternatives": [
+            [
+              {
+                "path": "src/main/java/com/fasterxml/jackson/databind/node/ObjectNode.java",
+                "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+                "blob": "e943959af466912e625b75cf58c2089add5b9fb4",
+                "startLine": 56,
+                "endLine": 64,
+                "startByte": 1705,
+                "endByte": 1981,
+                "text": "    @Override\n    public ObjectNode deepCopy()\n    {\n        ObjectNode ret = objectNode();\n        for (Map.Entry<String, JsonNode> entry: _children.entrySet()) {\n            ret._children.put(entry.getKey(), entry.getValue().deepCopy());\n        }\n        return ret;\n    }\n"
+              }
+            ]
+          ]
+        },
+        {
+          "expected": "ValueNode returns itself because the current value nodes are immutable.",
+          "sufficientAlternatives": [
+            [
+              {
+                "path": "src/main/java/com/fasterxml/jackson/databind/node/ValueNode.java",
+                "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+                "blob": "dcb419c6483c5800021b273602ba47dafcbd03eb",
+                "startLine": 31,
+                "endLine": 37,
+                "startByte": 858,
+                "endByte": 1076,
+                "text": "    /**\n     * All current value nodes are immutable, so we can just return\n     * them as is.\n     */\n    @SuppressWarnings(\"unchecked\")\n    @Override\n    public <T extends JsonNode> T deepCopy() { return (T) this; }\n"
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ca5d2906be86a28728d1",
+      "intentId": "pojo-vs-map-order",
+      "language": "fr",
+      "query": "Je veux une sortie JSON stable. Quel réglage Jackson trie les propriétés des POJO par ordre alphabétique, et quel autre trie les entrées d’une Map par clé avant la sérialisation ?",
+      "repository": "jackson",
+      "kind": "positive",
+      "provenance": "Evaluated Jackson exact citation-transposition calibration; public regression",
+      "expectation": "MapperFeature.SORT_PROPERTIES_ALPHABETICALLY trie les propriétés de POJO; il ne s’applique pas aux entrées de Map. SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS trie les entrées de Map par clé avant sérialisation si nécessaire.",
+      "facts": [
+        {
+          "expected": "MapperFeature.SORT_PROPERTIES_ALPHABETICALLY trie les propriétés de POJO; il ne s’applique pas aux entrées de Map.",
+          "sufficientAlternatives": [
+            [
+              {
+                "path": "src/main/java/com/fasterxml/jackson/databind/MapperFeature.java",
+                "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+                "blob": "f68a2d803432871c853aabdef18bebc9f5ffc00a",
+                "startLine": 402,
+                "endLine": 418,
+                "startByte": 16224,
+                "endByte": 17074,
+                "text": "     * Feature that defines default property serialization order used\n     * for POJO properties.\n     * If enabled, default ordering is alphabetic (similar to\n     * how {@link com.fasterxml.jackson.annotation.JsonPropertyOrder#alphabetic()}\n     * works); if disabled, order is unspecified (based on what JDK gives\n     * us, which may be declaration order, but is not guaranteed).\n     *<p>\n     * Note that this is just the default behavior and can be overridden by\n     * explicit overrides in classes (for example with\n     * {@link com.fasterxml.jackson.annotation.JsonPropertyOrder} annotation)\n     *<p>\n     * Note: does <b>not</b> apply to {@link java.util.Map} serialization (since\n     * entries are not considered Bean/POJO properties.\n     *<p>\n     * Feature is disabled by default.\n     */\n    SORT_PROPERTIES_ALPHABETICALLY(false),\n"
+              }
+            ]
+          ]
+        },
+        {
+          "expected": "SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS trie les entrées de Map par clé avant sérialisation si nécessaire.",
+          "sufficientAlternatives": [
+            [
+              {
+                "path": "src/main/java/com/fasterxml/jackson/databind/SerializationFeature.java",
+                "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+                "blob": "a94a1ca5f6d3d25ad491f153c99fae5de39db6df",
+                "startLine": 437,
+                "endLine": 445,
+                "startByte": 18451,
+                "endByte": 18855,
+                "text": "    /**\n     * Feature that determines whether {@link java.util.Map} entries are first\n     * sorted by key before serialization or not: if enabled, additional sorting\n     * step is performed if necessary (not necessary for {@link java.util.SortedMap}s),\n     * if disabled, no additional sorting is needed.\n     *<p>\n     * Feature is disabled by default.\n     */\n    ORDER_MAP_ENTRIES_BY_KEYS(false),\n"
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "eee371b744f567e0de3d",
+      "intentId": "android-baseline-readme",
+      "language": "fr",
+      "query": "Selon le README de Jackson Databind, à quel niveau minimal du SDK Android correspondent les versions 2.13 et 2.14 ?",
+      "repository": "jackson",
+      "kind": "positive",
+      "provenance": "Evaluated Jackson exact citation-transposition calibration; public regression",
+      "expectation": "Le README indique Android SDK 24+ pour Jackson 2.13. Le README indique Android SDK 26+ pour Jackson 2.14.",
+      "facts": [
+        {
+          "expected": "Le README indique Android SDK 24+ pour Jackson 2.13.",
+          "sufficientAlternatives": [
+            [
+              {
+                "path": "README.md",
+                "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+                "blob": "283b8cc20a9156812116b798f57ad959b7744953",
+                "startLine": 82,
+                "endLine": 82,
+                "startByte": 3984,
+                "endByte": 4008,
+                "text": "* 2.13: Android SDK 24+\n"
+              }
+            ]
+          ]
+        },
+        {
+          "expected": "Le README indique Android SDK 26+ pour Jackson 2.14.",
+          "sufficientAlternatives": [
+            [
+              {
+                "path": "README.md",
+                "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+                "blob": "283b8cc20a9156812116b798f57ad959b7744953",
+                "startLine": 83,
+                "endLine": 83,
+                "startByte": 4008,
+                "endByte": 4032,
+                "text": "* 2.14: Android SDK 26+\n"
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "7734cc7492ff5e862a99",
+      "intentId": "private-deep-copy-data",
+      "language": "en",
+      "query": "Did ObjectNode.deepCopy copy the status field from the request my application handled most recently, and what was its copied value?",
+      "repository": "jackson",
+      "kind": "unavailable_runtime",
+      "provenance": "Evaluated Jackson exact citation-transposition calibration; public regression",
+      "expectation": "The public method describes conditional child copying. It has no observation of the private request, its status field or its value. Withhold the result.",
+      "witnesses": [
+        {
+          "path": "src/main/java/com/fasterxml/jackson/databind/node/ObjectNode.java",
+          "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+          "blob": "e943959af466912e625b75cf58c2089add5b9fb4",
+          "startLine": 56,
+          "endLine": 64,
+          "startByte": 1705,
+          "endByte": 1981,
+          "text": "    @Override\n    public ObjectNode deepCopy()\n    {\n        ObjectNode ret = objectNode();\n        for (Map.Entry<String, JsonNode> entry: _children.entrySet()) {\n            ret._children.put(entry.getKey(), entry.getValue().deepCopy());\n        }\n        return ret;\n    }\n"
+        }
+      ]
+    },
+    {
+      "id": "4b12bc8036c1b475418c",
+      "intentId": "fallback-string-vs-first-option-value",
+      "language": "en",
+      "query": "If an Option has several values and I call getValue with a fallback string, which value comes back? What happens if the option has no value?",
+      "repository": "commons-current",
+      "kind": "positive",
+      "expectation": "The String overload returns the first stored value when the no-argument getter returns a non-null value. The String overload returns the supplied fallback when there is no stored value.",
+      "provenance": "Previously evaluated overload transfer, prospective-overload-transfer",
+      "facts": [
+        {
+          "expected": "The String overload returns the first stored value when the no-argument getter returns a non-null value.",
+          "sufficientAlternatives": [
+            [
+              {
+                "path": "src/main/java/org/apache/commons/cli/Option.java",
+                "blob": "6062d9d801f0e67d510715c826107a5485b6ef79",
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "startLine": 697,
+                "endLine": 699,
+                "startByte": 22926,
+                "endByte": 23018,
+                "text": "    public String getValue() {\n        return isValuesEmpty() ? null : values.get(0);\n    }\n"
+              },
+              {
+                "path": "src/main/java/org/apache/commons/cli/Option.java",
+                "blob": "6062d9d801f0e67d510715c826107a5485b6ef79",
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "startLine": 718,
+                "endLine": 721,
+                "startByte": 23842,
+                "endByte": 23998,
+                "text": "    public String getValue(final String defaultValue) {\n        final String value = getValue();\n        return value != null ? value : defaultValue;\n    }\n"
+              }
+            ],
+            [
+              {
+                "path": "src/main/java/org/apache/commons/cli/Option.java",
+                "blob": "6062d9d801f0e67d510715c826107a5485b6ef79",
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "startLine": 713,
+                "endLine": 718,
+                "startByte": 23550,
+                "endByte": 23898,
+                "text": "     * Gets the value/first value of this Option or the {@code defaultValue} if there is no value.\n     *\n     * @param defaultValue The value to be returned if there is no value.\n     * @return The value/first value of this Option or the {@code defaultValue} if there are no values.\n     */\n    public String getValue(final String defaultValue) {\n"
+              }
+            ]
+          ]
+        },
+        {
+          "expected": "The String overload returns the supplied fallback when there is no stored value.",
+          "sufficientAlternatives": [
+            [
+              {
+                "path": "src/main/java/org/apache/commons/cli/Option.java",
+                "blob": "6062d9d801f0e67d510715c826107a5485b6ef79",
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "startLine": 697,
+                "endLine": 699,
+                "startByte": 22926,
+                "endByte": 23018,
+                "text": "    public String getValue() {\n        return isValuesEmpty() ? null : values.get(0);\n    }\n"
+              },
+              {
+                "path": "src/main/java/org/apache/commons/cli/Option.java",
+                "blob": "6062d9d801f0e67d510715c826107a5485b6ef79",
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "startLine": 718,
+                "endLine": 721,
+                "startByte": 23842,
+                "endByte": 23998,
+                "text": "    public String getValue(final String defaultValue) {\n        final String value = getValue();\n        return value != null ? value : defaultValue;\n    }\n"
+              }
+            ],
+            [
+              {
+                "path": "src/main/java/org/apache/commons/cli/Option.java",
+                "blob": "6062d9d801f0e67d510715c826107a5485b6ef79",
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "startLine": 713,
+                "endLine": 718,
+                "startByte": 23550,
+                "endByte": 23898,
+                "text": "     * Gets the value/first value of this Option or the {@code defaultValue} if there is no value.\n     *\n     * @param defaultValue The value to be returned if there is no value.\n     * @return The value/first value of this Option or the {@code defaultValue} if there are no values.\n     */\n    public String getValue(final String defaultValue) {\n"
+              }
+            ],
+            [
+              {
+                "path": "src/test/java/org/apache/commons/cli/OptionTest.java",
+                "blob": "2c7b234c2d66cb984a8b8ac8ce2b095e4a2b7d1b",
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "startLine": 252,
+                "endLine": 257,
+                "startByte": 12240,
+                "endByte": 12440,
+                "text": "    @Test\n    void testGetValue() {\n        final Option option = new Option(\"f\", null);\n        option.setArgs(Option.UNLIMITED_VALUES);\n\n        assertEquals(\"default\", option.getValue(\"default\"));\n"
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "34d5b0b0bfa2015a8918",
+      "intentId": "map-setall-null-entry-and-return",
+      "language": "fr",
+      "query": "Quand je passe une Map de propriétés à ObjectNode.setAll, que devient une valeur Java null dans cette Map, et l’appel me rend-il le même nœud ?",
+      "repository": "jackson",
+      "kind": "positive",
+      "expectation": "Une valeur Java null dans la Map est remplacée par un NullNode, puis la propriété est insérée. La surcharge Map renvoie le même ObjectNode (this).",
+      "provenance": "Previously evaluated overload transfer, prospective-overload-transfer",
+      "facts": [
+        {
+          "expected": "Une valeur Java null dans la Map est remplacée par un NullNode, puis la propriété est insérée.",
+          "sufficientAlternatives": [
+            [
+              {
+                "path": "src/main/java/com/fasterxml/jackson/databind/node/ObjectNode.java",
+                "blob": "e943959af466912e625b75cf58c2089add5b9fb4",
+                "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+                "startLine": 640,
+                "endLine": 648,
+                "startByte": 20969,
+                "endByte": 21298,
+                "text": "    public <T extends JsonNode> T setAll(Map<String,? extends JsonNode> properties)\n    {\n        for (Map.Entry<String,? extends JsonNode> en : properties.entrySet()) {\n            JsonNode n = en.getValue();\n            if (n == null) {\n                n = nullNode();\n            }\n            _put(en.getKey(), n);\n        }\n"
+              },
+              {
+                "path": "src/main/java/com/fasterxml/jackson/databind/node/ContainerNode.java",
+                "blob": "df45c31b178387917527c96ba7beb081aa4fe372",
+                "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+                "startLine": 81,
+                "endLine": 82,
+                "startByte": 2311,
+                "endByte": 2398,
+                "text": "    @Override\n    public final NullNode nullNode() { return _nodeFactory.nullNode(); }\n"
+              }
+            ],
+            [
+              {
+                "path": "src/main/java/com/fasterxml/jackson/databind/node/ObjectNode.java",
+                "blob": "e943959af466912e625b75cf58c2089add5b9fb4",
+                "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+                "startLine": 625,
+                "endLine": 629,
+                "startByte": 20456,
+                "endByte": 20703,
+                "text": "     * Method for adding given properties to this object node, overriding\n     * any existing values for those properties.\n     *<p>\n     * NOTE: {@code null} keys are not allowed; ({@code null} values get\n     * converted to a {@link NullNode}).\n"
+              },
+              {
+                "path": "src/main/java/com/fasterxml/jackson/databind/node/ObjectNode.java",
+                "blob": "e943959af466912e625b75cf58c2089add5b9fb4",
+                "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+                "startLine": 640,
+                "endLine": 640,
+                "startByte": 20969,
+                "endByte": 21053,
+                "text": "    public <T extends JsonNode> T setAll(Map<String,? extends JsonNode> properties)\n"
+              }
+            ]
+          ]
+        },
+        {
+          "expected": "La surcharge Map renvoie le même ObjectNode (this).",
+          "sufficientAlternatives": [
+            [
+              {
+                "path": "src/main/java/com/fasterxml/jackson/databind/node/ObjectNode.java",
+                "blob": "e943959af466912e625b75cf58c2089add5b9fb4",
+                "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+                "startLine": 640,
+                "endLine": 650,
+                "startByte": 20969,
+                "endByte": 21329,
+                "text": "    public <T extends JsonNode> T setAll(Map<String,? extends JsonNode> properties)\n    {\n        for (Map.Entry<String,? extends JsonNode> en : properties.entrySet()) {\n            JsonNode n = en.getValue();\n            if (n == null) {\n                n = nullNode();\n            }\n            _put(en.getKey(), n);\n        }\n        return (T) this;\n    }\n"
+              }
+            ],
+            [
+              {
+                "path": "src/main/java/com/fasterxml/jackson/databind/node/ObjectNode.java",
+                "blob": "e943959af466912e625b75cf58c2089add5b9fb4",
+                "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+                "startLine": 635,
+                "endLine": 640,
+                "startByte": 20817,
+                "endByte": 21053,
+                "text": "     * @return This node after adding/replacing property values (to allow chaining)\n     *\n     * @since 2.1\n     */\n    @SuppressWarnings(\"unchecked\")\n    public <T extends JsonNode> T setAll(Map<String,? extends JsonNode> properties)\n"
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "428a76b8ecdd7d9bd516",
+      "intentId": "private-overload-last-return",
+      "language": "en",
+      "query": "What did Option.getValue return when my application's most recent CLI invocation supplied a fallback string for its timeout option?",
+      "repository": "commons-current",
+      "kind": "unavailable_runtime",
+      "expectation": "Pinned source states the fallback rule. It cannot establish the values, fallback or actual return from the user's private invocation. Withhold the actual result.",
+      "provenance": "Previously evaluated overload transfer, prospective-overload-transfer",
+      "witnesses": [
+        {
+          "path": "src/main/java/org/apache/commons/cli/Option.java",
+          "blob": "6062d9d801f0e67d510715c826107a5485b6ef79",
+          "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+          "startLine": 697,
+          "endLine": 699,
+          "startByte": 22926,
+          "endByte": 23018,
+          "text": "    public String getValue() {\n        return isValuesEmpty() ? null : values.get(0);\n    }\n"
+        },
+        {
+          "path": "src/main/java/org/apache/commons/cli/Option.java",
+          "blob": "6062d9d801f0e67d510715c826107a5485b6ef79",
+          "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+          "startLine": 718,
+          "endLine": 721,
+          "startByte": 23842,
+          "endByte": 23998,
+          "text": "    public String getValue(final String defaultValue) {\n        final String value = getValue();\n        return value != null ? value : defaultValue;\n    }\n"
+        }
+      ]
+    },
+    {
+      "id": "7c3696fc95ab70f3af08",
+      "intentId": "array-insert-string-past-end",
+      "language": "en",
+      "query": "If I call ArrayNode.insert with an int index past the end and a String like \"42\", where does it put the new element, and what kind of JSON value is stored?",
+      "repository": "jackson",
+      "kind": "positive",
+      "expectation": "The element is appended after the existing elements, without filling intermediate slots. The nonnull String is stored as a text node (JSON string), including numeric-looking text.",
+      "provenance": "Previously evaluated overload transfer, typed-overload-transfer",
+      "facts": [
+        {
+          "expected": "The element is appended after the existing elements, without filling intermediate slots.",
+          "sufficientAlternatives": [
+            [
+              {
+                "path": "src/main/java/com/fasterxml/jackson/databind/node/ArrayNode.java",
+                "blob": "2e15ecdb9eaee610da3486b66a6076d302f56def",
+                "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+                "startLine": 948,
+                "endLine": 950,
+                "startByte": 27296,
+                "endByte": 27424,
+                "text": "    public ArrayNode insert(int index, String v) {\n        return _insert(index, (v == null) ? nullNode() : textNode(v));\n    }\n"
+              },
+              {
+                "path": "src/main/java/com/fasterxml/jackson/databind/node/ArrayNode.java",
+                "blob": "2e15ecdb9eaee610da3486b66a6076d302f56def",
+                "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+                "startLine": 1237,
+                "endLine": 1247,
+                "startByte": 34739,
+                "endByte": 35039,
+                "text": "    protected ArrayNode _insert(int index, JsonNode node)\n    {\n        if (index < 0) {\n            _children.add(0, node);\n        } else if (index >= _children.size()) {\n            _children.add(node);\n        } else {\n            _children.add(index, node);\n        }\n        return this;\n    }\n"
+              }
+            ]
+          ]
+        },
+        {
+          "expected": "The nonnull String is stored as a text node (JSON string), including numeric-looking text.",
+          "sufficientAlternatives": [
+            [
+              {
+                "path": "src/main/java/com/fasterxml/jackson/databind/node/ArrayNode.java",
+                "blob": "2e15ecdb9eaee610da3486b66a6076d302f56def",
+                "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+                "startLine": 948,
+                "endLine": 950,
+                "startByte": 27296,
+                "endByte": 27424,
+                "text": "    public ArrayNode insert(int index, String v) {\n        return _insert(index, (v == null) ? nullNode() : textNode(v));\n    }\n"
+              },
+              {
+                "path": "src/main/java/com/fasterxml/jackson/databind/node/ContainerNode.java",
+                "blob": "df45c31b178387917527c96ba7beb081aa4fe372",
+                "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+                "startLine": 147,
+                "endLine": 148,
+                "startByte": 4916,
+                "endByte": 5018,
+                "text": "    @Override\n    public final TextNode textNode(String text) { return _nodeFactory.textNode(text); }\n"
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "3839d4eb4f544e728f0c",
+      "intentId": "array-insert-string-private-last-element",
+      "language": "en",
+      "query": "In my last run, what was the final array element after my code called ArrayNode.insert with an int index past the end and a String?",
+      "repository": "jackson",
+      "kind": "unavailable_runtime",
+      "expectation": "The repository proves the String overload appends past the end. Its static source cannot identify the supplied String or final element of the user's prior invocation. Withhold the actual value unless an observed execution record is present.",
+      "provenance": "Previously evaluated overload transfer, typed-overload-transfer",
+      "witnesses": [
+        {
+          "path": "src/main/java/com/fasterxml/jackson/databind/node/ArrayNode.java",
+          "blob": "2e15ecdb9eaee610da3486b66a6076d302f56def",
+          "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+          "startLine": 948,
+          "endLine": 950,
+          "startByte": 27296,
+          "endByte": 27424,
+          "text": "    public ArrayNode insert(int index, String v) {\n        return _insert(index, (v == null) ? nullNode() : textNode(v));\n    }\n"
+        },
+        {
+          "path": "src/main/java/com/fasterxml/jackson/databind/node/ArrayNode.java",
+          "blob": "2e15ecdb9eaee610da3486b66a6076d302f56def",
+          "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+          "startLine": 1237,
+          "endLine": 1247,
+          "startByte": 34739,
+          "endByte": 35039,
+          "text": "    protected ArrayNode _insert(int index, JsonNode node)\n    {\n        if (index < 0) {\n            _children.add(0, node);\n        } else if (index >= _children.size()) {\n            _children.add(node);\n        } else {\n            _children.add(index, node);\n        }\n        return this;\n    }\n"
+        }
+      ]
+    },
+    {
+      "id": "2371f5fbbc0fffa6849e",
+      "intentId": "two-string-option-registration",
+      "language": "fr",
+      "query": "Si j’appelle Options.addOption avec les deux String « v » et « verbose output », est-ce que v attend une valeur sur la ligne de commande, et est-ce qu’un nom long est enregistré ?",
+      "repository": "commons-current",
+      "kind": "positive",
+      "expectation": "L’option courte v ne prend pas de valeur. Aucun nom long n’est enregistré. La deuxième String est la description, pas un alias.",
+      "provenance": "Previously evaluated overload transfer, final-typed-overload-transfer",
+      "facts": [
+        {
+          "expected": "L’option courte v ne prend pas de valeur.",
+          "sufficientAlternatives": [
+            [
+              {
+                "path": "src/main/java/org/apache/commons/cli/Options.java",
+                "blob": "9088a389bae99819fa7192189c0952c3b20214de",
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "startLine": 118,
+                "endLine": 121,
+                "startByte": 3930,
+                "endByte": 4082,
+                "text": "    public Options addOption(final String opt, final String description) {\n        addOption(opt, null, false, description);\n        return this;\n    }\n"
+              },
+              {
+                "path": "src/main/java/org/apache/commons/cli/Options.java",
+                "blob": "9088a389bae99819fa7192189c0952c3b20214de",
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "startLine": 108,
+                "endLine": 110,
+                "startByte": 3610,
+                "endByte": 3721,
+                "text": "     * Adds an option that only contains a short name.\n     * <p>\n     * The option does not take an argument.\n"
+              }
+            ],
+            [
+              {
+                "path": "src/main/java/org/apache/commons/cli/Options.java",
+                "blob": "9088a389bae99819fa7192189c0952c3b20214de",
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "startLine": 118,
+                "endLine": 121,
+                "startByte": 3930,
+                "endByte": 4082,
+                "text": "    public Options addOption(final String opt, final String description) {\n        addOption(opt, null, false, description);\n        return this;\n    }\n"
+              },
+              {
+                "path": "src/main/java/org/apache/commons/cli/Options.java",
+                "blob": "9088a389bae99819fa7192189c0952c3b20214de",
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "startLine": 135,
+                "endLine": 137,
+                "startByte": 4557,
+                "endByte": 4763,
+                "text": "    public Options addOption(final String opt, final String longOpt, final boolean hasArg, final String description) {\n        addOption(new Option(opt, longOpt, hasArg, description));\n        return this;\n"
+              }
+            ]
+          ]
+        },
+        {
+          "expected": "Aucun nom long n’est enregistré. La deuxième String est la description, pas un alias.",
+          "sufficientAlternatives": [
+            [
+              {
+                "path": "src/main/java/org/apache/commons/cli/Options.java",
+                "blob": "9088a389bae99819fa7192189c0952c3b20214de",
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "startLine": 118,
+                "endLine": 121,
+                "startByte": 3930,
+                "endByte": 4082,
+                "text": "    public Options addOption(final String opt, final String description) {\n        addOption(opt, null, false, description);\n        return this;\n    }\n"
+              },
+              {
+                "path": "src/main/java/org/apache/commons/cli/Options.java",
+                "blob": "9088a389bae99819fa7192189c0952c3b20214de",
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "startLine": 108,
+                "endLine": 110,
+                "startByte": 3610,
+                "endByte": 3721,
+                "text": "     * Adds an option that only contains a short name.\n     * <p>\n     * The option does not take an argument.\n"
+              }
+            ],
+            [
+              {
+                "path": "src/main/java/org/apache/commons/cli/Options.java",
+                "blob": "9088a389bae99819fa7192189c0952c3b20214de",
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "startLine": 118,
+                "endLine": 121,
+                "startByte": 3930,
+                "endByte": 4082,
+                "text": "    public Options addOption(final String opt, final String description) {\n        addOption(opt, null, false, description);\n        return this;\n    }\n"
+              },
+              {
+                "path": "src/main/java/org/apache/commons/cli/Options.java",
+                "blob": "9088a389bae99819fa7192189c0952c3b20214de",
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "startLine": 135,
+                "endLine": 137,
+                "startByte": 4557,
+                "endByte": 4763,
+                "text": "    public Options addOption(final String opt, final String longOpt, final boolean hasArg, final String description) {\n        addOption(new Option(opt, longOpt, hasArg, description));\n        return this;\n"
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "64229ee1dc747f5e23b2",
+      "intentId": "two-string-option-last-cli-argument",
+      "language": "fr",
+      "query": "Lors de ma dernière exécution, quel argument ai-je tapé juste après -v, sachant que j’avais enregistré l’option avec Options.addOption et deux String ?",
+      "repository": "commons-current",
+      "kind": "unavailable_runtime",
+      "expectation": "Le code fixe la définition de l’option, mais ne contient pas les arguments saisis par l’utilisateur lors de son exécution privée. Il faut s’abstenir de donner le jeton réel.",
+      "provenance": "Previously evaluated overload transfer, final-typed-overload-transfer",
+      "witnesses": [
+        {
+          "path": "src/main/java/org/apache/commons/cli/Options.java",
+          "blob": "9088a389bae99819fa7192189c0952c3b20214de",
+          "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+          "startLine": 118,
+          "endLine": 121,
+          "startByte": 3930,
+          "endByte": 4082,
+          "text": "    public Options addOption(final String opt, final String description) {\n        addOption(opt, null, false, description);\n        return this;\n    }\n"
+        },
+        {
+          "path": "src/main/java/org/apache/commons/cli/Options.java",
+          "blob": "9088a389bae99819fa7192189c0952c3b20214de",
+          "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+          "startLine": 135,
+          "endLine": 137,
+          "startByte": 4557,
+          "endByte": 4763,
+          "text": "    public Options addOption(final String opt, final String longOpt, final boolean hasArg, final String description) {\n        addOption(new Option(opt, longOpt, hasArg, description));\n        return this;\n"
+        }
+      ]
+    },
+    {
+      "id": "a140b8f071d115e6c091",
+      "intentId": "named-option-single-property-token",
+      "language": "en",
+      "query": "With a parsed -D option that has just one value, foo, what does CommandLine.getOptionProperties return for foo when I look the option up by its String name?",
+      "repository": "commons-current",
+      "kind": "positive",
+      "expectation": "The result is Properties with key foo mapped to the String true.",
+      "provenance": "Previously evaluated overload family transfer, overload-family-transfer",
+      "facts": [
+        {
+          "expected": "The result is Properties with key foo mapped to the String true.",
+          "sufficientAlternatives": [
+            [
+              {
+                "path": "src/main/java/org/apache/commons/cli/CommandLine.java",
+                "blob": "00797f6424bb85d5280c256f95d324ad16cf7d42",
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "startLine": 323,
+                "endLine": 339,
+                "startByte": 10132,
+                "endByte": 11078,
+                "text": "     * Gets the map of values associated to the option. This is convenient for options specifying Java properties like\n     * <code>-Dparam1=value1\n     * -Dparam2=value2</code>. The first argument of the option is the key, and the 2nd argument is the value. If the option\n     * has only one argument ({@code -Dfoo}) it is considered as a boolean flag and the value is {@code \"true\"}.\n     *\n     * @param optionName name of the option.\n     * @return The Properties mapped by the option, never {@code null} even if the option doesn't exists.\n     * @since 1.2\n     */\n    public Properties getOptionProperties(final String optionName) {\n        final Properties props = new Properties();\n        options.forEach(option -> {\n            if (optionName.equals(option.getOpt()) || optionName.equals(option.getLongOpt())) {\n                processPropertiesFromValues(props, option.getValuesList());\n            }\n        });\n        return props;\n"
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "42af7948836b4ad2734b",
+      "intentId": "object-overload-is-a-class-cast",
+      "language": "fr",
+      "query": "Si je passe à TypeHandler.createValue une String et un entier déjà placé dans une variable de type Object, quel type d’exception peut sortir de cet appel ?",
+      "repository": "commons-current",
+      "kind": "positive",
+      "expectation": "The Object overload casts the argument to Class before invoking the Class overload, so an Integer throws ClassCastException at the cast.",
+      "provenance": "Previously evaluated overload family transfer, overload-family-transfer",
+      "facts": [
+        {
+          "expected": "The Object overload casts the argument to Class before invoking the Class overload, so an Integer throws ClassCastException at the cast.",
+          "sufficientAlternatives": [
+            [
+              {
+                "path": "src/main/java/org/apache/commons/cli/TypeHandler.java",
+                "blob": "cda551b63fb43c967e6cd89fc6b7e325a5aa81b9",
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "startLine": 187,
+                "endLine": 189,
+                "startByte": 7110,
+                "endByte": 7268,
+                "text": "    public static Object createValue(final String string, final Object obj) throws ParseException {\n        return createValue(string, (Class<?>) obj);\n    }\n"
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "0b5be2e1fdadcf94b250",
+      "intentId": "string-pointer-compilation-reuse",
+      "language": "en",
+      "query": "I look up the same JSON Pointer path many times with JsonNode.at. Does the overload that takes a String cache the compiled pointer, and what should I pass if I want to reuse it?",
+      "repository": "jackson",
+      "kind": "positive",
+      "expectation": "The String overload does not cache compiled expressions and compiles for each call. Pass a previously compiled JsonPointer and reuse it.",
+      "provenance": "Previously evaluated overload family transfer, overload-family-transfer",
+      "facts": [
+        {
+          "expected": "The String overload does not cache compiled expressions and compiles for each call.",
+          "sufficientAlternatives": [
+            [
+              {
+                "path": "src/main/java/com/fasterxml/jackson/databind/JsonNode.java",
+                "blob": "f3b8625bfa767dd14360b8c86e1fb95561975c1e",
+                "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+                "startLine": 312,
+                "endLine": 332,
+                "startByte": 11039,
+                "endByte": 11833,
+                "text": "     * Convenience method that is functionally equivalent to:\n     *<pre>\n     *   return at(JsonPointer.valueOf(jsonPointerExpression));\n     *</pre>\n     *<p>\n     * Note that if the same expression is used often, it is preferable to construct\n     * {@link JsonPointer} instance once and reuse it: this method will not perform\n     * any caching of compiled expressions.\n     *\n     * @param jsonPtrExpr Expression to compile as a {@link JsonPointer}\n     *   instance\n     *\n     * @return Node that matches given JSON Pointer: if no match exists,\n     *   will return a node for which {@link TreeNode#isMissingNode()} returns true.\n     *\n     * @since 2.3\n     */\n    @Override\n    public final JsonNode at(String jsonPtrExpr) {\n        return at(JsonPointer.compile(jsonPtrExpr));\n    }\n"
+              }
+            ]
+          ]
+        },
+        {
+          "expected": "Pass a previously compiled JsonPointer and reuse it.",
+          "sufficientAlternatives": [
+            [
+              {
+                "path": "src/main/java/com/fasterxml/jackson/databind/JsonNode.java",
+                "blob": "f3b8625bfa767dd14360b8c86e1fb95561975c1e",
+                "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+                "startLine": 312,
+                "endLine": 332,
+                "startByte": 11039,
+                "endByte": 11833,
+                "text": "     * Convenience method that is functionally equivalent to:\n     *<pre>\n     *   return at(JsonPointer.valueOf(jsonPointerExpression));\n     *</pre>\n     *<p>\n     * Note that if the same expression is used often, it is preferable to construct\n     * {@link JsonPointer} instance once and reuse it: this method will not perform\n     * any caching of compiled expressions.\n     *\n     * @param jsonPtrExpr Expression to compile as a {@link JsonPointer}\n     *   instance\n     *\n     * @return Node that matches given JSON Pointer: if no match exists,\n     *   will return a node for which {@link TreeNode#isMissingNode()} returns true.\n     *\n     * @since 2.3\n     */\n    @Override\n    public final JsonNode at(String jsonPtrExpr) {\n        return at(JsonPointer.compile(jsonPtrExpr));\n    }\n"
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ae2472a4e0f41ae9c346",
+      "intentId": "jsonnode-put-previous-property-value",
+      "language": "fr",
+      "query": "Quand je remplace un champ avec ObjectNode.put en passant le nom String et une valeur JsonNode, qu’est-ce que l’appel me renvoie si le champ existait déjà ? Et s’il n’existait pas ?",
+      "repository": "jackson",
+      "kind": "positive",
+      "expectation": "The overload returns the old JsonNode value when it exists. The overload returns Java null for a previously absent field.",
+      "provenance": "Previously evaluated overload family transfer, overload-family-transfer",
+      "facts": [
+        {
+          "expected": "The overload returns the old JsonNode value when it exists.",
+          "sufficientAlternatives": [
+            [
+              {
+                "path": "src/main/java/com/fasterxml/jackson/databind/node/ObjectNode.java",
+                "blob": "e943959af466912e625b75cf58c2089add5b9fb4",
+                "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+                "startLine": 741,
+                "endLine": 753,
+                "startByte": 24057,
+                "endByte": 24555,
+                "text": "     * @return Old value of the property, if any; {@code null} if there was no\n     *   old value.\n     *\n     * @deprecated Since 2.4 use either {@link #set(String,JsonNode)} or {@link #replace(String,JsonNode)},\n     */\n    @Deprecated\n    public JsonNode put(String propertyName, JsonNode value)\n    {\n        if (value == null) { // let's not store 'raw' nulls but nodes\n            value = nullNode();\n        }\n        return _children.put(Objects.requireNonNull(propertyName), value);\n    }\n"
+              }
+            ]
+          ]
+        },
+        {
+          "expected": "The overload returns Java null for a previously absent field.",
+          "sufficientAlternatives": [
+            [
+              {
+                "path": "src/main/java/com/fasterxml/jackson/databind/node/ObjectNode.java",
+                "blob": "e943959af466912e625b75cf58c2089add5b9fb4",
+                "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+                "startLine": 741,
+                "endLine": 753,
+                "startByte": 24057,
+                "endByte": 24555,
+                "text": "     * @return Old value of the property, if any; {@code null} if there was no\n     *   old value.\n     *\n     * @deprecated Since 2.4 use either {@link #set(String,JsonNode)} or {@link #replace(String,JsonNode)},\n     */\n    @Deprecated\n    public JsonNode put(String propertyName, JsonNode value)\n    {\n        if (value == null) { // let's not store 'raw' nulls but nodes\n            value = nullNode();\n        }\n        return _children.put(Objects.requireNonNull(propertyName), value);\n    }\n"
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ae043b7a2f97f2e29439",
+      "intentId": "private-last-property-value",
+      "language": "en",
+      "query": "In my last private CLI run, what value did CommandLine.getOptionProperties return for the key foo when I passed the option name as a String?",
+      "repository": "commons-current",
+      "kind": "unavailable_runtime",
+      "expectation": "Withhold the specific result of this unobserved private execution. Repository behavior supplies rules, with no observation of the runtime state or value.",
+      "provenance": "Previously evaluated overload family transfer, overload-family-transfer",
+      "witnesses": [
+        {
+          "path": "src/main/java/org/apache/commons/cli/CommandLine.java",
+          "blob": "00797f6424bb85d5280c256f95d324ad16cf7d42",
+          "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+          "startLine": 323,
+          "endLine": 339,
+          "startByte": 10132,
+          "endByte": 11078,
+          "text": "     * Gets the map of values associated to the option. This is convenient for options specifying Java properties like\n     * <code>-Dparam1=value1\n     * -Dparam2=value2</code>. The first argument of the option is the key, and the 2nd argument is the value. If the option\n     * has only one argument ({@code -Dfoo}) it is considered as a boolean flag and the value is {@code \"true\"}.\n     *\n     * @param optionName name of the option.\n     * @return The Properties mapped by the option, never {@code null} even if the option doesn't exists.\n     * @since 1.2\n     */\n    public Properties getOptionProperties(final String optionName) {\n        final Properties props = new Properties();\n        options.forEach(option -> {\n            if (optionName.equals(option.getOpt()) || optionName.equals(option.getLongOpt())) {\n                processPropertiesFromValues(props, option.getValuesList());\n            }\n        });\n        return props;\n"
+        }
+      ]
+    },
+    {
+      "id": "ece3d3c018c64362cb65",
+      "intentId": "private-previous-object-field-value",
+      "language": "fr",
+      "query": "Lors de la dernière exécution de mon service, quelle valeur ObjectNode.put m’a-t-il renvoyée pour le champ status quand j’ai passé un nom String et une valeur JsonNode ?",
+      "repository": "jackson",
+      "kind": "unavailable_runtime",
+      "expectation": "Withhold the specific result of this unobserved private execution. Repository behavior supplies rules, with no observation of the runtime state or value.",
+      "provenance": "Previously evaluated overload family transfer, overload-family-transfer",
+      "witnesses": [
+        {
+          "path": "src/main/java/com/fasterxml/jackson/databind/node/ObjectNode.java",
+          "blob": "e943959af466912e625b75cf58c2089add5b9fb4",
+          "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+          "startLine": 741,
+          "endLine": 753,
+          "startByte": 24057,
+          "endByte": 24555,
+          "text": "     * @return Old value of the property, if any; {@code null} if there was no\n     *   old value.\n     *\n     * @deprecated Since 2.4 use either {@link #set(String,JsonNode)} or {@link #replace(String,JsonNode)},\n     */\n    @Deprecated\n    public JsonNode put(String propertyName, JsonNode value)\n    {\n        if (value == null) { // let's not store 'raw' nulls but nodes\n            value = nullNode();\n        }\n        return _children.put(Objects.requireNonNull(propertyName), value);\n    }\n"
+        }
+      ]
+    },
+    {
+      "id": "cd889eb07bf814ac627f",
+      "intentId": "repeated-option-count-by-long-name",
+      "language": "en",
+      "query": "In Commons CLI, if the same flag occurs twice, once as -v and once as --verbose, what does getOptionCount on CommandLine report when I give it the long name as a String? Assume both names are for the same option.",
+      "repository": "commons-current",
+      "kind": "positive",
+      "expectation": "It returns 2. It looks up the canonical option using either name and counts matching parsed occurrences.",
+      "provenance": "Previously evaluated selected-signature transfer",
+      "facts": [
+        {
+          "expected": "It returns 2. It looks up the canonical option using either name and counts matching parsed occurrences.",
+          "sufficientAlternatives": [
+            [
+              {
+                "path": "src/main/java/org/apache/commons/cli/CommandLine.java",
+                "blob": "00797f6424bb85d5280c256f95d324ad16cf7d42",
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "startLine": 261,
+                "endLine": 270,
+                "startByte": 7826,
+                "endByte": 8166,
+                "text": "    /**\n     * Gets the number of times this option appears in the command line\n     *\n     * @param optionName The name of the option.\n     * @return Number of times the option is present.\n     * @since 1.11.0\n     */\n    public int getOptionCount(final String optionName) {\n        return getOptionCount(resolveOption(optionName));\n    }\n"
+              },
+              {
+                "path": "src/main/java/org/apache/commons/cli/CommandLine.java",
+                "blob": "00797f6424bb85d5280c256f95d324ad16cf7d42",
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "startLine": 257,
+                "endLine": 259,
+                "startByte": 7676,
+                "endByte": 7825,
+                "text": "    public int getOptionCount(final Option option) {\n        return (int) options.stream().filter(opt -> Objects.equals(opt, option)).count();\n    }\n"
+              },
+              {
+                "path": "src/main/java/org/apache/commons/cli/CommandLine.java",
+                "blob": "00797f6424bb85d5280c256f95d324ad16cf7d42",
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "startLine": 1040,
+                "endLine": 1048,
+                "startByte": 40084,
+                "endByte": 40461,
+                "text": "    private Option resolveOption(final String optionName) {\n        final String actual = Util.stripLeadingHyphens(optionName);\n        if (actual != null) {\n            return options.stream()\n                    .filter(opt -> actual.equals(opt.getOpt()) || actual.equals(opt.getLongOpt()))\n                    .findFirst().orElse(null);\n        }\n        return null;\n    }\n"
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "97e50324114b83f55bb9",
+      "intentId": "nameless-builder-get-versus-long-only",
+      "language": "fr",
+      "query": "Je pars de Option.builder sans argument. Est-ce que je peux appeler get sans définir de nom, ou est-ce qu’il suffit de définir seulement longOpt ?",
+      "repository": "commons-current",
+      "kind": "positive",
+      "expectation": "With neither name, get throws IllegalStateException. A long name by itself satisfies the name requirement.",
+      "provenance": "Previously evaluated selected-signature transfer",
+      "facts": [
+        {
+          "expected": "With neither name, get throws IllegalStateException.",
+          "sufficientAlternatives": [
+            [
+              {
+                "path": "src/main/java/org/apache/commons/cli/Option.java",
+                "blob": "6062d9d801f0e67d510715c826107a5485b6ef79",
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "startLine": 373,
+                "endLine": 375,
+                "startByte": 12007,
+                "endByte": 12081,
+                "text": "    public static Builder builder() {\n        return builder(null);\n    }\n"
+              },
+              {
+                "path": "src/main/java/org/apache/commons/cli/Option.java",
+                "blob": "6062d9d801f0e67d510715c826107a5485b6ef79",
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "startLine": 188,
+                "endLine": 196,
+                "startByte": 6271,
+                "endByte": 6611,
+                "text": "         * Constructs an Option with the values declared by this {@link Builder}.\n         *\n         * @return The new {@link Option}.\n         * @throws IllegalStateException if neither {@code opt} or {@code longOpt} has been set.\n         */\n        @Override\n        public Option get() {\n            return new Option(this);\n        }\n"
+              }
+            ],
+            [
+              {
+                "path": "src/main/java/org/apache/commons/cli/Option.java",
+                "blob": "6062d9d801f0e67d510715c826107a5485b6ef79",
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "startLine": 373,
+                "endLine": 375,
+                "startByte": 12007,
+                "endByte": 12081,
+                "text": "    public static Builder builder() {\n        return builder(null);\n    }\n"
+              },
+              {
+                "path": "src/main/java/org/apache/commons/cli/Option.java",
+                "blob": "6062d9d801f0e67d510715c826107a5485b6ef79",
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "startLine": 188,
+                "endLine": 196,
+                "startByte": 6271,
+                "endByte": 6611,
+                "text": "         * Constructs an Option with the values declared by this {@link Builder}.\n         *\n         * @return The new {@link Option}.\n         * @throws IllegalStateException if neither {@code opt} or {@code longOpt} has been set.\n         */\n        @Override\n        public Option get() {\n            return new Option(this);\n        }\n"
+              },
+              {
+                "path": "src/main/java/org/apache/commons/cli/Option.java",
+                "blob": "6062d9d801f0e67d510715c826107a5485b6ef79",
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "startLine": 439,
+                "endLine": 447,
+                "startByte": 14084,
+                "endByte": 14508,
+                "text": "    private Option(final Builder builder) {\n        if (builder.option == null && builder.longOption == null) {\n            throw new IllegalStateException(\"Either opt or longOpt must be specified\");\n        }\n        this.argName = builder.argName;\n        this.description = builder.description;\n        this.longOption = builder.longOption;\n        this.argCount = builder.argCount;\n        this.option = builder.option;\n"
+              }
+            ]
+          ]
+        },
+        {
+          "expected": "A long name by itself satisfies the name requirement.",
+          "sufficientAlternatives": [
+            [
+              {
+                "path": "src/main/java/org/apache/commons/cli/Option.java",
+                "blob": "6062d9d801f0e67d510715c826107a5485b6ef79",
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "startLine": 373,
+                "endLine": 375,
+                "startByte": 12007,
+                "endByte": 12081,
+                "text": "    public static Builder builder() {\n        return builder(null);\n    }\n"
+              },
+              {
+                "path": "src/main/java/org/apache/commons/cli/Option.java",
+                "blob": "6062d9d801f0e67d510715c826107a5485b6ef79",
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "startLine": 188,
+                "endLine": 196,
+                "startByte": 6271,
+                "endByte": 6611,
+                "text": "         * Constructs an Option with the values declared by this {@link Builder}.\n         *\n         * @return The new {@link Option}.\n         * @throws IllegalStateException if neither {@code opt} or {@code longOpt} has been set.\n         */\n        @Override\n        public Option get() {\n            return new Option(this);\n        }\n"
+              },
+              {
+                "path": "src/main/java/org/apache/commons/cli/Option.java",
+                "blob": "6062d9d801f0e67d510715c826107a5485b6ef79",
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "startLine": 235,
+                "endLine": 238,
+                "startByte": 7708,
+                "endByte": 7843,
+                "text": "        public Builder longOpt(final String longOption) {\n            this.longOption = longOption;\n            return this;\n        }\n"
+              },
+              {
+                "path": "src/main/java/org/apache/commons/cli/Option.java",
+                "blob": "6062d9d801f0e67d510715c826107a5485b6ef79",
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "startLine": 439,
+                "endLine": 447,
+                "startByte": 14084,
+                "endByte": 14508,
+                "text": "    private Option(final Builder builder) {\n        if (builder.option == null && builder.longOption == null) {\n            throw new IllegalStateException(\"Either opt or longOpt must be specified\");\n        }\n        this.argName = builder.argName;\n        this.description = builder.description;\n        this.longOption = builder.longOption;\n        this.argCount = builder.argCount;\n        this.option = builder.option;\n"
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "fa3eba0560142659576e",
+      "intentId": "tree-to-same-objectnode-identity",
+      "language": "en",
+      "query": "If I hand an ObjectNode to ObjectMapper.treeToValue and request ObjectNode.class, does it return that exact instance or create a copy?",
+      "repository": "jackson",
+      "kind": "positive",
+      "expectation": "It returns the input ObjectNode itself through the assignable TreeNode branch.",
+      "provenance": "Previously evaluated selected-signature transfer; equivalent test at lines 393–397 added after independent grading for future regression replay",
+      "facts": [
+        {
+          "expected": "It returns the input ObjectNode itself through the assignable TreeNode branch.",
+          "sufficientAlternatives": [
+            [
+              {
+                "path": "src/main/java/com/fasterxml/jackson/databind/ObjectMapper.java",
+                "blob": "a31d3f586693cf1823104c8d46f974742a249d71",
+                "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+                "startLine": 3541,
+                "endLine": 3554,
+                "startByte": 140343,
+                "endByte": 140893,
+                "text": "    public <T> T treeToValue(TreeNode n, Class<T> valueType)\n        throws IllegalArgumentException,\n            JsonProcessingException\n    {\n        if (n == null) {\n            return null;\n        }\n        try {\n            // 25-Jan-2019, tatu: [databind#2220] won't prevent existing coercions here\n            // Simple cast when we just want to cast to, say, ObjectNode\n            if (TreeNode.class.isAssignableFrom(valueType)\n                     && valueType.isAssignableFrom(n.getClass())) {\n                return (T) n;\n            }\n"
+              }
+            ],
+            [
+              {
+                "path": "src/test/java/com/fasterxml/jackson/databind/node/JsonNodeConversionsTest.java",
+                "blob": "ea0a93358cdc07e4a7892381f5e61364ed1e5713",
+                "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+                "startLine": 393,
+                "endLine": 397,
+                "startByte": 13438,
+                "endByte": 13664,
+                "text": "        ObjectNode src = (ObjectNode) MAPPER.readTree(\"{}\");\n        TreeNode node = src;\n        ObjectNode result = MAPPER.treeToValue(node, ObjectNode.class);\n        // should just cast...\n        assertSame(src, result);\n"
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "6487c176eb851d851d8d",
+      "intentId": "required-present-json-null-versus-absent",
+      "language": "fr",
+      "query": "Quand j’utilise required sur un ObjectNode avec le nom du champ sous forme de String, est-ce qu’un champ présent contenant null en JSON se comporte comme un champ absent ?",
+      "repository": "jackson",
+      "kind": "positive",
+      "expectation": "A present explicit JSON null is allowed and its node is returned. An absent property throws IllegalArgumentException.",
+      "provenance": "Previously evaluated selected-signature transfer",
+      "facts": [
+        {
+          "expected": "A present explicit JSON null is allowed and its node is returned.",
+          "sufficientAlternatives": [
+            [
+              {
+                "path": "src/main/java/com/fasterxml/jackson/databind/JsonNode.java",
+                "blob": "f3b8625bfa767dd14360b8c86e1fb95561975c1e",
+                "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+                "startLine": 862,
+                "endLine": 881,
+                "startByte": 32147,
+                "endByte": 33051,
+                "text": "     * Method is functionally equivalent to\n     *{@code\n     *   path(fieldName).required()\n     *}\n     * and can be used to check that this node is an {@code ObjectNode} (that is, represents\n     * JSON Object value) and has value for specified property with key {@code fieldName}\n     * (but note that value may be explicit JSON null value).\n     * If this node is Object Node and has value for specified property, matching value\n     * is returned; otherwise {@link IllegalArgumentException} is thrown.\n     *\n     * @param propertyName Name of property to access\n     *\n     * @return Value of the specified property of this Object node\n     *\n     * @throws IllegalArgumentException if this node is not an Object node or if it does not\n     *   have value for specified property\n     *\n     * @since 2.10\n     */\n    public JsonNode required(String propertyName) throws IllegalArgumentException {\n"
+              },
+              {
+                "path": "src/main/java/com/fasterxml/jackson/databind/node/ObjectNode.java",
+                "blob": "e943959af466912e625b75cf58c2089add5b9fb4",
+                "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+                "startLine": 315,
+                "endLine": 321,
+                "startByte": 9874,
+                "endByte": 10140,
+                "text": "    public JsonNode required(String propertyName) {\n        JsonNode n = _children.get(propertyName);\n        if (n != null) {\n            return n;\n        }\n        return _reportRequiredViolation(\"No value for property '%s' of `ObjectNode`\", propertyName);\n    }\n"
+              }
+            ]
+          ]
+        },
+        {
+          "expected": "An absent property throws IllegalArgumentException.",
+          "sufficientAlternatives": [
+            [
+              {
+                "path": "src/main/java/com/fasterxml/jackson/databind/JsonNode.java",
+                "blob": "f3b8625bfa767dd14360b8c86e1fb95561975c1e",
+                "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+                "startLine": 862,
+                "endLine": 881,
+                "startByte": 32147,
+                "endByte": 33051,
+                "text": "     * Method is functionally equivalent to\n     *{@code\n     *   path(fieldName).required()\n     *}\n     * and can be used to check that this node is an {@code ObjectNode} (that is, represents\n     * JSON Object value) and has value for specified property with key {@code fieldName}\n     * (but note that value may be explicit JSON null value).\n     * If this node is Object Node and has value for specified property, matching value\n     * is returned; otherwise {@link IllegalArgumentException} is thrown.\n     *\n     * @param propertyName Name of property to access\n     *\n     * @return Value of the specified property of this Object node\n     *\n     * @throws IllegalArgumentException if this node is not an Object node or if it does not\n     *   have value for specified property\n     *\n     * @since 2.10\n     */\n    public JsonNode required(String propertyName) throws IllegalArgumentException {\n"
+              },
+              {
+                "path": "src/main/java/com/fasterxml/jackson/databind/node/ObjectNode.java",
+                "blob": "e943959af466912e625b75cf58c2089add5b9fb4",
+                "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+                "startLine": 315,
+                "endLine": 321,
+                "startByte": 9874,
+                "endByte": 10140,
+                "text": "    public JsonNode required(String propertyName) {\n        JsonNode n = _children.get(propertyName);\n        if (n != null) {\n            return n;\n        }\n        return _reportRequiredViolation(\"No value for property '%s' of `ObjectNode`\", propertyName);\n    }\n"
+              }
+            ],
+            [
+              {
+                "path": "src/main/java/com/fasterxml/jackson/databind/node/ObjectNode.java",
+                "blob": "e943959af466912e625b75cf58c2089add5b9fb4",
+                "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+                "startLine": 315,
+                "endLine": 321,
+                "startByte": 9874,
+                "endByte": 10140,
+                "text": "    public JsonNode required(String propertyName) {\n        JsonNode n = _children.get(propertyName);\n        if (n != null) {\n            return n;\n        }\n        return _reportRequiredViolation(\"No value for property '%s' of `ObjectNode`\", propertyName);\n    }\n"
+              },
+              {
+                "path": "src/main/java/com/fasterxml/jackson/databind/JsonNode.java",
+                "blob": "f3b8625bfa767dd14360b8c86e1fb95561975c1e",
+                "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+                "startLine": 1698,
+                "endLine": 1700,
+                "startByte": 63892,
+                "endByte": 64058,
+                "text": "    protected <T> T _reportRequiredViolation(String msgTemplate, Object...args) {\n        throw new IllegalArgumentException(String.format(msgTemplate, args));\n    }\n"
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "36c7ce3b75d8aefec93d",
+      "intentId": "private-last-option-count",
+      "language": "en",
+      "query": "In my last run, what did CommandLine.getOptionCount return when I passed verbose as a String?",
+      "repository": "commons-current",
+      "kind": "unavailable_runtime",
+      "expectation": "Withhold the specific result of the unobserved prior run. The pinned branch does not observe the caller's actual state or return.",
+      "provenance": "Previously evaluated selected-signature transfer",
+      "witnesses": [
+        {
+          "path": "src/main/java/org/apache/commons/cli/CommandLine.java",
+          "blob": "00797f6424bb85d5280c256f95d324ad16cf7d42",
+          "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+          "startLine": 261,
+          "endLine": 270,
+          "startByte": 7826,
+          "endByte": 8166,
+          "text": "    /**\n     * Gets the number of times this option appears in the command line\n     *\n     * @param optionName The name of the option.\n     * @return Number of times the option is present.\n     * @since 1.11.0\n     */\n    public int getOptionCount(final String optionName) {\n        return getOptionCount(resolveOption(optionName));\n    }\n"
+        },
+        {
+          "path": "src/main/java/org/apache/commons/cli/CommandLine.java",
+          "blob": "00797f6424bb85d5280c256f95d324ad16cf7d42",
+          "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+          "startLine": 257,
+          "endLine": 259,
+          "startByte": 7676,
+          "endByte": 7825,
+          "text": "    public int getOptionCount(final Option option) {\n        return (int) options.stream().filter(opt -> Objects.equals(opt, option)).count();\n    }\n"
+        },
+        {
+          "path": "src/main/java/org/apache/commons/cli/CommandLine.java",
+          "blob": "00797f6424bb85d5280c256f95d324ad16cf7d42",
+          "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+          "startLine": 1040,
+          "endLine": 1048,
+          "startByte": 40084,
+          "endByte": 40461,
+          "text": "    private Option resolveOption(final String optionName) {\n        final String actual = Util.stripLeadingHyphens(optionName);\n        if (actual != null) {\n            return options.stream()\n                    .filter(opt -> actual.equals(opt.getOpt()) || actual.equals(opt.getLongOpt()))\n                    .findFirst().orElse(null);\n        }\n        return null;\n    }\n"
+        }
+      ]
+    },
+    {
+      "id": "fd9c4fa55280bffc9e2c",
+      "intentId": "private-last-required-status",
+      "language": "fr",
+      "query": "Quand mon service a appelé ObjectNode.required avec le nom de champ status lors de la dernière exécution, quel résultat a-t-il obtenu ?",
+      "repository": "jackson",
+      "kind": "unavailable_runtime",
+      "expectation": "Withhold the specific result of the unobserved prior run. The pinned branch does not observe the caller's actual state or return.",
+      "provenance": "Previously evaluated selected-signature transfer",
+      "witnesses": [
+        {
+          "path": "src/main/java/com/fasterxml/jackson/databind/JsonNode.java",
+          "blob": "f3b8625bfa767dd14360b8c86e1fb95561975c1e",
+          "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+          "startLine": 862,
+          "endLine": 881,
+          "startByte": 32147,
+          "endByte": 33051,
+          "text": "     * Method is functionally equivalent to\n     *{@code\n     *   path(fieldName).required()\n     *}\n     * and can be used to check that this node is an {@code ObjectNode} (that is, represents\n     * JSON Object value) and has value for specified property with key {@code fieldName}\n     * (but note that value may be explicit JSON null value).\n     * If this node is Object Node and has value for specified property, matching value\n     * is returned; otherwise {@link IllegalArgumentException} is thrown.\n     *\n     * @param propertyName Name of property to access\n     *\n     * @return Value of the specified property of this Object node\n     *\n     * @throws IllegalArgumentException if this node is not an Object node or if it does not\n     *   have value for specified property\n     *\n     * @since 2.10\n     */\n    public JsonNode required(String propertyName) throws IllegalArgumentException {\n"
+        },
+        {
+          "path": "src/main/java/com/fasterxml/jackson/databind/node/ObjectNode.java",
+          "blob": "e943959af466912e625b75cf58c2089add5b9fb4",
+          "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+          "startLine": 315,
+          "endLine": 321,
+          "startByte": 9874,
+          "endByte": 10140,
+          "text": "    public JsonNode required(String propertyName) {\n        JsonNode n = _children.get(propertyName);\n        if (n != null) {\n            return n;\n        }\n        return _reportRequiredViolation(\"No value for property '%s' of `ObjectNode`\", propertyName);\n    }\n"
+        }
+      ]
+    },
+    {
+      "id": "bd4bc0a5400ab70518e3",
+      "intentId": "matching-long-name-and-prefix-cardinality",
+      "language": "en",
+      "query": "If the only long options I register are version and verbose, how many matches will I get for version and for ver when I call getMatchingOptions on my Options?",
+      "repository": "commons-current",
+      "kind": "positive",
+      "expectation": "version gives one match. ver gives two matches.",
+      "provenance": "Previously evaluated executable test-witness transfer",
+      "facts": [
+        {
+          "expected": "version gives one match.",
+          "sufficientAlternatives": [
+            [
+              {
+                "path": "src/main/java/org/apache/commons/cli/Options.java",
+                "blob": "9088a389bae99819fa7192189c0952c3b20214de",
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "startLine": 227,
+                "endLine": 230,
+                "startByte": 8113,
+                "endByte": 8280,
+                "text": "        // for a perfect match return the single option only\n        if (longOpts.containsKey(clean)) {\n            return Collections.singletonList(clean);\n        }\n"
+              }
+            ],
+            [
+              {
+                "path": "src/test/java/org/apache/commons/cli/OptionsTest.java",
+                "blob": "d6b2f466792b90c0a3c41b31d9ffe80760647cae",
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "startLine": 173,
+                "endLine": 177,
+                "startByte": 7385,
+                "endByte": 7626,
+                "text": "        final Options options = new Options();\n        OptionBuilder.withLongOpt(\"version\");\n        options.addOption(OptionBuilder.create());\n        OptionBuilder.withLongOpt(\"verbose\");\n        options.addOption(OptionBuilder.create());\n"
+              },
+              {
+                "path": "src/test/java/org/apache/commons/cli/OptionsTest.java",
+                "blob": "d6b2f466792b90c0a3c41b31d9ffe80760647cae",
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "startLine": 179,
+                "endLine": 179,
+                "startByte": 7691,
+                "endByte": 7762,
+                "text": "        assertEquals(1, options.getMatchingOptions(\"version\").size());\n"
+              }
+            ]
+          ]
+        },
+        {
+          "expected": "ver gives two matches.",
+          "sufficientAlternatives": [
+            [
+              {
+                "path": "src/main/java/org/apache/commons/cli/Options.java",
+                "blob": "9088a389bae99819fa7192189c0952c3b20214de",
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "startLine": 227,
+                "endLine": 232,
+                "startByte": 8113,
+                "endByte": 8391,
+                "text": "        // for a perfect match return the single option only\n        if (longOpts.containsKey(clean)) {\n            return Collections.singletonList(clean);\n        }\n        return longOpts.keySet().stream().filter(s -> s.startsWith(clean)).collect(Collectors.toList());\n    }\n"
+              }
+            ],
+            [
+              {
+                "path": "src/test/java/org/apache/commons/cli/OptionsTest.java",
+                "blob": "d6b2f466792b90c0a3c41b31d9ffe80760647cae",
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "startLine": 173,
+                "endLine": 177,
+                "startByte": 7385,
+                "endByte": 7626,
+                "text": "        final Options options = new Options();\n        OptionBuilder.withLongOpt(\"version\");\n        options.addOption(OptionBuilder.create());\n        OptionBuilder.withLongOpt(\"verbose\");\n        options.addOption(OptionBuilder.create());\n"
+              },
+              {
+                "path": "src/test/java/org/apache/commons/cli/OptionsTest.java",
+                "blob": "d6b2f466792b90c0a3c41b31d9ffe80760647cae",
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "startLine": 180,
+                "endLine": 180,
+                "startByte": 7762,
+                "endByte": 7829,
+                "text": "        assertEquals(2, options.getMatchingOptions(\"ver\").size());\n"
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "9e3f50846a494ab015b5",
+      "intentId": "group-string-prefers-short-names",
+      "language": "fr",
+      "query": "Dans la sortie de OptionGroup.toString, une option qui a à la fois un nom court et un nom long s’affiche sous quel nom, et est-ce que sa description apparaît ?",
+      "repository": "commons-current",
+      "kind": "positive",
+      "expectation": "It prints the short name with a single hyphen when present, and includes its description when non-null.",
+      "provenance": "Previously evaluated executable test-witness transfer",
+      "facts": [
+        {
+          "expected": "It prints the short name with a single hyphen when present, and includes its description when non-null.",
+          "sufficientAlternatives": [
+            [
+              {
+                "path": "src/main/java/org/apache/commons/cli/OptionGroup.java",
+                "blob": "ce5384f4d2de06906e6d5ba28b429f3aef49e9a3",
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "startLine": 160,
+                "endLine": 171,
+                "startByte": 4754,
+                "endByte": 5267,
+                "text": "            final Option option = iter.next();\n            if (option.getOpt() != null) {\n                buff.append(OptionFormatter.DEFAULT_OPT_PREFIX);\n                buff.append(option.getOpt());\n            } else {\n                buff.append(OptionFormatter.DEFAULT_LONG_OPT_PREFIX);\n                buff.append(option.getLongOpt());\n            }\n            if (option.getDescription() != null) {\n                buff.append(Char.SP);\n                buff.append(option.getDescription());\n            }\n"
+              },
+              {
+                "path": "src/main/java/org/apache/commons/cli/help/OptionFormatter.java",
+                "blob": "8ddc8280bd68303ea3cded6891c789ae26ff7591",
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "startLine": 279,
+                "endLine": 279,
+                "startByte": 10603,
+                "endByte": 10660,
+                "text": "    public static final String DEFAULT_OPT_PREFIX = \"-\";\n"
+              }
+            ],
+            [
+              {
+                "path": "src/test/java/org/apache/commons/cli/OptionGroupTest.java",
+                "blob": "56b288b5a2064d934270ea27468d1cf36a919302",
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "startLine": 132,
+                "endLine": 136,
+                "startByte": 5782,
+                "endByte": 6120,
+                "text": "        final OptionGroup optionGroup2 = new OptionGroup();\n        optionGroup2.addOption(new Option(\"f\", \"foo\", false, \"Foo\"));\n        optionGroup2.addOption(new Option(\"b\", \"bar\", false, \"Bar\"));\n        if (!\"[-b Bar, -f Foo]\".equals(optionGroup2.toString())) {\n            assertEquals(\"[-f Foo, -b Bar]\", optionGroup2.toString());\n"
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "98091f252906ebbecc5e",
+      "intentId": "binary-node-astext-base64",
+      "language": "en",
+      "query": "What text should BinaryNode.asText return for the bytes 00 03 03 in hex?",
+      "repository": "jackson",
+      "kind": "positive",
+      "expectation": "It returns AAMD without surrounding JSON quotes.",
+      "provenance": "Previously evaluated executable test-witness transfer",
+      "facts": [
+        {
+          "expected": "It returns AAMD without surrounding JSON quotes.",
+          "sufficientAlternatives": [
+            [
+              {
+                "path": "src/main/java/com/fasterxml/jackson/databind/node/BinaryNode.java",
+                "blob": "5f5f0da23c4bb01e49c1c00966ed0b93d739eacf",
+                "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+                "startLine": 88,
+                "endLine": 90,
+                "startByte": 2145,
+                "endByte": 2252,
+                "text": "    public String asText() {\n        return Base64Variants.getDefaultVariant().encode(_data, false);\n    }\n"
+              }
+            ],
+            [
+              {
+                "path": "src/test/java/com/fasterxml/jackson/databind/node/JsonNodeBasicTest.java",
+                "blob": "570998506fdcd0ea61f9d81430e969f01eee9e63",
+                "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+                "startLine": 83,
+                "endLine": 84,
+                "startByte": 2667,
+                "endByte": 2730,
+                "text": "        byte[] data = new byte[3];\n        data[1] = (byte) 3;\n"
+              },
+              {
+                "path": "src/test/java/com/fasterxml/jackson/databind/node/JsonNodeBasicTest.java",
+                "blob": "570998506fdcd0ea61f9d81430e969f01eee9e63",
+                "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+                "startLine": 91,
+                "endLine": 91,
+                "startByte": 2958,
+                "endByte": 2986,
+                "text": "        data[2] = (byte) 3;\n"
+              },
+              {
+                "path": "src/test/java/com/fasterxml/jackson/databind/node/JsonNodeBasicTest.java",
+                "blob": "570998506fdcd0ea61f9d81430e969f01eee9e63",
+                "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+                "startLine": 96,
+                "endLine": 96,
+                "startByte": 3125,
+                "endByte": 3186,
+                "text": "        assertEquals(\"AAMD\", new BinaryNode(data).asText());\n"
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "2502d97f83aaf6c1a2b7",
+      "intentId": "long-node-int-upper-bound",
+      "language": "fr",
+      "query": "Pour LongNode.canConvertToInt, est-ce que la conversion est encore possible à Integer.MAX_VALUE, et juste au-dessus ?",
+      "repository": "jackson",
+      "kind": "positive",
+      "expectation": "At Integer.MAX_VALUE it returns true. One above Integer.MAX_VALUE it returns false.",
+      "provenance": "Previously evaluated executable test-witness transfer",
+      "facts": [
+        {
+          "expected": "At Integer.MAX_VALUE it returns true.",
+          "sufficientAlternatives": [
+            [
+              {
+                "path": "src/main/java/com/fasterxml/jackson/databind/node/LongNode.java",
+                "blob": "bb86da43764cda85c0a505f9df7f759727d6b5d8",
+                "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+                "startLine": 49,
+                "endLine": 51,
+                "startByte": 1184,
+                "endByte": 1316,
+                "text": "    @Override public boolean canConvertToInt() {\n        return (_value >= Integer.MIN_VALUE && _value <= Integer.MAX_VALUE);\n    }\n"
+              }
+            ],
+            [
+              {
+                "path": "src/test/java/com/fasterxml/jackson/databind/node/NumberNodesTest.java",
+                "blob": "9e8ce6e22a677a43acf5f9ded4eb35a2cdb4e933",
+                "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+                "startLine": 127,
+                "endLine": 127,
+                "startByte": 4524,
+                "endByte": 4599,
+                "text": "        assertTrue(LongNode.valueOf(Integer.MAX_VALUE).canConvertToInt());\n"
+              }
+            ]
+          ]
+        },
+        {
+          "expected": "One above Integer.MAX_VALUE it returns false.",
+          "sufficientAlternatives": [
+            [
+              {
+                "path": "src/main/java/com/fasterxml/jackson/databind/node/LongNode.java",
+                "blob": "bb86da43764cda85c0a505f9df7f759727d6b5d8",
+                "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+                "startLine": 49,
+                "endLine": 51,
+                "startByte": 1184,
+                "endByte": 1316,
+                "text": "    @Override public boolean canConvertToInt() {\n        return (_value >= Integer.MIN_VALUE && _value <= Integer.MAX_VALUE);\n    }\n"
+              }
+            ],
+            [
+              {
+                "path": "src/test/java/com/fasterxml/jackson/databind/node/NumberNodesTest.java",
+                "blob": "9e8ce6e22a677a43acf5f9ded4eb35a2cdb4e933",
+                "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+                "startLine": 130,
+                "endLine": 130,
+                "startByte": 4708,
+                "endByte": 4789,
+                "text": "        assertFalse(LongNode.valueOf(1L + Integer.MAX_VALUE).canConvertToInt());\n"
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "2dc3fd4c5306848c4c56",
+      "intentId": "private-last-prefix-match-count",
+      "language": "en",
+      "query": "How many matches did getMatchingOptions on Options return for ver in the CLI run I just did?",
+      "repository": "commons-current",
+      "kind": "unavailable_runtime",
+      "expectation": "Withhold the unobserved runtime result. The public fixture has controlled inputs and cannot establish what happened in this invocation.",
+      "provenance": "Previously evaluated executable test-witness transfer",
+      "witnesses": [
+        {
+          "path": "src/main/java/org/apache/commons/cli/Options.java",
+          "blob": "9088a389bae99819fa7192189c0952c3b20214de",
+          "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+          "startLine": 227,
+          "endLine": 230,
+          "startByte": 8113,
+          "endByte": 8280,
+          "text": "        // for a perfect match return the single option only\n        if (longOpts.containsKey(clean)) {\n            return Collections.singletonList(clean);\n        }\n"
+        }
+      ]
+    },
+    {
+      "id": "3123f5292b6d56c632e9",
+      "intentId": "private-last-binary-output",
+      "language": "fr",
+      "query": "Quelle chaîne BinaryNode.asText a-t-elle réellement renvoyée pour la pièce jointe lors de la dernière exécution de mon service ?",
+      "repository": "jackson",
+      "kind": "unavailable_runtime",
+      "expectation": "Withhold the unobserved runtime result. The public fixture has controlled inputs and cannot establish what happened in this invocation.",
+      "provenance": "Previously evaluated executable test-witness transfer",
+      "witnesses": [
+        {
+          "path": "src/main/java/com/fasterxml/jackson/databind/node/BinaryNode.java",
+          "blob": "5f5f0da23c4bb01e49c1c00966ed0b93d739eacf",
+          "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+          "startLine": 88,
+          "endLine": 90,
+          "startByte": 2145,
+          "endByte": 2252,
+          "text": "    public String asText() {\n        return Base64Variants.getDefaultVariant().encode(_data, false);\n    }\n"
+        }
+      ]
+    },
+    {
+      "id": "46a3b5cb5ed46d2f010f",
+      "intentId": "clone-values-do-not-share-list",
+      "language": "en",
+      "query": "If I clone an Option that has an empty value list, then add b1 and b2 to the clone, does the original Option pick up either value?",
+      "repository": "commons-current",
+      "kind": "positive",
+      "expectation": "No. The original value list stays empty because cloning gives the copy a separate list.",
+      "provenance": "Previously evaluated independent Java call-input transfer",
+      "facts": [
+        {
+          "expected": "No. The original value list stays empty because cloning gives the copy a separate list.",
+          "sufficientAlternatives": [
+            [
+              {
+                "path": "src/main/java/org/apache/commons/cli/Option.java",
+                "blob": "6062d9d801f0e67d510715c826107a5485b6ef79",
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "startLine": 557,
+                "endLine": 561,
+                "startByte": 19051,
+                "endByte": 19231,
+                "text": "    public Object clone() {\n        try {\n            final Option option = (Option) super.clone();\n            option.values = new ArrayList<>(values);\n            return option;\n"
+              }
+            ],
+            [
+              {
+                "path": "src/test/java/org/apache/commons/cli/OptionTest.java",
+                "blob": "2c7b234c2d66cb984a8b8ac8ce2b095e4a2b7d1b",
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "startLine": 224,
+                "endLine": 235,
+                "startByte": 11277,
+                "endByte": 11732,
+                "text": "        final TestOption a = new TestOption(\"a\", true, \"\");\n        final TestOption b = (TestOption) a.clone();\n        assertEquals(a, b);\n        assertNotSame(a, b);\n        a.setDescription(\"a\");\n        assertEquals(\"\", b.getDescription());\n        b.setArgs(2);\n        b.addValue(\"b1\");\n        b.addValue(\"b2\");\n        assertEquals(1, a.getArgs());\n        assertTrue(a.getValuesList().isEmpty());\n        assertEquals(2, b.getValues().length);\n"
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "46cc84a8729e26b27cbd",
+      "intentId": "strip-only-two-of-three-hyphens",
+      "language": "fr",
+      "query": "Dans Commons CLI, quelle chaîne ressort de Util.stripLeadingHyphens si l’entrée est « ---foo » ?",
+      "repository": "commons-current",
+      "kind": "positive",
+      "expectation": "The result is -foo, retaining one leading hyphen.",
+      "provenance": "Previously evaluated independent Java call-input transfer",
+      "facts": [
+        {
+          "expected": "The result is -foo, retaining one leading hyphen.",
+          "sufficientAlternatives": [
+            [
+              {
+                "path": "src/main/java/org/apache/commons/cli/Util.java",
+                "blob": "7ecf05449f23bbe59850c18135195754743de265",
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "startLine": 75,
+                "endLine": 85,
+                "startByte": 2529,
+                "endByte": 2900,
+                "text": "    static String stripLeadingHyphens(final String str) {\n        if (isEmpty(str)) {\n            return str;\n        }\n        if (str.startsWith(OptionFormatter.DEFAULT_LONG_OPT_PREFIX)) {\n            return str.substring(2);\n        }\n        if (str.startsWith(OptionFormatter.DEFAULT_OPT_PREFIX)) {\n            return str.substring(1);\n        }\n        return str;\n"
+              },
+              {
+                "path": "src/main/java/org/apache/commons/cli/help/OptionFormatter.java",
+                "blob": "8ddc8280bd68303ea3cded6891c789ae26ff7591",
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "startLine": 284,
+                "endLine": 284,
+                "startByte": 10727,
+                "endByte": 10790,
+                "text": "    public static final String DEFAULT_LONG_OPT_PREFIX = \"--\";\n"
+              }
+            ],
+            [
+              {
+                "path": "src/test/java/org/apache/commons/cli/UtilTest.java",
+                "blob": "b25ba62d8e6a78937f66122185968ce6cd834703",
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "startLine": 42,
+                "endLine": 42,
+                "startByte": 1784,
+                "endByte": 1850,
+                "text": "        assertEquals(\"-foo\", Util.stripLeadingHyphens(\"---foo\"));\n"
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "94e7e71d94abc2a5826a",
+      "intentId": "invalid-text-integer-with-explicit-default",
+      "language": "en",
+      "query": "I have a Jackson TextNode containing foobar. What integer do I get from asInt with no argument, and what do I get if I pass 27?",
+      "repository": "jackson",
+      "kind": "positive",
+      "expectation": "With no argument the result is 0. With 27 as default the result is 27.",
+      "provenance": "Previously evaluated independent Java call-input transfer",
+      "facts": [
+        {
+          "expected": "With no argument the result is 0.",
+          "sufficientAlternatives": [
+            [
+              {
+                "path": "src/main/java/com/fasterxml/jackson/databind/JsonNode.java",
+                "blob": "f3b8625bfa767dd14360b8c86e1fb95561975c1e",
+                "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+                "startLine": 700,
+                "endLine": 711,
+                "startByte": 25714,
+                "endByte": 26246,
+                "text": "     * Method that will try to convert value of this node to a Java <b>int</b>.\n     * Numbers are coerced using default Java rules; booleans convert to 0 (false)\n     * and 1 (true), and Strings are parsed using default Java language integer\n     * parsing rules.\n     *<p>\n     * If representation cannot be converted to an int (including structured types\n     * like Objects and Arrays),\n     * default value of <b>0</b> will be returned; no exceptions are thrown.\n     */\n    public int asInt() {\n        return asInt(0);\n    }\n"
+              },
+              {
+                "path": "src/main/java/com/fasterxml/jackson/databind/node/TextNode.java",
+                "blob": "79ec492f29c50774d992e8c346efb299dba549f8",
+                "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+                "startLine": 125,
+                "endLine": 127,
+                "startByte": 3676,
+                "endByte": 3784,
+                "text": "    public int asInt(int defaultValue) {\n        return NumberInput.parseAsInt(_value, defaultValue);\n    }\n"
+              }
+            ],
+            [
+              {
+                "path": "src/test/java/com/fasterxml/jackson/databind/node/JsonNodeConversionsTest.java",
+                "blob": "ea0a93358cdc07e4a7892381f5e61364ed1e5713",
+                "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+                "startLine": 136,
+                "endLine": 136,
+                "startByte": 4050,
+                "endByte": 4107,
+                "text": "        assertEquals(0, new TextNode(\"foobar\").asInt());\n"
+              }
+            ]
+          ]
+        },
+        {
+          "expected": "With 27 as default the result is 27.",
+          "sufficientAlternatives": [
+            [
+              {
+                "path": "src/main/java/com/fasterxml/jackson/databind/JsonNode.java",
+                "blob": "f3b8625bfa767dd14360b8c86e1fb95561975c1e",
+                "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+                "startLine": 714,
+                "endLine": 721,
+                "startByte": 26255,
+                "endByte": 26727,
+                "text": "     * Method that will try to convert value of this node to a Java <b>int</b>.\n     * Numbers are coerced using default Java rules; booleans convert to 0 (false)\n     * and 1 (true), and Strings are parsed using default Java language integer\n     * parsing rules.\n     *<p>\n     * If representation cannot be converted to an int (including structured types\n     * like Objects and Arrays),\n     * specified <b>defaultValue</b> will be returned; no exceptions are thrown.\n"
+              },
+              {
+                "path": "src/main/java/com/fasterxml/jackson/databind/node/TextNode.java",
+                "blob": "79ec492f29c50774d992e8c346efb299dba549f8",
+                "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+                "startLine": 125,
+                "endLine": 127,
+                "startByte": 3676,
+                "endByte": 3784,
+                "text": "    public int asInt(int defaultValue) {\n        return NumberInput.parseAsInt(_value, defaultValue);\n    }\n"
+              }
+            ],
+            [
+              {
+                "path": "src/test/java/com/fasterxml/jackson/databind/node/JsonNodeConversionsTest.java",
+                "blob": "ea0a93358cdc07e4a7892381f5e61364ed1e5713",
+                "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+                "startLine": 137,
+                "endLine": 137,
+                "startByte": 4107,
+                "endByte": 4167,
+                "text": "        assertEquals(27, new TextNode(\"foobar\").asInt(27));\n"
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "58108e2469e84e5b9d0a",
+      "intentId": "negative-long-coerces-to-true",
+      "language": "fr",
+      "query": "Pour convertir un LongNode en booléen avec asBoolean, qu’obtient-on avec -34 puis avec 0 ?",
+      "repository": "jackson",
+      "kind": "positive",
+      "expectation": "A LongNode of -34 yields true. A LongNode of 0 yields false.",
+      "provenance": "Previously evaluated independent Java call-input transfer",
+      "facts": [
+        {
+          "expected": "A LongNode of -34 yields true.",
+          "sufficientAlternatives": [
+            [
+              {
+                "path": "src/main/java/com/fasterxml/jackson/databind/node/LongNode.java",
+                "blob": "bb86da43764cda85c0a505f9df7f759727d6b5d8",
+                "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+                "startLine": 86,
+                "endLine": 88,
+                "startByte": 2099,
+                "endByte": 2186,
+                "text": "    public boolean asBoolean(boolean defaultValue) {\n        return _value != 0;\n    }\n"
+              },
+              {
+                "path": "src/main/java/com/fasterxml/jackson/databind/JsonNode.java",
+                "blob": "f3b8625bfa767dd14360b8c86e1fb95561975c1e",
+                "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+                "startLine": 784,
+                "endLine": 795,
+                "startByte": 29111,
+                "endByte": 29663,
+                "text": "     * Method that will try to convert value of this node to a Java <b>boolean</b>.\n     * JSON booleans map naturally; integer numbers other than 0 map to true, and\n     * 0 maps to false\n     * and Strings 'true' and 'false' map to corresponding values.\n     *<p>\n     * If representation cannot be converted to a boolean value (including structured types\n     * like Objects and Arrays),\n     * default value of <b>false</b> will be returned; no exceptions are thrown.\n     */\n    public boolean asBoolean() {\n        return asBoolean(false);\n    }\n"
+              }
+            ],
+            [
+              {
+                "path": "src/test/java/com/fasterxml/jackson/databind/node/JsonNodeConversionsTest.java",
+                "blob": "ea0a93358cdc07e4a7892381f5e61364ed1e5713",
+                "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+                "startLine": 149,
+                "endLine": 149,
+                "startByte": 4551,
+                "endByte": 4607,
+                "text": "        assertTrue(LongNode.valueOf(-34L).asBoolean());\n"
+              }
+            ]
+          ]
+        },
+        {
+          "expected": "A LongNode of 0 yields false.",
+          "sufficientAlternatives": [
+            [
+              {
+                "path": "src/main/java/com/fasterxml/jackson/databind/node/LongNode.java",
+                "blob": "bb86da43764cda85c0a505f9df7f759727d6b5d8",
+                "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+                "startLine": 86,
+                "endLine": 88,
+                "startByte": 2099,
+                "endByte": 2186,
+                "text": "    public boolean asBoolean(boolean defaultValue) {\n        return _value != 0;\n    }\n"
+              },
+              {
+                "path": "src/main/java/com/fasterxml/jackson/databind/JsonNode.java",
+                "blob": "f3b8625bfa767dd14360b8c86e1fb95561975c1e",
+                "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+                "startLine": 784,
+                "endLine": 795,
+                "startByte": 29111,
+                "endByte": 29663,
+                "text": "     * Method that will try to convert value of this node to a Java <b>boolean</b>.\n     * JSON booleans map naturally; integer numbers other than 0 map to true, and\n     * 0 maps to false\n     * and Strings 'true' and 'false' map to corresponding values.\n     *<p>\n     * If representation cannot be converted to a boolean value (including structured types\n     * like Objects and Arrays),\n     * default value of <b>false</b> will be returned; no exceptions are thrown.\n     */\n    public boolean asBoolean() {\n        return asBoolean(false);\n    }\n"
+              }
+            ],
+            [
+              {
+                "path": "src/test/java/com/fasterxml/jackson/databind/node/JsonNodeConversionsTest.java",
+                "blob": "ea0a93358cdc07e4a7892381f5e61364ed1e5713",
+                "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+                "startLine": 148,
+                "endLine": 148,
+                "startByte": 4497,
+                "endByte": 4551,
+                "text": "        assertFalse(LongNode.valueOf(0).asBoolean());\n"
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "aa7e3db9ec323d25fdcf",
+      "intentId": "private-cloned-option-list-size",
+      "language": "en",
+      "query": "How many values did my application's original Option still have after I cloned it and added two values to the copy in my last run?",
+      "repository": "commons-current",
+      "kind": "unavailable_runtime",
+      "expectation": "The actual prior input/state and result are unobserved. Withhold the specific result; a pinned fixture is not the user's invocation.",
+      "provenance": "Previously evaluated independent Java call-input transfer",
+      "witnesses": [
+        {
+          "path": "src/main/java/org/apache/commons/cli/Option.java",
+          "blob": "6062d9d801f0e67d510715c826107a5485b6ef79",
+          "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+          "startLine": 557,
+          "endLine": 561,
+          "startByte": 19051,
+          "endByte": 19231,
+          "text": "    public Object clone() {\n        try {\n            final Option option = (Option) super.clone();\n            option.values = new ArrayList<>(values);\n            return option;\n"
+        }
+      ]
+    },
+    {
+      "id": "505d6e51188e72f35474",
+      "intentId": "private-text-integer-result",
+      "language": "fr",
+      "query": "Dans la dernière exécution de mon service, quelle valeur asInt(27) a-t-il renvoyée pour le TextNode construit à partir de la réponse du client ?",
+      "repository": "jackson",
+      "kind": "unavailable_runtime",
+      "expectation": "The actual prior input/state and result are unobserved. Withhold the specific result; a pinned fixture is not the user's invocation.",
+      "provenance": "Previously evaluated independent Java call-input transfer",
+      "witnesses": [
+        {
+          "path": "src/main/java/com/fasterxml/jackson/databind/JsonNode.java",
+          "blob": "f3b8625bfa767dd14360b8c86e1fb95561975c1e",
+          "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+          "startLine": 700,
+          "endLine": 711,
+          "startByte": 25714,
+          "endByte": 26246,
+          "text": "     * Method that will try to convert value of this node to a Java <b>int</b>.\n     * Numbers are coerced using default Java rules; booleans convert to 0 (false)\n     * and 1 (true), and Strings are parsed using default Java language integer\n     * parsing rules.\n     *<p>\n     * If representation cannot be converted to an int (including structured types\n     * like Objects and Arrays),\n     * default value of <b>0</b> will be returned; no exceptions are thrown.\n     */\n    public int asInt() {\n        return asInt(0);\n    }\n"
+        },
+        {
+          "path": "src/main/java/com/fasterxml/jackson/databind/node/TextNode.java",
+          "blob": "79ec492f29c50774d992e8c346efb299dba549f8",
+          "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+          "startLine": 125,
+          "endLine": 127,
+          "startByte": 3676,
+          "endByte": 3784,
+          "text": "    public int asInt(int defaultValue) {\n        return NumberInput.parseAsInt(_value, defaultValue);\n    }\n"
+        }
+      ]
+    }
+  ]
+}

@@ -2,6 +2,10 @@
 members = ["inference", "server"]
 resolver = "3"
 
+[profile.test]
+debug = "line-tables-only"
+incremental = false
+
 [workspace.lints.rust]
 unsafe_op_in_unsafe_fn = "deny"
 

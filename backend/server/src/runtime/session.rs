@@ -7,6 +7,10 @@ use std::path::{Path, PathBuf};
 use super::entropy::random_uuid;
 use serde::Serialize;
 
+#[derive(Debug, thiserror::Error)]
+#[error("Another backend owns this data directory.")]
+pub struct SessionInUse;
+
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 struct Endpoint<'a> {
@@ -43,7 +47,13 @@ impl Session {
             .write(true)
             .mode(0o600)
             .open(directory.join("session.lock"))?;
-        lock.try_lock()?;
+        match lock.try_lock() {
+            Ok(()) => {}
+            Err(fs::TryLockError::WouldBlock) => {
+                return Err(io::Error::new(io::ErrorKind::WouldBlock, SessionInUse));
+            }
+            Err(fs::TryLockError::Error(error)) => return Err(error),
+        }
         let session = Self {
             directory: directory.to_owned(),
             _lock: lock,

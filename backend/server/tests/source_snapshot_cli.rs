@@ -34,13 +34,14 @@ struct Reference {
 }
 
 #[test]
-#[ignore = "requires pinned source files and the CLI; run quality/m07/reference-corpora.sh"]
+#[ignore = "requires pinned source files and the CLI; run quality/github/reference-corpora.sh"]
 fn pinned_references_keep_exact_coordinates_through_the_cli() -> Result<(), Box<dyn Error>> {
     let fixture_dir =
         PathBuf::from(std::env::var_os("CTXFAB_REFERENCE_CORPUS").ok_or("fixture path")?);
     let cli = std::env::var_os("CTXFAB_REFERENCE_CLI").ok_or("CLI path")?;
-    let references: Vec<Reference> =
-        serde_json::from_str(include_str!("../../../quality/m07/reference-corpora.json"))?;
+    let references: Vec<Reference> = serde_json::from_str(include_str!(
+        "../../../quality/github/reference-corpora.json"
+    ))?;
     let compare = std::env::var_os("CTXFAB_REFERENCE_STRUCTURAL_BOUNDARIES").map(PathBuf::from);
     run_reference(&fixture_dir, &cli, &references, compare.as_deref(), false)?;
     if let Some(manifest) = compare {
@@ -65,7 +66,8 @@ fn run_reference(
     let code_answers = stage_model(&data, "CTXFAB_REFERENCE_ANSWER_ASSETS", GENERATION_FILE)?;
     let origin = work.path().join("origin");
     std::fs::create_dir(&origin)?;
-    let script = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../quality/m07/github_fixture.py");
+    let script =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("../../quality/github/github_fixture.py");
     let _origin = Backend(Command::new("python3").arg(script).arg(&origin).spawn()?);
     wait_for(|| Ok(origin.join("port").is_file().then_some(())))?;
     let port = std::fs::read_to_string(origin.join("port"))?;

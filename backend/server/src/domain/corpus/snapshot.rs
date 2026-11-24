@@ -77,6 +77,8 @@ pub enum SnapshotError {
     AccessLost,
     #[error("Invalid source snapshot data.")]
     Invalid,
+    #[error("The GitHub logical storage limit has been reached.")]
+    StorageLimit,
     #[error("The source snapshot could not be stored.")]
     Storage,
 }

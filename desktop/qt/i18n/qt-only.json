@@ -1,0 +1,785 @@
+{
+  "Applying setup…": {
+    "fr": "Application de la configuration…",
+    "de": "Einrichtung wird angewendet …",
+    "es": "Aplicando la configuración…",
+    "it": "Applicazione della configurazione…",
+    "pt": "A aplicar a configuração…",
+    "ja": "セットアップを適用中…",
+    "zh-Hans": "正在应用设置…"
+  },
+  "Unable to check the setup status.": {
+    "fr": "Impossible de vérifier l’état de l’installation.",
+    "de": "Der Einrichtungsstatus konnte nicht geprüft werden.",
+    "es": "No se pudo consultar el estado de la instalación.",
+    "it": "Impossibile verificare lo stato dell’installazione.",
+    "pt": "Não foi possível consultar o estado da instalação.",
+    "ja": "セットアップの状態を確認できませんでした。",
+    "zh-Hans": "无法检查安装状态。"
+  },
+  "Unable to check the setup requirements.": {
+    "fr": "Impossible de vérifier les conditions d’installation.",
+    "de": "Die Einrichtungsvoraussetzungen konnten nicht geprüft werden.",
+    "es": "No se pudieron comprobar los requisitos de instalación.",
+    "it": "Impossibile verificare i requisiti di installazione.",
+    "pt": "Não foi possível verificar os requisitos de instalação.",
+    "ja": "セットアップの要件を確認できませんでした。",
+    "zh-Hans": "无法检查安装要求。"
+  },
+  "ZIP archives (*.zip)": {
+    "fr": "Archives ZIP (*.zip)",
+    "de": "ZIP-Archive (*.zip)",
+    "es": "Archivos ZIP (*.zip)",
+    "it": "Archivi ZIP (*.zip)",
+    "pt": "Arquivos ZIP (*.zip)",
+    "ja": "ZIP アーカイブ (*.zip)",
+    "zh-Hans": "ZIP 压缩包 (*.zip)"
+  },
+  "Choose a local runtime archive.": {
+    "fr": "Choisissez une archive locale du moteur.",
+    "de": "Wählen Sie ein lokales Laufzeitarchiv aus.",
+    "es": "Elige un archivo local del motor.",
+    "it": "Seleziona un archivio locale del motore.",
+    "pt": "Escolha um arquivo local do motor.",
+    "ja": "ローカルのランタイムアーカイブを選択してください。",
+    "zh-Hans": "请选择本地运行时压缩包。"
+  },
+  "Could not update the local runtime.": {
+    "fr": "Impossible de mettre à jour le moteur local.",
+    "de": "Die lokale Laufzeit konnte nicht aktualisiert werden.",
+    "es": "No se pudo actualizar el motor local.",
+    "it": "Impossibile aggiornare il motore locale.",
+    "pt": "Não foi possível atualizar o motor local.",
+    "ja": "ローカルランタイムを更新できませんでした。",
+    "zh-Hans": "无法更新本地运行时。"
+  },
+  "Could not read the local runtime.": {
+    "fr": "Impossible de lire l’état du moteur local.",
+    "de": "Der Status der lokalen Laufzeit konnte nicht gelesen werden.",
+    "es": "No se pudo leer el estado del motor local.",
+    "it": "Impossibile leggere lo stato del motore locale.",
+    "pt": "Não foi possível ler o estado do motor local.",
+    "ja": "ローカルランタイムの状態を取得できませんでした。",
+    "zh-Hans": "无法读取本地运行时状态。"
+  },
+  "Could not update the embedding index.": {
+    "fr": "Impossible de mettre à jour l’index d’embeddings.",
+    "de": "Der Embedding-Index konnte nicht aktualisiert werden.",
+    "es": "No se pudo actualizar el índice de embeddings.",
+    "it": "Impossibile aggiornare l’indice degli embedding.",
+    "pt": "Não foi possível atualizar o índice de embeddings.",
+    "ja": "埋め込みインデックスを更新できませんでした。",
+    "zh-Hans": "无法更新嵌入索引。"
+  },
+  "Could not read the embedding index.": {
+    "fr": "Impossible de lire l’état de l’index d’embeddings.",
+    "de": "Der Status des Embedding-Index konnte nicht gelesen werden.",
+    "es": "No se pudo leer el estado del índice de embeddings.",
+    "it": "Impossibile leggere lo stato dell’indice degli embedding.",
+    "pt": "Não foi possível ler o estado do índice de embeddings.",
+    "ja": "埋め込みインデックスの状態を取得できませんでした。",
+    "zh-Hans": "无法读取嵌入索引状态。"
+  },
+  "Could not load embedding models.": {
+    "fr": "Impossible de charger les modèles d’embeddings.",
+    "de": "Die Embedding-Modelle konnten nicht geladen werden.",
+    "es": "No se pudieron cargar los modelos de embeddings.",
+    "it": "Impossibile caricare i modelli di embedding.",
+    "pt": "Não foi possível carregar os modelos de embeddings.",
+    "ja": "埋め込みモデルを読み込めませんでした。",
+    "zh-Hans": "无法加载嵌入模型。"
+  },
+  "Could not select the embedding model.": {
+    "fr": "Impossible de sélectionner le modèle d’embeddings.",
+    "de": "Das Embedding-Modell konnte nicht ausgewählt werden.",
+    "es": "No se pudo seleccionar el modelo de embeddings.",
+    "it": "Impossibile selezionare il modello di embedding.",
+    "pt": "Não foi possível selecionar o modelo de embeddings.",
+    "ja": "埋め込みモデルを選択できませんでした。",
+    "zh-Hans": "无法选择嵌入模型。"
+  },
+  "ZIP import peak: %1": {
+    "fr": "Espace maximal pour l’import ZIP : %1",
+    "de": "Maximaler Speicherbedarf für ZIP-Import: %1",
+    "es": "Espacio máximo para importar el ZIP: %1",
+    "it": "Spazio massimo per importare lo ZIP: %1",
+    "pt": "Espaço máximo para importar o ZIP: %1",
+    "ja": "ZIP インポートの最大必要容量：%1",
+    "zh-Hans": "ZIP 导入峰值空间需求：%1"
+  },
+  "Download peak: %1": {
+    "fr": "Espace maximal pour le téléchargement : %1",
+    "de": "Maximaler Speicherbedarf für den Download: %1",
+    "es": "Espacio máximo para la descarga: %1",
+    "it": "Spazio massimo per il download: %1",
+    "pt": "Espaço máximo para a transferência: %1",
+    "ja": "ダウンロードの最大必要容量：%1",
+    "zh-Hans": "下载峰值空间需求：%1"
+  },
+  "%1 · Insufficient available space": {
+    "fr": "%1 · Espace disponible insuffisant",
+    "de": "%1 · Nicht genügend freier Speicherplatz",
+    "es": "%1 · Espacio disponible insuficiente",
+    "it": "%1 · Spazio disponibile insufficiente",
+    "pt": "%1 · Espaço disponível insuficiente",
+    "ja": "%1 · 空き容量が不足しています",
+    "zh-Hans": "%1 · 可用空间不足"
+  },
+  "Could not load the model library.": {
+    "fr": "Impossible de charger la bibliothèque de modèles.",
+    "de": "Die Modellbibliothek konnte nicht geladen werden.",
+    "es": "No se pudo cargar la biblioteca de modelos.",
+    "it": "Impossibile caricare la libreria dei modelli.",
+    "pt": "Não foi possível carregar a biblioteca de modelos.",
+    "ja": "モデルライブラリを読み込めませんでした。",
+    "zh-Hans": "无法加载模型库。"
+  },
+  "Could not estimate inference storage.": {
+    "fr": "Impossible d’estimer l’espace de stockage de l’inférence.",
+    "de": "Der Speicherbedarf für die Inferenz konnte nicht ermittelt werden.",
+    "es": "No se pudo estimar el almacenamiento de inferencia.",
+    "it": "Impossibile stimare lo spazio per l’inferenza.",
+    "pt": "Não foi possível estimar o armazenamento de inferência.",
+    "ja": "推論用ストレージを見積もれませんでした。",
+    "zh-Hans": "无法估算推理存储空间。"
+  },
+  "Could not update the model.": {
+    "fr": "Impossible de mettre à jour le modèle.",
+    "de": "Das Modell konnte nicht aktualisiert werden.",
+    "es": "No se pudo actualizar el modelo.",
+    "it": "Impossibile aggiornare il modello.",
+    "pt": "Não foi possível atualizar o modelo.",
+    "ja": "モデルを更新できませんでした。",
+    "zh-Hans": "无法更新模型。"
+  },
+  "Peak space: %1": {
+    "fr": "Espace maximal nécessaire : %1",
+    "de": "Maximaler Speicherbedarf: %1",
+    "es": "Espacio máximo necesario: %1",
+    "it": "Spazio massimo richiesto: %1",
+    "pt": "Espaço máximo necessário: %1",
+    "ja": "最大必要容量：%1",
+    "zh-Hans": "峰值空间需求：%1"
+  },
+  "Peak space: %1 · Insufficient available space": {
+    "fr": "Espace maximal nécessaire : %1 · Espace disponible insuffisant",
+    "de": "Maximaler Speicherbedarf: %1 · Nicht genügend freier Speicherplatz",
+    "es": "Espacio máximo necesario: %1 · Espacio disponible insuficiente",
+    "it": "Spazio massimo richiesto: %1 · Spazio disponibile insufficiente",
+    "pt": "Espaço máximo necessário: %1 · Espaço disponível insuficiente",
+    "ja": "最大必要容量：%1 · 空き容量が不足しています",
+    "zh-Hans": "峰值空间需求：%1 · 可用空间不足"
+  },
+  "The recorded retrieval step found no usable evidence.": {
+    "fr": "La recherche enregistrée n’a trouvé aucune source exploitable.",
+    "de": "Die aufgezeichnete Suche fand keine brauchbaren Belege.",
+    "es": "La búsqueda registrada no encontró pruebas utilizables.",
+    "it": "La ricerca registrata non ha trovato prove utilizzabili.",
+    "pt": "A pesquisa registada não encontrou evidências utilizáveis.",
+    "ja": "記録された検索では利用可能な根拠が見つかりませんでした。",
+    "zh-Hans": "记录中的检索未找到可用证据。"
+  },
+  "This request ended without a verified answer.": {
+    "fr": "Cette requête s’est terminée sans réponse vérifiée.",
+    "de": "Diese Anfrage endete ohne verifizierte Antwort.",
+    "es": "Esta solicitud terminó sin una respuesta verificada.",
+    "it": "La richiesta si è conclusa senza una risposta verificata.",
+    "pt": "Este pedido terminou sem uma resposta verificada.",
+    "ja": "この要求は検証済みの回答を得られずに終了しました。",
+    "zh-Hans": "此请求结束时没有得到经过验证的回答。"
+  },
+  "Answer request cancelled.": {
+    "fr": "Demande de réponse annulée.",
+    "de": "Antwortanfrage abgebrochen.",
+    "es": "Solicitud de respuesta cancelada.",
+    "it": "Richiesta di risposta annullata.",
+    "pt": "Pedido de resposta cancelado.",
+    "ja": "回答リクエストをキャンセルしました。",
+    "zh-Hans": "回答请求已取消。"
+  },
+  "Enter a question of up to 512 characters.": {
+    "fr": "Saisissez une question de 512 caractères maximum.",
+    "de": "Geben Sie eine Frage mit höchstens 512 Zeichen ein.",
+    "es": "Introduce una pregunta de hasta 512 caracteres.",
+    "it": "Inserisci una domanda di massimo 512 caratteri.",
+    "pt": "Introduza uma pergunta com até 512 caracteres.",
+    "ja": "512文字以内で質問を入力してください。",
+    "zh-Hans": "请输入不超过 512 个字符的问题。"
+  },
+  "Abstained": {
+    "fr": "Abstentions",
+    "de": "Enthalten",
+    "es": "Abstenciones",
+    "it": "Astensioni",
+    "pt": "Abstenções",
+    "ja": "回答保留",
+    "zh-Hans": "弃答"
+  },
+  "Couldn’t export diagnostics.": {
+    "fr": "Impossible d’exporter les diagnostics.",
+    "de": "Diagnosedaten konnten nicht exportiert werden.",
+    "es": "No se pudieron exportar los diagnósticos.",
+    "it": "Impossibile esportare i dati di diagnostica.",
+    "pt": "Não foi possível exportar os diagnósticos.",
+    "ja": "診断データをエクスポートできませんでした。",
+    "zh-Hans": "无法导出诊断数据。"
+  },
+  "Desktop": {
+    "fr": "Application de bureau",
+    "de": "Desktop",
+    "es": "Aplicación de escritorio",
+    "it": "Applicazione desktop",
+    "pt": "Aplicação de ambiente de trabalho",
+    "ja": "デスクトップ",
+    "zh-Hans": "桌面客户端"
+  },
+  "Diagnostics exported.": {
+    "fr": "Diagnostics exportés.",
+    "de": "Diagnosedaten wurden exportiert.",
+    "es": "Diagnósticos exportados.",
+    "it": "Dati di diagnostica esportati.",
+    "pt": "Diagnósticos exportados.",
+    "ja": "診断データをエクスポートしました。",
+    "zh-Hans": "已导出诊断数据。"
+  },
+  "Published": {
+    "fr": "Publiées",
+    "de": "Veröffentlicht",
+    "es": "Publicadas",
+    "it": "Pubblicate",
+    "pt": "Publicadas",
+    "ja": "公開済み",
+    "zh-Hans": "已发布"
+  },
+  "Refresh failed. Showing the last successful reading.": {
+    "fr": "L’actualisation a échoué. Les dernières données disponibles sont affichées.",
+    "de": "Aktualisierung fehlgeschlagen. Die letzten erfolgreich gelesenen Daten werden angezeigt.",
+    "es": "No se pudo actualizar. Se muestran los últimos datos disponibles.",
+    "it": "Aggiornamento non riuscito. Vengono mostrati gli ultimi dati disponibili.",
+    "pt": "A atualização falhou. São apresentados os últimos dados disponíveis.",
+    "ja": "更新できませんでした。最後に取得できたデータを表示しています。",
+    "zh-Hans": "刷新失败，正在显示上次成功读取的数据。"
+  },
+  "Enter a log query of up to 128 characters.": {
+    "fr": "Saisissez une recherche de 128 caractères maximum.",
+    "de": "Geben Sie eine Suche mit höchstens 128 Zeichen ein.",
+    "es": "Introduce una búsqueda de hasta 128 caracteres.",
+    "it": "Inserisci una ricerca di massimo 128 caratteri.",
+    "pt": "Introduza uma pesquisa com até 128 caracteres.",
+    "ja": "検索語は128文字以内で入力してください。",
+    "zh-Hans": "请输入最多 128 个字符的日志查询。"
+  },
+  "No logs match this search": {
+    "fr": "Aucun journal ne correspond à cette recherche",
+    "de": "Keine Protokolleinträge für diese Suche",
+    "es": "Ningún registro coincide con esta búsqueda",
+    "it": "Nessun log corrisponde alla ricerca",
+    "pt": "Nenhum registo corresponde a esta pesquisa",
+    "ja": "検索に一致するログはありません",
+    "zh-Hans": "没有与此搜索匹配的日志"
+  },
+  "%1 h": {
+    "fr": "%1 h",
+    "de": "%1 Std.",
+    "es": "%1 h",
+    "it": "%1 h",
+    "pt": "%1 h",
+    "ja": "%1 時間",
+    "zh-Hans": "%1 小时"
+  },
+  "Diagnostics unavailable": {
+    "fr": "Diagnostics indisponibles",
+    "de": "Diagnose nicht verfügbar",
+    "es": "Diagnóstico no disponible",
+    "it": "Diagnostica non disponibile",
+    "pt": "Diagnóstico indisponível",
+    "ja": "診断を利用できません",
+    "zh-Hans": "诊断不可用"
+  },
+  "Expired records purged.": {
+    "fr": "Enregistrements expirés supprimés.",
+    "de": "Abgelaufene Einträge wurden gelöscht.",
+    "es": "Se eliminaron los registros caducados.",
+    "it": "Record scaduti eliminati.",
+    "pt": "Registros expirados removidos.",
+    "ja": "期限切れの記録を削除しました。",
+    "zh-Hans": "已清除过期记录。"
+  },
+  "HTTP %1": {
+    "fr": "HTTP %1",
+    "de": "HTTP %1",
+    "es": "HTTP %1",
+    "it": "HTTP %1",
+    "pt": "HTTP %1",
+    "ja": "HTTP %1",
+    "zh-Hans": "HTTP %1"
+  },
+  "Loading diagnostics…": {
+    "fr": "Chargement des diagnostics…",
+    "de": "Diagnose wird geladen…",
+    "es": "Cargando el diagnóstico…",
+    "it": "Caricamento della diagnostica…",
+    "pt": "Carregando o diagnóstico…",
+    "ja": "診断を読み込み中…",
+    "zh-Hans": "正在加载诊断…"
+  },
+  "No metrics match this filter": {
+    "fr": "Aucune métrique ne correspond au filtre",
+    "de": "Keine Metriken entsprechen diesem Filter",
+    "es": "Ninguna métrica coincide con este filtro",
+    "it": "Nessuna metrica corrisponde al filtro",
+    "pt": "Nenhuma métrica corresponde ao filtro",
+    "ja": "フィルターに一致するメトリクスはありません",
+    "zh-Hans": "没有指标符合此筛选条件"
+  },
+  "No recorded spans match this filter": {
+    "fr": "Aucun span enregistré ne correspond au filtre",
+    "de": "Keine aufgezeichneten Spans entsprechen diesem Filter",
+    "es": "Ningún span registrado coincide con este filtro",
+    "it": "Nessuno span registrato corrisponde al filtro",
+    "pt": "Nenhum span registrado corresponde ao filtro",
+    "ja": "フィルターに一致するスパンの記録はありません",
+    "zh-Hans": "没有已记录的跨度符合此筛选条件"
+  },
+  "Access verified": {
+    "fr": "Accès vérifié",
+    "de": "Zugriff geprüft",
+    "es": "Acceso verificado",
+    "it": "Accesso verificato",
+    "pt": "Acesso verificado",
+    "ja": "アクセス確認済み",
+    "zh-Hans": "访问权限已验证"
+  },
+  "Open on GitHub": {
+    "fr": "Ouvrir sur GitHub",
+    "de": "Auf GitHub öffnen",
+    "es": "Abrir en GitHub",
+    "it": "Apri su GitHub",
+    "pt": "Abrir no GitHub",
+    "ja": "GitHub で開く",
+    "zh-Hans": "在 GitHub 上打开"
+  },
+  "Repository access needs to be checked with the current token.": {
+    "fr": "Vérifiez l’accès au dépôt avec le jeton actuel.",
+    "de": "Der Repository-Zugriff muss mit dem aktuellen Token geprüft werden.",
+    "es": "Hay que comprobar el acceso al repositorio con el token actual.",
+    "it": "Verifica l’accesso al repository con il token corrente.",
+    "pt": "Verifique o acesso ao repositório com o token atual.",
+    "ja": "現在のトークンでリポジトリへのアクセスを確認してください。",
+    "zh-Hans": "请使用当前令牌检查仓库访问权限。"
+  },
+  "Ambiguous": {
+    "fr": "Ambigu",
+    "de": "Mehrdeutig",
+    "es": "Ambiguo",
+    "it": "Ambiguo",
+    "pt": "Ambíguo",
+    "ja": "曖昧",
+    "zh-Hans": "有歧义"
+  },
+  "Call": {
+    "fr": "Appel",
+    "de": "Aufruf",
+    "es": "Llamada",
+    "it": "Chiamata",
+    "pt": "Chamada",
+    "ja": "呼び出し",
+    "zh-Hans": "调用"
+  },
+  "Browse Branches": {
+    "fr": "Parcourir les branches",
+    "de": "Branches durchsuchen",
+    "es": "Explorar ramas",
+    "it": "Sfoglia i branch",
+    "pt": "Explorar branches",
+    "ja": "ブランチを参照",
+    "zh-Hans": "浏览分支"
+  },
+  "Import": {
+    "fr": "Import",
+    "de": "Import",
+    "es": "Importación",
+    "it": "Importazione",
+    "pt": "Importação",
+    "ja": "インポート",
+    "zh-Hans": "导入"
+  },
+  "Resolved": {
+    "fr": "Résolu",
+    "de": "Aufgelöst",
+    "es": "Resuelto",
+    "it": "Risolto",
+    "pt": "Resolvido",
+    "ja": "解決済み",
+    "zh-Hans": "已解析"
+  },
+  "Unresolved": {
+    "fr": "Non résolu",
+    "de": "Nicht aufgelöst",
+    "es": "Sin resolver",
+    "it": "Non risolto",
+    "pt": "Não resolvido",
+    "ja": "未解決",
+    "zh-Hans": "未解析"
+  },
+  "Find My Repositories": {
+    "fr": "Trouver mes dépôts",
+    "de": "Meine Repositories finden",
+    "es": "Encontrar mis repositorios",
+    "it": "Trova i miei repository",
+    "pt": "Encontrar meus repositórios",
+    "ja": "自分のリポジトリを探す",
+    "zh-Hans": "查找我的仓库"
+  },
+  "Review My Edits": {
+    "fr": "Vérifier mes modifications",
+    "de": "Meine Änderungen prüfen",
+    "es": "Revisar mis cambios",
+    "it": "Rivedi le mie modifiche",
+    "pt": "Revisar minhas alterações",
+    "ja": "自分の編集を確認",
+    "zh-Hans": "检查我的修改"
+  },
+  "Search Repositories": {
+    "fr": "Rechercher des dépôts",
+    "de": "Repositories suchen",
+    "es": "Buscar repositorios",
+    "it": "Cerca repository",
+    "pt": "Pesquisar repositórios",
+    "ja": "リポジトリを検索",
+    "zh-Hans": "搜索仓库"
+  },
+  "Search again and review current files. %1": {
+    "fr": "Relancez la recherche et vérifiez les fichiers disponibles. %1",
+    "de": "Suchen Sie erneut und prüfen Sie die aktuellen Dateien. %1",
+    "es": "Vuelve a buscar y revisa los archivos actuales. %1",
+    "it": "Ripeti la ricerca e controlla i file attuali. %1",
+    "pt": "Pesquise novamente e reveja os ficheiros atuais. %1",
+    "ja": "もう一度検索して、現在のファイルを確認してください。%1",
+    "zh-Hans": "请重新搜索并检查当前文件。%1"
+  },
+  "Another Context Fabricator backend is using this data directory.": {
+    "fr": "Un autre serveur Context Fabricator utilise ce dossier de données.",
+    "de": "Ein anderer Context-Fabricator-Server verwendet dieses Datenverzeichnis.",
+    "es": "Otro servidor de Context Fabricator está usando este directorio de datos.",
+    "it": "Un altro server di Context Fabricator usa questa cartella dati.",
+    "pt": "Outro servidor do Context Fabricator está usando este diretório de dados.",
+    "ja": "別の Context Fabricator バックエンドがこのデータディレクトリを使用しています。",
+    "zh-Hans": "另一个 Context Fabricator 后端正在使用此数据目录。"
+  },
+  "Awaiting configuration": {
+    "fr": "En attente de configuration",
+    "de": "Wartet auf Konfiguration",
+    "es": "A la espera de configuración",
+    "it": "In attesa di configurazione",
+    "pt": "Aguardando configuração",
+    "ja": "設定待ち",
+    "zh-Hans": "等待配置"
+  },
+  "Backend request failed": {
+    "fr": "La requête au serveur local a échoué",
+    "de": "Anfrage an den lokalen Server fehlgeschlagen",
+    "es": "Falló la solicitud al servidor local",
+    "it": "Richiesta al server locale non riuscita",
+    "pt": "Falha na solicitação ao servidor local",
+    "ja": "バックエンドへのリクエストに失敗しました",
+    "zh-Hans": "本地后端请求失败"
+  },
+  "Backend session unavailable": {
+    "fr": "Session du serveur local indisponible",
+    "de": "Sitzung des lokalen Servers nicht verfügbar",
+    "es": "Sesión del servidor local no disponible",
+    "it": "Sessione del server locale non disponibile",
+    "pt": "Sessão do servidor local indisponível",
+    "ja": "バックエンドセッションを利用できません",
+    "zh-Hans": "本地后端会话不可用"
+  },
+  "Choose a supported answer language.": {
+    "fr": "Choisissez une langue de réponse prise en charge.",
+    "de": "Wählen Sie eine unterstützte Antwortsprache.",
+    "es": "Elige un idioma de respuesta compatible.",
+    "it": "Scegli una lingua di risposta supportata.",
+    "pt": "Escolha um idioma de resposta compatível.",
+    "ja": "対応している回答言語を選択してください。",
+    "zh-Hans": "请选择受支持的回答语言。"
+  },
+  "Could not launch the local backend. Check the installation.": {
+    "fr": "Impossible de démarrer le serveur local. Vérifiez l’installation.",
+    "de": "Der lokale Server konnte nicht gestartet werden. Prüfen Sie die Installation.",
+    "es": "No se pudo iniciar el servidor local. Comprueba la instalación.",
+    "it": "Impossibile avviare il server locale. Controlla l’installazione.",
+    "pt": "Não foi possível iniciar o servidor local. Verifique a instalação.",
+    "ja": "ローカルバックエンドを起動できませんでした。インストールを確認してください。",
+    "zh-Hans": "无法启动本地后端。请检查安装。"
+  },
+  "Diagnostic retention must be between 1 and 168 hours.": {
+    "fr": "La durée de conservation des diagnostics doit être comprise entre 1 et 168 heures.",
+    "de": "Die Aufbewahrungsdauer für Diagnosedaten muss zwischen 1 und 168 Stunden liegen.",
+    "es": "El período de conservación de los diagnósticos debe ser de 1 a 168 horas.",
+    "it": "La conservazione dei dati diagnostici deve durare da 1 a 168 ore.",
+    "pt": "O período de retenção dos diagnósticos deve ser de 1 a 168 horas.",
+    "ja": "診断データの保持期間は 1〜168 時間にしてください。",
+    "zh-Hans": "诊断数据的保留时长必须在 1 至 168 小时之间。"
+  },
+  "Diagnostic storage limit must be between 2 and 1000 MB.": {
+    "fr": "La limite de stockage des diagnostics doit être comprise entre 2 et 1 000 Mo.",
+    "de": "Das Speicherlimit für Diagnosedaten muss zwischen 2 und 1000 MB liegen.",
+    "es": "El límite de almacenamiento de diagnósticos debe ser de 2 a 1000 MB.",
+    "it": "Il limite di archiviazione dei dati diagnostici deve essere compreso tra 2 e 1000 MB.",
+    "pt": "O limite de armazenamento de diagnósticos deve ser de 2 a 1000 MB.",
+    "ja": "診断データの保存容量の上限は 2〜1000 MB にしてください。",
+    "zh-Hans": "诊断数据的存储上限必须在 2 至 1000 MB 之间。"
+  },
+  "History settings changed. Reload before editing.": {
+    "fr": "Les réglages de l’historique ont changé. Rechargez-les avant de les modifier.",
+    "de": "Die Verlaufseinstellungen wurden geändert. Laden Sie sie vor dem Bearbeiten neu.",
+    "es": "Los ajustes del historial han cambiado. Vuelve a cargarlos antes de editarlos.",
+    "it": "Le impostazioni della cronologia sono cambiate. Ricaricale prima di modificarle.",
+    "pt": "As configurações do histórico mudaram. Recarregue-as antes de editar.",
+    "ja": "履歴の設定が変更されました。編集する前に再読み込みしてください。",
+    "zh-Hans": "历史记录设置已更改。请重新加载后再编辑。"
+  },
+  "History settings saved.": {
+    "fr": "Réglages de l’historique enregistrés.",
+    "de": "Verlaufseinstellungen gespeichert.",
+    "es": "Se han guardado los ajustes del historial.",
+    "it": "Impostazioni della cronologia salvate.",
+    "pt": "Configurações do histórico salvas.",
+    "ja": "履歴の設定を保存しました。",
+    "zh-Hans": "历史记录设置已保存。"
+  },
+  "Inference artifact limit must be between 1 and 1000 GB.": {
+    "fr": "La limite de stockage des modèles doit être comprise entre 1 et 1 000 Go.",
+    "de": "Das Speicherlimit für Modelle muss zwischen 1 und 1000 GB liegen.",
+    "es": "El límite de almacenamiento de modelos debe ser de 1 a 1000 GB.",
+    "it": "Il limite di archiviazione dei modelli deve essere compreso tra 1 e 1000 GB.",
+    "pt": "O limite de armazenamento de modelos deve ser de 1 a 1000 GB.",
+    "ja": "モデルの保存容量の上限は 1〜1000 GB にしてください。",
+    "zh-Hans": "模型的存储上限必须在 1 至 1000 GB 之间。"
+  },
+  "Invalid response from the backend": {
+    "fr": "Réponse non valide du serveur local",
+    "de": "Ungültige Antwort des lokalen Servers",
+    "es": "Respuesta no válida del servidor local",
+    "it": "Risposta non valida dal server locale",
+    "pt": "Resposta inválida do servidor local",
+    "ja": "バックエンドからの応答が無効です",
+    "zh-Hans": "本地后端返回了无效响应"
+  },
+  "Reload history settings": {
+    "fr": "Recharger les réglages de l’historique",
+    "de": "Verlaufseinstellungen neu laden",
+    "es": "Volver a cargar los ajustes del historial",
+    "it": "Ricarica le impostazioni della cronologia",
+    "pt": "Recarregar configurações do histórico",
+    "ja": "履歴の設定を再読み込み",
+    "zh-Hans": "重新加载历史记录设置"
+  },
+  "Settings changed. Reload and review your edits before saving.": {
+    "fr": "Les réglages ont changé. Rechargez-les et vérifiez vos modifications avant d’enregistrer.",
+    "de": "Die Einstellungen wurden geändert. Laden Sie sie neu und prüfen Sie Ihre Änderungen vor dem Speichern.",
+    "es": "Los ajustes han cambiado. Vuelve a cargarlos y revisa los cambios antes de guardar.",
+    "it": "Le impostazioni sono cambiate. Ricaricale e controlla le modifiche prima di salvare.",
+    "pt": "As configurações mudaram. Recarregue-as e revise as alterações antes de salvar.",
+    "ja": "設定が変更されました。保存する前に再読み込みして編集内容を確認してください。",
+    "zh-Hans": "设置已更改。请重新加载并检查修改后再保存。"
+  },
+  "Starting the local backend…": {
+    "fr": "Démarrage du serveur local…",
+    "de": "Der lokale Server wird gestartet …",
+    "es": "Iniciando el servidor local…",
+    "it": "Avvio del server locale…",
+    "pt": "Iniciando o servidor local…",
+    "ja": "ローカルバックエンドを起動中…",
+    "zh-Hans": "正在启动本地后端…"
+  },
+  "The local backend did not become available in time.": {
+    "fr": "Le serveur local n’est pas devenu disponible à temps.",
+    "de": "Der lokale Server wurde nicht rechtzeitig verfügbar.",
+    "es": "El servidor local no estuvo disponible a tiempo.",
+    "it": "Il server locale non è diventato disponibile in tempo.",
+    "pt": "O servidor local não ficou disponível a tempo.",
+    "ja": "ローカルバックエンドは制限時間内に利用可能になりませんでした。",
+    "zh-Hans": "本地后端未在规定时间内就绪。"
+  },
+  "No repositories match this filter.": {
+    "fr": "Aucun dépôt ne correspond à ce filtre.",
+    "de": "Keine Repositories entsprechen diesem Filter.",
+    "es": "Ningún repositorio coincide con este filtro.",
+    "it": "Nessun repository corrisponde a questo filtro.",
+    "pt": "Nenhum repositório corresponde a esse filtro.",
+    "ja": "このフィルターに一致するリポジトリはありません。",
+    "zh-Hans": "没有符合此筛选条件的仓库。"
+  },
+  "Private repository": {
+    "fr": "Dépôt privé",
+    "de": "Privates Repository",
+    "es": "Repositorio privado",
+    "it": "Repository privato",
+    "pt": "Repositório privado",
+    "ja": "プライベートリポジトリ",
+    "zh-Hans": "私有仓库"
+  },
+  "Public repository": {
+    "fr": "Dépôt public",
+    "de": "Öffentliches Repository",
+    "es": "Repositorio público",
+    "it": "Repository pubblico",
+    "pt": "Repositório público",
+    "ja": "公開リポジトリ",
+    "zh-Hans": "公开仓库"
+  },
+  "Waiting for the local backend": {
+    "fr": "Attente du serveur local",
+    "de": "Warten auf den lokalen Server",
+    "es": "Esperando al servidor local",
+    "it": "In attesa del server locale",
+    "pt": "Aguardando o servidor local",
+    "ja": "ローカルバックエンドを待機中",
+    "zh-Hans": "正在等待本地后端"
+  },
+  "Answer history": {
+    "fr": "Historique des réponses",
+    "de": "Antwortverlauf",
+    "es": "Historial de respuestas",
+    "it": "Cronologia delle risposte",
+    "pt": "Histórico de respostas",
+    "ja": "回答履歴",
+    "zh-Hans": "回答历史"
+  },
+  "Import Benchmark…": {
+    "fr": "Importer un benchmark…",
+    "de": "Benchmark importieren …",
+    "es": "Importar benchmark…",
+    "it": "Importa benchmark…",
+    "pt": "Importar benchmark…",
+    "ja": "ベンチマークを読み込む…",
+    "zh-Hans": "导入基准测试…"
+  },
+  "Import Corpus": {
+    "fr": "Importer un corpus",
+    "de": "Korpus importieren",
+    "es": "Importar corpus",
+    "it": "Importa corpus",
+    "pt": "Importar corpus",
+    "ja": "コーパスを読み込む",
+    "zh-Hans": "导入语料库"
+  },
+  "Index Maintenance": {
+    "fr": "Maintenance de l’index",
+    "de": "Indexwartung",
+    "es": "Mantenimiento del índice",
+    "it": "Manutenzione dell’indice",
+    "pt": "Manutenção do índice",
+    "ja": "インデックスのメンテナンス",
+    "zh-Hans": "索引维护"
+  },
+  "Inspect": {
+    "fr": "Inspecter",
+    "de": "Untersuchen",
+    "es": "Inspeccionar",
+    "it": "Ispeziona",
+    "pt": "Inspecionar",
+    "ja": "調べる",
+    "zh-Hans": "检查"
+  },
+  "No data recorded for this stage.": {
+    "fr": "Aucune donnée enregistrée pour cette étape.",
+    "de": "Für diesen Schritt wurden keine Daten aufgezeichnet.",
+    "es": "No se registraron datos en esta etapa.",
+    "it": "Nessun dato registrato per questa fase.",
+    "pt": "Nenhum dado registado nesta etapa.",
+    "ja": "この段階のデータは記録されていません。",
+    "zh-Hans": "此阶段未记录数据。"
+  },
+  "Select UTF-8 text files.": {
+    "fr": "Sélectionnez des fichiers texte UTF-8.",
+    "de": "UTF-8-Textdateien auswählen.",
+    "es": "Selecciona archivos de texto UTF-8.",
+    "it": "Seleziona file di testo UTF-8.",
+    "pt": "Selecione ficheiros de texto UTF-8.",
+    "ja": "UTF-8 テキストファイルを選択してください。",
+    "zh-Hans": "请选择 UTF-8 文本文件。"
+  },
+  "Select a question": {
+    "fr": "Sélectionner une question",
+    "de": "Frage auswählen",
+    "es": "Seleccionar una pregunta",
+    "it": "Seleziona una domanda",
+    "pt": "Selecionar uma pergunta",
+    "ja": "質問を選択",
+    "zh-Hans": "选择问题"
+  },
+  "Use 1 to 128 questions with titles and queries of at most 512 characters.": {
+    "fr": "Utilisez de 1 à 128 questions, avec des titres et des requêtes de 512 caractères maximum.",
+    "de": "Verwenden Sie 1 bis 128 Fragen mit Titeln und Abfragen von höchstens 512 Zeichen.",
+    "es": "Usa de 1 a 128 preguntas con títulos y consultas de hasta 512 caracteres.",
+    "it": "Usa da 1 a 128 domande con titoli e query di massimo 512 caratteri.",
+    "pt": "Use de 1 a 128 perguntas com títulos e consultas de até 512 caracteres.",
+    "ja": "質問は 1〜128 件、タイトルとクエリはそれぞれ 512 文字以内にしてください。",
+    "zh-Hans": "请使用 1 至 128 个问题，标题和查询各不超过 512 个字符。"
+  },
+  "Use 1 to 64 text files with relative paths, up to 256 KiB per file and 512 KiB total.": {
+    "fr": "Utilisez de 1 à 64 fichiers texte avec des chemins relatifs, jusqu’à 256 Kio par fichier et 512 Kio au total.",
+    "de": "Verwenden Sie 1 bis 64 Textdateien mit relativen Pfaden, höchstens 256 KiB pro Datei und insgesamt 512 KiB.",
+    "es": "Usa de 1 a 64 archivos de texto con rutas relativas, hasta 256 KiB por archivo y 512 KiB en total.",
+    "it": "Usa da 1 a 64 file di testo con percorsi relativi, fino a 256 KiB per file e 512 KiB in totale.",
+    "pt": "Use de 1 a 64 ficheiros de texto com caminhos relativos, até 256 KiB por ficheiro e 512 KiB no total.",
+    "ja": "相対パス付きのテキストファイルを 1〜64 個使用してください。各ファイルは最大 256 KiB、合計は最大 512 KiB です。",
+    "zh-Hans": "请使用 1 至 64 个带相对路径的文本文件，每个最多 256 KiB，总计最多 512 KiB。"
+  },
+  "Use a GitHub owner/repository and a full commit ID for a benchmark reference.": {
+    "fr": "Indiquez le propriétaire et le dépôt GitHub ainsi que l’identifiant complet du commit pour la référence du benchmark.",
+    "de": "Geben Sie für die Benchmark-Referenz GitHub-Eigentümer und Repository sowie die vollständige Commit-ID an.",
+    "es": "Indica el propietario y el repositorio de GitHub, y el ID completo del commit, para la referencia del benchmark.",
+    "it": "Per il riferimento del benchmark, indica proprietario e repository GitHub e l’ID completo del commit.",
+    "pt": "Indique o proprietário e o repositório do GitHub e o ID completo do commit para a referência do benchmark.",
+    "ja": "ベンチマークの参照には GitHub の所有者とリポジトリ、および完全なコミット ID を指定してください。",
+    "zh-Hans": "请为基准测试引用指定 GitHub 所有者和仓库及完整的提交 ID。"
+  },
+  "%1 runs": {
+    "fr": "%1 exécutions",
+    "de": "%1 Ausführungen",
+    "es": "%1 ejecuciones",
+    "it": "%1 esecuzioni",
+    "pt": "%1 execuções",
+    "ja": "%1 件の実行",
+    "zh-Hans": "%1 次运行"
+  },
+  "Import Corpus…": {
+    "fr": "Importer un corpus…",
+    "de": "Korpus importieren …",
+    "es": "Importar corpus…",
+    "it": "Importa corpus…",
+    "pt": "Importar corpus…",
+    "ja": "コーパスを読み込む…",
+    "zh-Hans": "导入语料库…"
+  },
+  "No runs found": {
+    "fr": "Aucune exécution trouvée",
+    "de": "Keine Ausführungen gefunden",
+    "es": "No se encontraron ejecuciones",
+    "it": "Nessuna esecuzione trovata",
+    "pt": "Nenhuma execução encontrada",
+    "ja": "実行が見つかりません",
+    "zh-Hans": "未找到运行记录"
+  },
+  "No workflow runs loaded.": {
+    "fr": "Aucune exécution chargée.",
+    "de": "Keine Workflow-Ausführungen geladen.",
+    "es": "No se han cargado ejecuciones del flujo.",
+    "it": "Nessuna esecuzione del workflow caricata.",
+    "pt": "Nenhuma execução do fluxo foi carregada.",
+    "ja": "ワークフローの実行は読み込まれていません。",
+    "zh-Hans": "尚未加载工作流运行。"
+  },
+  "Refresh to load workflow runs.": {
+    "fr": "Actualisez pour charger les exécutions.",
+    "de": "Aktualisieren, um Workflow-Ausführungen zu laden.",
+    "es": "Actualiza para cargar ejecuciones del flujo.",
+    "it": "Aggiorna per caricare le esecuzioni del workflow.",
+    "pt": "Atualize para carregar as execuções do fluxo.",
+    "ja": "更新してワークフローの実行を読み込んでください。",
+    "zh-Hans": "刷新以加载工作流运行。"
+  }
+}

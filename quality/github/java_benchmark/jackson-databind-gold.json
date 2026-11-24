@@ -1,0 +1,344 @@
+{
+  "repository": "FasterXML/jackson-databind",
+  "commit": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+  "cases": [
+    {
+      "id": "strict-defaults",
+      "split": "heldout",
+      "style": "prose",
+      "questions": {
+        "en": "With default deserialization settings, contrast an unknown property that no handler accepts with a JSON null mapped to a Java int.",
+        "fr": "Avec les réglages de désérialisation par défaut, comparez une propriété inconnue sans gestionnaire et un null JSON converti en int Java."
+      },
+      "facts": [
+        {
+          "expected": "An unhandled unknown property causes a JsonMappingException by default.",
+          "anchors": [
+            {
+              "path": "src/main/java/com/fasterxml/jackson/databind/DeserializationFeature.java",
+              "blob": "49d95918083bc02d3fd406dda43f4a3d5f600f9c",
+              "startLine": 114,
+              "endLine": 122,
+              "text": "     * This setting only takes effect after all other handling\n     * methods for unknown properties have been tried, and\n     * property remains unhandled.\n     *<p>\n     * Feature is enabled by default (meaning that a\n     * {@link JsonMappingException} will be thrown if an unknown property\n     * is encountered).\n     */\n    FAIL_ON_UNKNOWN_PROPERTIES(true),"
+            }
+          ]
+        },
+        {
+          "expected": "A JSON null mapped to a Java int uses the primitive default 0 because FAIL_ON_NULL_FOR_PRIMITIVES is disabled.",
+          "anchors": [
+            {
+              "path": "src/main/java/com/fasterxml/jackson/databind/DeserializationFeature.java",
+              "blob": "49d95918083bc02d3fd406dda43f4a3d5f600f9c",
+              "startLine": 124,
+              "endLine": 134,
+              "text": "    /**\n     * Feature that determines whether encountering of JSON null\n     * is an error when deserializing into Java primitive types\n     * (like 'int' or 'double'). If it is, a {@link InvalidNullException}\n     * is thrown to indicate this; if not, default value is used\n     * (0 for 'int', 0.0 for double, same defaulting as what JVM uses).\n     *<p>\n     * Feature is disabled by default for Jackson 2.x: will be changed\n     * to enabled in 3.0.\n     */\n    FAIL_ON_NULL_FOR_PRIMITIVES(false),"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "case-insensitive-properties",
+      "split": "heldout",
+      "style": "identifier",
+      "questions": {
+        "en": "What does ACCEPT_CASE_INSENSITIVE_PROPERTIES canonicalize during matching, and is it enabled by default?",
+        "fr": "Quels noms de propriétés ACCEPT_CASE_INSENSITIVE_PROPERTIES normalise-t-il lors de la comparaison, et est-il activé par défaut ?"
+      },
+      "facts": [
+        {
+          "expected": "Incoming and matching property names are lowercased.",
+          "anchors": [
+            {
+              "path": "src/main/java/com/fasterxml/jackson/databind/MapperFeature.java",
+              "blob": "f68a2d803432871c853aabdef18bebc9f5ffc00a",
+              "startLine": 470,
+              "endLine": 472,
+              "text": "     * If enabled, the bean properties will be matched using their lower-case equivalents,\n     * meaning that any case-combination (incoming and matching names are canonicalized\n     * by lower-casing) should work."
+            }
+          ]
+        },
+        {
+          "expected": "The feature is disabled by default.",
+          "anchors": [
+            {
+              "path": "src/main/java/com/fasterxml/jackson/databind/MapperFeature.java",
+              "blob": "f68a2d803432871c853aabdef18bebc9f5ffc00a",
+              "startLine": 478,
+              "endLine": 482,
+              "text": "     * Feature is disabled by default.\n     *\n     * @since 2.5\n     */\n    ACCEPT_CASE_INSENSITIVE_PROPERTIES(false),"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "mapper-copy-contract",
+      "split": "heldout",
+      "style": "cross-file",
+      "questions": {
+        "en": "Why must an ObjectMapper subclass override copy(), and how does JsonMapper implement that contract?",
+        "fr": "Pourquoi une sous-classe d’ObjectMapper doit-elle redéfinir copy(), et comment JsonMapper respecte-t-il ce contrat ?"
+      },
+      "facts": [
+        {
+          "expected": "ObjectMapper.copy performs an exact runtime-class check that throws IllegalStateException for an unhandled subclass.",
+          "anchors": [
+            {
+              "path": "src/main/java/com/fasterxml/jackson/databind/ObjectMapper.java",
+              "blob": "a31d3f586693cf1823104c8d46f974742a249d71",
+              "startLine": 753,
+              "endLine": 756,
+              "text": "    public ObjectMapper copy() {\n        _checkInvalidCopy(ObjectMapper.class);\n        return new ObjectMapper(this);\n    }"
+            }
+          ]
+        },
+        {
+          "expected": "The runtime-class mismatch throws IllegalStateException and asks for an override.",
+          "anchors": [
+            {
+              "path": "src/main/java/com/fasterxml/jackson/databind/ObjectMapper.java",
+              "blob": "a31d3f586693cf1823104c8d46f974742a249d71",
+              "startLine": 775,
+              "endLine": 781,
+              "text": "    protected void _checkInvalidCopy(Class<?> exp)\n    {\n        if (getClass() != exp) {\n            // 10-Nov-2016, tatu: could almost use `ClassUtil.verifyMustOverride()` but not quite\n            throw new IllegalStateException(\"Failed copy()/copyWith(): \"+getClass().getName()\n                    +\" (version: \"+version()+\") does not override copy()/copyWith(); it has to\");\n        }"
+            }
+          ]
+        },
+        {
+          "expected": "JsonMapper checks for JsonMapper.class and returns a newly copied JsonMapper.",
+          "anchors": [
+            {
+              "path": "src/main/java/com/fasterxml/jackson/databind/json/JsonMapper.java",
+              "blob": "7b0085e93c0cf9609d038a96d6526d6fb16c9956",
+              "startLine": 99,
+              "endLine": 104,
+              "text": "    @Override\n    public JsonMapper copy()\n    {\n        _checkInvalidCopy(JsonMapper.class);\n        return new JsonMapper(this);\n    }"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "copy-config-cache",
+      "split": "heldout",
+      "style": "prose",
+      "questions": {
+        "en": "How does the ObjectMapper copy constructor initialize serialization and deserialization configuration, and do populated serializer caches carry over?",
+        "fr": "Comment le constructeur de copie d’ObjectMapper initialise-t-il la configuration de sérialisation et de désérialisation, et les caches de sérialiseurs déjà remplis sont-ils repris ?"
+      },
+      "facts": [
+        {
+          "expected": "New SerializationConfig and DeserializationConfig objects are initialized from the original mapper's configuration and the new mapper's copied collaborators.",
+          "anchors": [
+            {
+              "path": "src/main/java/com/fasterxml/jackson/databind/ObjectMapper.java",
+              "blob": "a31d3f586693cf1823104c8d46f974742a249d71",
+              "startLine": 644,
+              "endLine": 649,
+              "text": "        RootNameLookup rootNames = new RootNameLookup();\n        _serializationConfig = new SerializationConfig(src._serializationConfig,\n                _subtypeResolver, _mixIns, rootNames, _configOverrides);\n        _deserializationConfig = new DeserializationConfig(src._deserializationConfig,\n                _subtypeResolver, _mixIns, rootNames, _configOverrides,\n                _coercionConfigs);"
+            }
+          ]
+        },
+        {
+          "expected": "The cached serializers and deserializers are not carried over.",
+          "anchors": [
+            {
+              "path": "src/main/java/com/fasterxml/jackson/databind/ObjectMapper.java",
+              "blob": "a31d3f586693cf1823104c8d46f974742a249d71",
+              "startLine": 746,
+              "endLine": 749,
+              "text": "     * Although configuration is shared, cached serializers and deserializers\n     * are NOT shared, which means that the new instance may be re-configured\n     * before use; meaning that it behaves the same way as if an instance\n     * was constructed from scratch."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "input-stream-tree-end",
+      "split": "heldout",
+      "style": "prose",
+      "questions": {
+        "en": "In the implementation behind readTree(InputStream), which JsonNode is actually returned for empty input, and which for the literal JSON null?",
+        "fr": "Dans l’implémentation appelée par readTree(InputStream), quel JsonNode est réellement renvoyé pour un flux vide, puis pour le littéral JSON null ?"
+      },
+      "facts": [
+        {
+          "expected": "No token after advancing produces the configured factory's missingNode.",
+          "anchors": [
+            {
+              "path": "src/main/java/com/fasterxml/jackson/databind/ObjectMapper.java",
+              "blob": "a31d3f586693cf1823104c8d46f974742a249d71",
+              "startLine": 5079,
+              "endLine": 5086,
+              "text": "            JsonToken t = p.currentToken();\n            if (t == null) {\n                t = p.nextToken();\n                if (t == null) {\n                    // [databind#2211]: return `MissingNode` (supercedes [databind#1406] which dictated\n                    // returning `null`\n                    return cfg.getNodeFactory().missingNode();\n                }"
+            }
+          ]
+        },
+        {
+          "expected": "A VALUE_NULL token produces the configured factory's nullNode.",
+          "anchors": [
+            {
+              "path": "src/main/java/com/fasterxml/jackson/databind/ObjectMapper.java",
+              "blob": "a31d3f586693cf1823104c8d46f974742a249d71",
+              "startLine": 5090,
+              "endLine": 5093,
+              "text": "            final DefaultDeserializationContext ctxt = createDeserializationContext(p, cfg);\n            if (t == JsonToken.VALUE_NULL) {\n                resultNode = cfg.getNodeFactory().nullNode();\n            } else {"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "object-property-null",
+      "split": "heldout",
+      "style": "prose",
+      "questions": {
+        "en": "If I pass Java null to ObjectNode.set for an existing property, is the key removed? Which method would remove it?",
+        "fr": "Si je passe null à ObjectNode.set pour une propriété existante, la clé est-elle supprimée ? Quelle méthode permettrait de la supprimer ?"
+      },
+      "facts": [
+        {
+          "expected": "set replaces the value with a NullNode and retains the field.",
+          "anchors": [
+            {
+              "path": "src/main/java/com/fasterxml/jackson/databind/node/ObjectNode.java",
+              "blob": "e943959af466912e625b75cf58c2089add5b9fb4",
+              "startLine": 616,
+              "endLine": 621,
+              "text": "    public <T extends JsonNode> T set(String propertyName, JsonNode value)\n    {\n        if (value == null) {\n            value = nullNode();\n        }\n        return (T) _put(propertyName, value);"
+            }
+          ]
+        },
+        {
+          "expected": "Use remove to remove the property.",
+          "anchors": [
+            {
+              "path": "src/main/java/com/fasterxml/jackson/databind/node/ObjectNode.java",
+              "blob": "e943959af466912e625b75cf58c2089add5b9fb4",
+              "startLine": 606,
+              "endLine": 609,
+              "text": "     * @param propertyName Name of property to set\n     * @param value Value to set property to; if null, will be converted\n     *   to a {@link NullNode} first  (to remove a property, call\n     *   {@link #remove} instead)"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "missing-property-text",
+      "split": "heldout",
+      "style": "cross-file",
+      "questions": {
+        "en": "What kind of node does ObjectNode.path return for an unknown field, and what does calling asText() on it return?",
+        "fr": "Quel type de nœud ObjectNode.path renvoie-t-il pour un champ inconnu, et que renvoie ensuite asText() sur ce nœud ?"
+      },
+      "facts": [
+        {
+          "expected": "An absent field gets the MissingNode singleton.",
+          "anchors": [
+            {
+              "path": "src/main/java/com/fasterxml/jackson/databind/node/ObjectNode.java",
+              "blob": "e943959af466912e625b75cf58c2089add5b9fb4",
+              "startLine": 305,
+              "endLine": 312,
+              "text": "    public JsonNode path(String propertyName)\n    {\n        JsonNode n = _children.get(propertyName);\n        if (n != null) {\n            return n;\n        }\n        return MissingNode.getInstance();\n    }"
+            }
+          ]
+        },
+        {
+          "expected": "MissingNode.asText() returns the empty string.",
+          "anchors": [
+            {
+              "path": "src/main/java/com/fasterxml/jackson/databind/node/MissingNode.java",
+              "blob": "dd5cf453fe1e40ec27ffcabef5575f72b7643c6c",
+              "startLine": 60,
+              "endLine": 64,
+              "text": "    @Override public JsonToken asToken() { return JsonToken.NOT_AVAILABLE; }\n\n    @Override public String asText() { return \"\"; }\n\n    @Override public String asText(String defaultValue) { return defaultValue; }"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "conversion-root-wrap",
+      "split": "heldout",
+      "style": "identifier",
+      "questions": {
+        "en": "In ObjectMapper._convert, what happens when its input is already a TokenBuffer, and how is root wrapping handled for other inputs?",
+        "fr": "Dans ObjectMapper._convert, que se passe-t-il si l’entrée est déjà un TokenBuffer, et comment l’enveloppe de racine est-elle traitée pour les autres entrées ?"
+      },
+      "facts": [
+        {
+          "expected": "An existing TokenBuffer is reused directly.",
+          "anchors": [
+            {
+              "path": "src/main/java/com/fasterxml/jackson/databind/ObjectMapper.java",
+              "blob": "a31d3f586693cf1823104c8d46f974742a249d71",
+              "startLine": 4696,
+              "endLine": 4701,
+              "text": "        // [databind#5368]: Optimize case where fromValue is already a TokenBuffer\n        // TokenBuffer has no read state, so safe to reuse directly via asParser()\n        TokenBuffer buf;\n        if (fromValue instanceof TokenBuffer) {\n            // Already a TokenBuffer, reuse it directly\n            buf = (TokenBuffer) fromValue;"
+            }
+          ]
+        },
+        {
+          "expected": "WRAP_ROOT_VALUE is disabled when serializing other inputs.",
+          "anchors": [
+            {
+              "path": "src/main/java/com/fasterxml/jackson/databind/ObjectMapper.java",
+              "blob": "a31d3f586693cf1823104c8d46f974742a249d71",
+              "startLine": 4702,
+              "endLine": 4706,
+              "text": "        } else {\n            // inlined 'writeValue' with minor changes:\n            // first: disable wrapping when writing\n            final SerializationConfig config = getSerializationConfig().without(SerializationFeature.WRAP_ROOT_VALUE);\n            final DefaultSerializerProvider context = _serializerProvider(config);"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "trailing-json",
+      "split": "heldout",
+      "style": "cross-file",
+      "questions": {
+        "en": "Does ordinary ObjectMapper root binding, by default, verify that no JSON token follows the first value, and how can that check be enabled?",
+        "fr": "Par défaut, ObjectMapper vérifie-t-il qu’aucun jeton JSON ne suit la première valeur lors de la désérialisation, et comment activer ce contrôle ?"
+      },
+      "facts": [
+        {
+          "expected": "FAIL_ON_TRAILING_TOKENS is off by default.",
+          "anchors": [
+            {
+              "path": "src/main/java/com/fasterxml/jackson/databind/DeserializationFeature.java",
+              "blob": "49d95918083bc02d3fd406dda43f4a3d5f600f9c",
+              "startLine": 271,
+              "endLine": 274,
+              "text": "     *\n     * @since 2.9\n     */\n    FAIL_ON_TRAILING_TOKENS(false),"
+            }
+          ]
+        },
+        {
+          "expected": "Root reading performs its final token check if FAIL_ON_TRAILING_TOKENS is enabled.",
+          "anchors": [
+            {
+              "path": "src/main/java/com/fasterxml/jackson/databind/ObjectMapper.java",
+              "blob": "a31d3f586693cf1823104c8d46f974742a249d71",
+              "startLine": 5055,
+              "endLine": 5058,
+              "text": "            }\n            if (cfg.isEnabled(DeserializationFeature.FAIL_ON_TRAILING_TOKENS)) {\n                _verifyNoTrailingTokens(p, ctxt, valueType);\n            }"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "private-mapper-config",
+      "split": "heldout",
+      "style": "abstention",
+      "questions": {
+        "en": "What is the exact custom deserializer class registered by my private service in its production ObjectMapper?",
+        "fr": "Quel est le nom exact de la classe de désérialisation personnalisée enregistrée dans l’ObjectMapper de mon service privé en production ?"
+      },
+      "facts": [],
+      "insufficientReason": "A private runtime invocation or production configuration is outside the pinned public source."
+    }
+  ]
+}

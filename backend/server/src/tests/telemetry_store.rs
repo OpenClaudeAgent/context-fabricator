@@ -8,6 +8,131 @@ use crate::domain::sync::Admission;
 use super::*;
 
 #[test]
+fn retained_traces_report_legacy_outcomes_and_classify_successful_background_checks()
+-> Result<(), Box<dyn Error>> {
+    let directory = tempfile::tempdir()?;
+    let path = directory.path().join("telemetry.sqlite3");
+    let store = LocalStore::open(&path, Limits::default(), 1)?;
+    let time = now();
+    let trace_id = "f0010000000000000000000000000000";
+    let database = Connection::open(path)?;
+    for (span, name, level, metadata) in [
+        (
+            "0000000000000001",
+            "api_answer",
+            Some("ok"),
+            serde_json::json!({
+                "events": [{"name": "Answer withheld for insufficient evidence", "offsetMicros": 10}],
+                "httpMethod": "POST", "httpRoute": "/v1/answers", "httpStatus": 200,
+            }),
+        ),
+        (
+            "0000000000000002",
+            "api_request",
+            Some("ok"),
+            serde_json::json!({"events": [], "httpMethod": "GET", "httpRoute": "/v1/github", "httpStatus": 200}),
+        ),
+        (
+            "0000000000000003",
+            "api_request",
+            Some("error"),
+            serde_json::json!({"events": [], "httpMethod": "GET", "httpRoute": "/v1/github", "httpStatus": 500}),
+        ),
+        (
+            "0000000000000004",
+            "api_request",
+            None,
+            serde_json::json!({"events": [], "httpMethod": "GET", "httpRoute": "/v1/github"}),
+        ),
+        (
+            "0000000000000005",
+            "api_request",
+            Some("ok"),
+            serde_json::json!({"events": [], "httpMethod": "PUT", "httpRoute": "/v1/settings", "httpStatus": 200}),
+        ),
+        (
+            "0000000000000006",
+            "api_answer",
+            Some("ok"),
+            serde_json::json!({"events": [], "answerOutcome": "insufficientEvidence", "httpStatus": 200}),
+        ),
+    ] {
+        let mut metadata = metadata;
+        metadata["startedAtUnixMicros"] = serde_json::json!(time * 1_000_000);
+        database.execute(
+            "INSERT INTO signals (signal, timestamp, name, value, level, trace_id, span_id, span_timing)
+             VALUES ('trace', ?1, ?2, 20, ?3, ?4, ?5, ?6)",
+            rusqlite::params![time, name, level, trace_id, span, metadata.to_string()],
+        )?;
+    }
+    let summary = serde_json::to_value(store.snapshot(time).traces)?;
+    let detail = serde_json::to_value(store.trace(trace_id, None, time)?.spans)?;
+    for samples in [&summary, &detail] {
+        assert_eq!(samples[5]["spanOutcome"], "insufficientEvidence");
+        assert_eq!(samples[5]["level"], "ok");
+        assert_eq!(samples[4]["traceRequestKind"], "backgroundCheck");
+        assert_eq!(samples[4]["spanOutcome"], "succeeded");
+        assert!(samples[3].get("traceRequestKind").is_none());
+        assert_eq!(samples[3]["spanOutcome"], "failed");
+        assert!(samples[2].get("traceRequestKind").is_none());
+        assert_eq!(samples[2]["spanOutcome"], "unknown");
+        assert!(samples[1].get("traceRequestKind").is_none());
+        assert_eq!(samples[0]["spanOutcome"], "insufficientEvidence");
+        assert!(samples[0].get("answerOutcome").is_none());
+    }
+    assert_eq!(summary[5]["events"], serde_json::json!([]));
+    assert_eq!(detail[5]["events"].as_array().map(Vec::len), Some(1));
+    Ok(())
+}
+
+#[test]
+fn metrics_keep_the_latest_retained_count_for_each_operation() -> Result<(), Box<dyn Error>> {
+    let directory = tempfile::tempdir()?;
+    let store = LocalStore::open(
+        &directory.path().join("telemetry.sqlite3"),
+        Limits::default(),
+        1,
+    )?;
+    let time = now();
+    let metric = |stage, timestamp, value| {
+        let mut row = Row::new(Signal::Metric, stage, timestamp);
+        row.value = Some(value);
+        row
+    };
+    let mut rows = vec![
+        metric("answer_generation", time - 3601, 3),
+        metric("api_query", time - 300, 7),
+    ];
+    rows.extend((455..=519).map(|value| metric("api_request", time - 1, value)));
+    rows.push(metric("api_request", time, 4));
+    store.write(&rows, time)?;
+
+    let snapshot = store.snapshot(time);
+    let observations = snapshot
+        .metrics
+        .iter()
+        .map(|record| (record.name.as_str(), record.timestamp, record.value))
+        .collect::<Vec<_>>();
+    assert_eq!(
+        observations,
+        [
+            ("api_request", time, Some(4)),
+            ("api_query", time - 300, Some(7))
+        ]
+    );
+    let descriptor = snapshot.metrics[0].span_details.as_ref();
+    assert_eq!(
+        descriptor.map(|details| details.display_name),
+        Some("Local API request")
+    );
+    assert_eq!(
+        descriptor.map(|details| details.operation),
+        Some("http.request")
+    );
+    Ok(())
+}
+
+#[test]
 fn retained_logs_filter_before_paginating() -> Result<(), Box<dyn Error>> {
     let directory = tempfile::tempdir()?;
     let store = LocalStore::open(
@@ -19,17 +144,19 @@ fn retained_logs_filter_before_paginating() -> Result<(), Box<dyn Error>> {
     let mut first = Row::new(Signal::Log, "answer_generation", time);
     first.level = Some("error");
     first.trace_id = Some("abcdef0123456789abcdef0123456789".into());
+    first.span_id = Some("abcdef0123456789".into());
     store.write(&[first], time)?;
     for _ in 0..64 {
         let mut log = Row::new(Signal::Log, "api_query", time);
         log.level = Some("info");
         store.write(&[log], time)?;
     }
+    let mut unrelated_span = Row::new(Signal::Trace, "answer_generation", time);
+    unrelated_span.trace_id = Some("11111111111111111111111111111111".into());
+    unrelated_span.span_id = Some("abcdef0123456789".into());
+    unrelated_span.value = Some(10);
     store.write(
-        &[
-            Row::new(Signal::Metric, "api_query", time),
-            Row::new(Signal::Trace, "api_query", time),
-        ],
+        &[Row::new(Signal::Metric, "api_query", time), unrelated_span],
         time,
     )?;
     let filter = LogFilter {
@@ -41,6 +168,15 @@ fn retained_logs_filter_before_paginating() -> Result<(), Box<dyn Error>> {
     assert_eq!(matched.records.len(), 1);
     assert_eq!(matched.records[0].name, "answer_generation");
     assert_eq!(matched.records[0].level, Some("error".into()));
+    assert_eq!(matched.records[0].value, None);
+    assert!(
+        matched.records[0]
+            .span_details
+            .as_ref()
+            .is_some_and(|details| {
+                details.display_name == "Generate answer" && details.timing.is_none()
+            })
+    );
     assert!(matched.next_before_id.is_none());
     assert!(store.logs(&filter, time + 3601)?.records.is_empty());
 
@@ -111,11 +247,13 @@ fn age_purge_and_signal_caps_bound_the_sidecar() -> Result<(), Box<dyn Error>> {
     let cleared = store.snapshot(time);
     assert_eq!(cleared.health.pruned, 3);
     assert!(cleared.logs.is_empty() && cleared.metrics.is_empty() && cleared.traces.is_empty());
-    for _ in 0..100 {
+    for count in 1..=100 {
+        let mut metric = Row::new(Signal::Metric, "api_query", time);
+        metric.value = Some(count);
         store.write(
             &[
                 Row::new(Signal::Log, "api_query", time),
-                Row::new(Signal::Metric, "api_query", time),
+                metric,
                 Row::new(Signal::Trace, "api_query", time),
             ],
             time,
@@ -128,11 +266,18 @@ fn age_purge_and_signal_caps_bound_the_sidecar() -> Result<(), Box<dyn Error>> {
             snapshot.metrics.len(),
             snapshot.traces.len()
         ),
-        (8, 8, 8)
+        (8, 1, 8)
     );
+    assert_eq!(snapshot.metrics[0].value, Some(100));
     assert!(snapshot.health.file_bytes <= 12 * PAGE_BYTES);
     assert!(snapshot.health.file_bytes <= snapshot.health.budget_bytes);
     let database = Connection::open(path)?;
+    let retained_metrics: i64 = database.query_row(
+        "SELECT count(*) FROM signals WHERE signal = 'metric'",
+        [],
+        |row| row.get(0),
+    )?;
+    assert_eq!(retained_metrics, 8);
     let failures: i64 = database.query_row(
         "SELECT count(*) FROM signals WHERE name = 'old'",
         [],

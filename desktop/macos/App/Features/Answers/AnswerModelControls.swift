@@ -97,7 +97,7 @@ struct AnswerModelControls: View {
     .accessibilityIdentifier("generation-model-picker")
   }
 
-  private func modelProgress(_ title: String, id: String) -> some View {
+  private func modelProgress(_ title: LocalizedStringKey, id: String) -> some View {
     HStack(spacing: 7) {
       ProgressView().controlSize(.small).accessibilityHidden(true)
       Text(title).font(.callout).foregroundStyle(.secondary).lineLimit(1)

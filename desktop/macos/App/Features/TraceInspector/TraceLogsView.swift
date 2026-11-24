@@ -26,20 +26,26 @@ struct TraceLogsView: View {
 }
 
 struct TraceLogRow: View {
+  @Environment(\.locale) private var locale
   let log: Components.Schemas.SignalSample
 
   var body: some View {
-    HStack(alignment: .firstTextBaseline) {
-      Text(TraceStep.stageTitle(log.name))
+    HStack(alignment: .firstTextBaseline, spacing: 12) {
+      Text(TraceStep.title(for: log, in: locale))
         .accessibilityIdentifier("trace-log-\(log.name)")
       Spacer()
-      Text(log.level?.rawValue.capitalized ?? "Unknown").foregroundStyle(.secondary)
+      Text(log.level?.localizedTitle ?? "Unknown")
+        .font(.caption)
+        .foregroundStyle(.secondary)
+        .frame(width: 55, alignment: .trailing)
       Text(
         Date(timeIntervalSince1970: TimeInterval(log.timestamp)),
         format: .dateTime.hour().minute().second()
       )
+      .font(.caption)
       .monospacedDigit()
       .foregroundStyle(.secondary)
+      .frame(minWidth: 58, alignment: .trailing)
     }
   }
 }

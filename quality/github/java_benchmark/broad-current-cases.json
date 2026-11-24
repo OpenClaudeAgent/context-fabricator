@@ -1,0 +1,746 @@
+{
+  "version": 1,
+  "exposure": "Previously evaluated original 16-question Commons current-branch matrix lane; not a blind holdout.",
+  "sourceOracle": "forty-intent-matrix/commons-current cohort.json SHA 19a457113051e61d37a5b47b554c957aa698ab653aff84906525d7ebcc1efea4; requests.json SHA 8e3975febdca49e844168df084e6dc31c73672ec5e51e11e888987bf9f6c909e",
+  "references": {
+    "commons-current": "commons-cli-current-reference.json"
+  },
+  "fixtureBranches": {
+    "commons-current": "master"
+  },
+  "anchorSemantics": "Each fact requires one complete alternative; all anchors inside an alternative are conjunctive.",
+  "cases": [
+    {
+      "id": "a19877c7e72ab0668db9",
+      "intentId": "matrix-foreign-wrapper",
+      "language": "fr",
+      "query": "Dans ce dépôt, que fait l’adaptateur com.acme.terminal.SecureHelpSink lorsqu’il ajoute un caractère ?",
+      "repository": "commons-current",
+      "kind": "absent_namespace",
+      "expectation": "Pinned tree does not contain the named private package; a public wrapper is not that class.",
+      "witnesses": [
+        {
+          "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+          "path": "src/main/java/org/apache/commons/cli/help/FilterHelpAppendable.java",
+          "blob": "b3c5a81d0bb89a61bae4f684184fc94dbb0be773",
+          "startLine": 55,
+          "endLine": 59,
+          "startByte": 2453,
+          "endByte": 2596,
+          "text": "    @Override\n    public FilterHelpAppendable append(final char ch) throws IOException {\n        output.append(ch);\n        return this;\n    }\n"
+        }
+      ],
+      "absentNamespace": "com.acme.terminal"
+    },
+    {
+      "id": "9df5e75935cd7c089fcd",
+      "intentId": "matrix-help-slice",
+      "language": "en",
+      "query": "When a help-output wrapper appends only part of a character sequence, what does it pass to the underlying output, and what object does the call return?",
+      "repository": "commons-current",
+      "kind": "positive",
+      "expectation": "It forwards the sequence with start and end offsets to the underlying appendable, then returns the wrapper itself.",
+      "facts": [
+        {
+          "expected": "It forwards the sequence with start and end offsets to the underlying appendable, then returns the wrapper itself.",
+          "sufficientAlternatives": [
+            [
+              {
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "path": "src/main/java/org/apache/commons/cli/help/FilterHelpAppendable.java",
+                "blob": "b3c5a81d0bb89a61bae4f684184fc94dbb0be773",
+                "startLine": 67,
+                "endLine": 71,
+                "startByte": 2753,
+                "endByte": 2950,
+                "text": "    @Override\n    public FilterHelpAppendable append(final CharSequence csq, final int start, final int end) throws IOException {\n        output.append(csq, start, end);\n        return this;\n    }\n"
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "e684a92ac7ab25aba733",
+      "intentId": "matrix-ambiguous-diagnostics",
+      "language": "en",
+      "query": "When an abbreviated command-line name matches several possibilities, what can a caller inspect to identify the original input and the candidates?",
+      "repository": "commons-current",
+      "kind": "positive",
+      "expectation": "The exception retains the original option and exposes it through the inherited accessor.; It retains and exposes the collection of matching options.",
+      "facts": [
+        {
+          "expected": "The exception retains the original option and exposes it through the inherited accessor.",
+          "sufficientAlternatives": [
+            [
+              {
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "path": "src/main/java/org/apache/commons/cli/AmbiguousOptionException.java",
+                "blob": "1a64e95c186bae05d32870393f7840a41b6912b2",
+                "startLine": 28,
+                "endLine": 28,
+                "startByte": 979,
+                "endByte": 1055,
+                "text": "public class AmbiguousOptionException extends UnrecognizedOptionException {\n"
+              },
+              {
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "path": "src/main/java/org/apache/commons/cli/AmbiguousOptionException.java",
+                "blob": "1a64e95c186bae05d32870393f7840a41b6912b2",
+                "startLine": 68,
+                "endLine": 70,
+                "startByte": 2254,
+                "endByte": 2466,
+                "text": "    public AmbiguousOptionException(final String option, final Collection<String> matchingOptions) {\n        super(createMessage(option, matchingOptions), option);\n        this.matchingOptions = matchingOptions;\n"
+              },
+              {
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "path": "src/main/java/org/apache/commons/cli/UnrecognizedOptionException.java",
+                "blob": "6677fc6ef4da51ce007470449316b6acdfe41c00",
+                "startLine": 49,
+                "endLine": 51,
+                "startByte": 1659,
+                "endByte": 1797,
+                "text": "    public UnrecognizedOptionException(final String message, final String option) {\n        super(message);\n        this.option = option;\n"
+              },
+              {
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "path": "src/main/java/org/apache/commons/cli/UnrecognizedOptionException.java",
+                "blob": "6677fc6ef4da51ce007470449316b6acdfe41c00",
+                "startLine": 60,
+                "endLine": 62,
+                "startByte": 1917,
+                "endByte": 1978,
+                "text": "    public String getOption() {\n        return option;\n    }\n"
+              }
+            ]
+          ]
+        },
+        {
+          "expected": "It retains and exposes the collection of matching options.",
+          "sufficientAlternatives": [
+            [
+              {
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "path": "src/main/java/org/apache/commons/cli/AmbiguousOptionException.java",
+                "blob": "1a64e95c186bae05d32870393f7840a41b6912b2",
+                "startLine": 68,
+                "endLine": 70,
+                "startByte": 2254,
+                "endByte": 2466,
+                "text": "    public AmbiguousOptionException(final String option, final Collection<String> matchingOptions) {\n        super(createMessage(option, matchingOptions), option);\n        this.matchingOptions = matchingOptions;\n"
+              },
+              {
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "path": "src/main/java/org/apache/commons/cli/AmbiguousOptionException.java",
+                "blob": "1a64e95c186bae05d32870393f7840a41b6912b2",
+                "startLine": 78,
+                "endLine": 80,
+                "startByte": 2605,
+                "endByte": 2696,
+                "text": "    public Collection<String> getMatchingOptions() {\n        return matchingOptions;\n    }\n"
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c9f48cd7c08e9313689b",
+      "intentId": "matrix-deprecation-null",
+      "language": "en",
+      "query": "If deprecation metadata is built without a description or version, what strings are stored for those two fields?",
+      "repository": "commons-current",
+      "kind": "positive",
+      "expectation": "Both null description and null version are converted to empty strings.",
+      "facts": [
+        {
+          "expected": "Both null description and null version are converted to empty strings.",
+          "sufficientAlternatives": [
+            [
+              {
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "path": "src/main/java/org/apache/commons/cli/DeprecatedAttributes.java",
+                "blob": "3d19a2b799b1108c77961a73350cd8456117ed4b",
+                "startLine": 41,
+                "endLine": 42,
+                "startByte": 1300,
+                "endByte": 1368,
+                "text": "        /** The description. */\n        private String description;\n"
+              },
+              {
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "path": "src/main/java/org/apache/commons/cli/DeprecatedAttributes.java",
+                "blob": "3d19a2b799b1108c77961a73350cd8456117ed4b",
+                "startLine": 51,
+                "endLine": 56,
+                "startByte": 1667,
+                "endByte": 1941,
+                "text": "        /**\n         * The version in which the option became deprecated.\n         *\n         * @see <a href=\"https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/lang/Deprecated.html#forRemoval()\">Deprecated.since</a>\n         */\n        private String since;\n"
+              },
+              {
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "path": "src/main/java/org/apache/commons/cli/DeprecatedAttributes.java",
+                "blob": "3d19a2b799b1108c77961a73350cd8456117ed4b",
+                "startLine": 68,
+                "endLine": 70,
+                "startByte": 2141,
+                "endByte": 2280,
+                "text": "        @Override\n        public DeprecatedAttributes get() {\n            return new DeprecatedAttributes(description, since, forRemoval);\n"
+              },
+              {
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "path": "src/main/java/org/apache/commons/cli/DeprecatedAttributes.java",
+                "blob": "3d19a2b799b1108c77961a73350cd8456117ed4b",
+                "startLine": 143,
+                "endLine": 146,
+                "startByte": 4336,
+                "endByte": 4567,
+                "text": "    private DeprecatedAttributes(final String description, final String since, final boolean forRemoval) {\n        this.description = toEmpty(description);\n        this.since = toEmpty(since);\n        this.forRemoval = forRemoval;\n"
+              },
+              {
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "path": "src/main/java/org/apache/commons/cli/DeprecatedAttributes.java",
+                "blob": "3d19a2b799b1108c77961a73350cd8456117ed4b",
+                "startLine": 114,
+                "endLine": 116,
+                "startByte": 3644,
+                "endByte": 3728,
+                "text": "     * The empty string.\n     */\n    private static final String EMPTY_STRING = \"\";\n"
+              },
+              {
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "path": "src/main/java/org/apache/commons/cli/DeprecatedAttributes.java",
+                "blob": "3d19a2b799b1108c77961a73350cd8456117ed4b",
+                "startLine": 176,
+                "endLine": 178,
+                "startByte": 5187,
+                "endByte": 5295,
+                "text": "    private String toEmpty(final String since) {\n        return since != null ? since : EMPTY_STRING;\n    }\n"
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "0dd658b3e49f4d2b471b",
+      "intentId": "matrix-help-slice",
+      "language": "fr",
+      "query": "Quand un adaptateur de sortie d’aide ajoute seulement une partie d’une séquence de caractères, que transmet-il à la sortie sous-jacente et quel objet renvoie-t-il ?",
+      "repository": "commons-current",
+      "kind": "positive",
+      "expectation": "It forwards the sequence with start and end offsets to the underlying appendable, then returns the wrapper itself.",
+      "facts": [
+        {
+          "expected": "It forwards the sequence with start and end offsets to the underlying appendable, then returns the wrapper itself.",
+          "sufficientAlternatives": [
+            [
+              {
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "path": "src/main/java/org/apache/commons/cli/help/FilterHelpAppendable.java",
+                "blob": "b3c5a81d0bb89a61bae4f684184fc94dbb0be773",
+                "startLine": 67,
+                "endLine": 71,
+                "startByte": 2753,
+                "endByte": 2950,
+                "text": "    @Override\n    public FilterHelpAppendable append(final CharSequence csq, final int start, final int end) throws IOException {\n        output.append(csq, start, end);\n        return this;\n    }\n"
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "6067c29d020972de18ca",
+      "intentId": "matrix-help-width",
+      "language": "en",
+      "query": "With the default help text style, what maximum width is used, and what numeric limit does the unset value represent?",
+      "repository": "commons-current",
+      "kind": "positive",
+      "expectation": "Default max width uses the unset sentinel, equal to Integer.MAX_VALUE.",
+      "facts": [
+        {
+          "expected": "Default max width uses the unset sentinel, equal to Integer.MAX_VALUE.",
+          "sufficientAlternatives": [
+            [
+              {
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "path": "src/main/java/org/apache/commons/cli/help/TextStyle.java",
+                "blob": "02346daaee6e5270dbd245b50772b57ec4f15061",
+                "startLine": 52,
+                "endLine": 59,
+                "startByte": 1567,
+                "endByte": 1822,
+                "text": "     * The builder for the TextStyle. The default values are:\n     * <ul>\n     * <li>alignment = LEFT</li>\n     * <li>leftPad = 0</li>\n     * <li>scaling = VARIABLE</li>\n     * <li>minWidth = 0</li>\n     * <li>maxWidth = UNSET_MAX_WIDTH</li>\n     * </ul>\n"
+              },
+              {
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "path": "src/main/java/org/apache/commons/cli/help/TextStyle.java",
+                "blob": "02346daaee6e5270dbd245b50772b57ec4f15061",
+                "startLine": 228,
+                "endLine": 231,
+                "startByte": 6569,
+                "endByte": 6697,
+                "text": "    /**\n     * The unset value for maxWidth: {@value}.\n     */\n    public static final int UNSET_MAX_WIDTH = Integer.MAX_VALUE;\n"
+              },
+              {
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "path": "src/main/java/org/apache/commons/cli/help/TextStyle.java",
+                "blob": "02346daaee6e5270dbd245b50772b57ec4f15061",
+                "startLine": 233,
+                "endLine": 236,
+                "startByte": 6698,
+                "endByte": 6837,
+                "text": "    /**\n     * The default style as generated by the default Builder.\n     */\n    public static final TextStyle DEFAULT = builder().get();\n"
+              }
+            ],
+            [
+              {
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "path": "src/main/java/org/apache/commons/cli/help/TextStyle.java",
+                "blob": "02346daaee6e5270dbd245b50772b57ec4f15061",
+                "startLine": 75,
+                "endLine": 79,
+                "startByte": 2294,
+                "endByte": 2441,
+                "text": "        /** The minimum width. */\n        private int minWidth;\n\n        /** The maximum width. */\n        private int maxWidth = UNSET_MAX_WIDTH;\n"
+              },
+              {
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "path": "src/main/java/org/apache/commons/cli/help/TextStyle.java",
+                "blob": "02346daaee6e5270dbd245b50772b57ec4f15061",
+                "startLine": 228,
+                "endLine": 236,
+                "startByte": 6569,
+                "endByte": 6837,
+                "text": "    /**\n     * The unset value for maxWidth: {@value}.\n     */\n    public static final int UNSET_MAX_WIDTH = Integer.MAX_VALUE;\n\n    /**\n     * The default style as generated by the default Builder.\n     */\n    public static final TextStyle DEFAULT = builder().get();\n"
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "a1e9fb615e4e75bed002",
+      "intentId": "matrix-ambiguous-diagnostics",
+      "language": "fr",
+      "query": "Quand un nom abrégé de ligne de commande correspond à plusieurs possibilités, que peut examiner l’appelant pour retrouver le texte initial et les candidats ?",
+      "repository": "commons-current",
+      "kind": "positive",
+      "expectation": "The exception retains the original option and exposes it through the inherited accessor.; It retains and exposes the collection of matching options.",
+      "facts": [
+        {
+          "expected": "The exception retains the original option and exposes it through the inherited accessor.",
+          "sufficientAlternatives": [
+            [
+              {
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "path": "src/main/java/org/apache/commons/cli/AmbiguousOptionException.java",
+                "blob": "1a64e95c186bae05d32870393f7840a41b6912b2",
+                "startLine": 28,
+                "endLine": 28,
+                "startByte": 979,
+                "endByte": 1055,
+                "text": "public class AmbiguousOptionException extends UnrecognizedOptionException {\n"
+              },
+              {
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "path": "src/main/java/org/apache/commons/cli/AmbiguousOptionException.java",
+                "blob": "1a64e95c186bae05d32870393f7840a41b6912b2",
+                "startLine": 68,
+                "endLine": 70,
+                "startByte": 2254,
+                "endByte": 2466,
+                "text": "    public AmbiguousOptionException(final String option, final Collection<String> matchingOptions) {\n        super(createMessage(option, matchingOptions), option);\n        this.matchingOptions = matchingOptions;\n"
+              },
+              {
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "path": "src/main/java/org/apache/commons/cli/UnrecognizedOptionException.java",
+                "blob": "6677fc6ef4da51ce007470449316b6acdfe41c00",
+                "startLine": 49,
+                "endLine": 51,
+                "startByte": 1659,
+                "endByte": 1797,
+                "text": "    public UnrecognizedOptionException(final String message, final String option) {\n        super(message);\n        this.option = option;\n"
+              },
+              {
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "path": "src/main/java/org/apache/commons/cli/UnrecognizedOptionException.java",
+                "blob": "6677fc6ef4da51ce007470449316b6acdfe41c00",
+                "startLine": 60,
+                "endLine": 62,
+                "startByte": 1917,
+                "endByte": 1978,
+                "text": "    public String getOption() {\n        return option;\n    }\n"
+              }
+            ]
+          ]
+        },
+        {
+          "expected": "It retains and exposes the collection of matching options.",
+          "sufficientAlternatives": [
+            [
+              {
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "path": "src/main/java/org/apache/commons/cli/AmbiguousOptionException.java",
+                "blob": "1a64e95c186bae05d32870393f7840a41b6912b2",
+                "startLine": 68,
+                "endLine": 70,
+                "startByte": 2254,
+                "endByte": 2466,
+                "text": "    public AmbiguousOptionException(final String option, final Collection<String> matchingOptions) {\n        super(createMessage(option, matchingOptions), option);\n        this.matchingOptions = matchingOptions;\n"
+              },
+              {
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "path": "src/main/java/org/apache/commons/cli/AmbiguousOptionException.java",
+                "blob": "1a64e95c186bae05d32870393f7840a41b6912b2",
+                "startLine": 78,
+                "endLine": 80,
+                "startByte": 2605,
+                "endByte": 2696,
+                "text": "    public Collection<String> getMatchingOptions() {\n        return matchingOptions;\n    }\n"
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "56bfc67afeda9d66cecf",
+      "intentId": "matrix-help-width",
+      "language": "fr",
+      "query": "Avec le style de texte d’aide par défaut, quelle largeur maximale est utilisée et quelle limite numérique représente la valeur non définie ?",
+      "repository": "commons-current",
+      "kind": "positive",
+      "expectation": "Default max width uses the unset sentinel, equal to Integer.MAX_VALUE.",
+      "facts": [
+        {
+          "expected": "Default max width uses the unset sentinel, equal to Integer.MAX_VALUE.",
+          "sufficientAlternatives": [
+            [
+              {
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "path": "src/main/java/org/apache/commons/cli/help/TextStyle.java",
+                "blob": "02346daaee6e5270dbd245b50772b57ec4f15061",
+                "startLine": 52,
+                "endLine": 59,
+                "startByte": 1567,
+                "endByte": 1822,
+                "text": "     * The builder for the TextStyle. The default values are:\n     * <ul>\n     * <li>alignment = LEFT</li>\n     * <li>leftPad = 0</li>\n     * <li>scaling = VARIABLE</li>\n     * <li>minWidth = 0</li>\n     * <li>maxWidth = UNSET_MAX_WIDTH</li>\n     * </ul>\n"
+              },
+              {
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "path": "src/main/java/org/apache/commons/cli/help/TextStyle.java",
+                "blob": "02346daaee6e5270dbd245b50772b57ec4f15061",
+                "startLine": 228,
+                "endLine": 231,
+                "startByte": 6569,
+                "endByte": 6697,
+                "text": "    /**\n     * The unset value for maxWidth: {@value}.\n     */\n    public static final int UNSET_MAX_WIDTH = Integer.MAX_VALUE;\n"
+              },
+              {
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "path": "src/main/java/org/apache/commons/cli/help/TextStyle.java",
+                "blob": "02346daaee6e5270dbd245b50772b57ec4f15061",
+                "startLine": 233,
+                "endLine": 236,
+                "startByte": 6698,
+                "endByte": 6837,
+                "text": "    /**\n     * The default style as generated by the default Builder.\n     */\n    public static final TextStyle DEFAULT = builder().get();\n"
+              }
+            ],
+            [
+              {
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "path": "src/main/java/org/apache/commons/cli/help/TextStyle.java",
+                "blob": "02346daaee6e5270dbd245b50772b57ec4f15061",
+                "startLine": 75,
+                "endLine": 79,
+                "startByte": 2294,
+                "endByte": 2441,
+                "text": "        /** The minimum width. */\n        private int minWidth;\n\n        /** The maximum width. */\n        private int maxWidth = UNSET_MAX_WIDTH;\n"
+              },
+              {
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "path": "src/main/java/org/apache/commons/cli/help/TextStyle.java",
+                "blob": "02346daaee6e5270dbd245b50772b57ec4f15061",
+                "startLine": 228,
+                "endLine": 236,
+                "startByte": 6569,
+                "endByte": 6837,
+                "text": "    /**\n     * The unset value for maxWidth: {@value}.\n     */\n    public static final int UNSET_MAX_WIDTH = Integer.MAX_VALUE;\n\n    /**\n     * The default style as generated by the default Builder.\n     */\n    public static final TextStyle DEFAULT = builder().get();\n"
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "8d3f35c54a77df53a1f6",
+      "intentId": "matrix-private-width",
+      "language": "fr",
+      "query": "Quelle largeur exacte de sortie d’aide mon application de production a-t-elle utilisée lors de sa dernière exécution ?",
+      "repository": "commons-current",
+      "kind": "unavailable_runtime",
+      "expectation": "Default width configuration cannot reveal the caller’s runtime override.",
+      "witnesses": [
+        {
+          "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+          "path": "src/main/java/org/apache/commons/cli/help/TextStyle.java",
+          "blob": "02346daaee6e5270dbd245b50772b57ec4f15061",
+          "startLine": 52,
+          "endLine": 59,
+          "startByte": 1567,
+          "endByte": 1822,
+          "text": "     * The builder for the TextStyle. The default values are:\n     * <ul>\n     * <li>alignment = LEFT</li>\n     * <li>leftPad = 0</li>\n     * <li>scaling = VARIABLE</li>\n     * <li>minWidth = 0</li>\n     * <li>maxWidth = UNSET_MAX_WIDTH</li>\n     * </ul>\n"
+        },
+        {
+          "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+          "path": "src/main/java/org/apache/commons/cli/help/TextStyle.java",
+          "blob": "02346daaee6e5270dbd245b50772b57ec4f15061",
+          "startLine": 75,
+          "endLine": 79,
+          "startByte": 2294,
+          "endByte": 2441,
+          "text": "        /** The minimum width. */\n        private int minWidth;\n\n        /** The maximum width. */\n        private int maxWidth = UNSET_MAX_WIDTH;\n"
+        }
+      ]
+    },
+    {
+      "id": "0d4a4c3c04db3dee4555",
+      "intentId": "matrix-foreign-wrapper",
+      "language": "en",
+      "query": "In this repository, what does the com.acme.terminal.SecureHelpSink wrapper do when appending a character?",
+      "repository": "commons-current",
+      "kind": "absent_namespace",
+      "expectation": "Pinned tree does not contain the named private package; a public wrapper is not that class.",
+      "witnesses": [
+        {
+          "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+          "path": "src/main/java/org/apache/commons/cli/help/FilterHelpAppendable.java",
+          "blob": "b3c5a81d0bb89a61bae4f684184fc94dbb0be773",
+          "startLine": 55,
+          "endLine": 59,
+          "startByte": 2453,
+          "endByte": 2596,
+          "text": "    @Override\n    public FilterHelpAppendable append(final char ch) throws IOException {\n        output.append(ch);\n        return this;\n    }\n"
+        }
+      ],
+      "absentNamespace": "com.acme.terminal"
+    },
+    {
+      "id": "70b0ec8e634a316dafb1",
+      "intentId": "matrix-next-removal",
+      "language": "en",
+      "query": "Which option will actually be removed in the next unreleased version and on what date?",
+      "repository": "commons-current",
+      "kind": "unavailable_future",
+      "expectation": "Stored metadata can express intended removal, but cannot establish a future release event or date.",
+      "witnesses": [
+        {
+          "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+          "path": "src/main/java/org/apache/commons/cli/DeprecatedAttributes.java",
+          "blob": "3d19a2b799b1108c77961a73350cd8456117ed4b",
+          "startLine": 167,
+          "endLine": 173,
+          "startByte": 4940,
+          "endByte": 5180,
+          "text": "    /**\n     * Tests whether this option is subject to removal in a future version.\n     *\n     * @return whether this option is subject to removal in a future version.\n     */\n    public boolean isForRemoval() {\n        return forRemoval;\n"
+        }
+      ]
+    },
+    {
+      "id": "740366d98acfc2526011",
+      "intentId": "matrix-deprecation-null",
+      "language": "fr",
+      "query": "Si des métadonnées de dépréciation sont créées sans description ni version, quelles chaînes sont conservées pour ces deux champs ?",
+      "repository": "commons-current",
+      "kind": "positive",
+      "expectation": "Both null description and null version are converted to empty strings.",
+      "facts": [
+        {
+          "expected": "Both null description and null version are converted to empty strings.",
+          "sufficientAlternatives": [
+            [
+              {
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "path": "src/main/java/org/apache/commons/cli/DeprecatedAttributes.java",
+                "blob": "3d19a2b799b1108c77961a73350cd8456117ed4b",
+                "startLine": 41,
+                "endLine": 42,
+                "startByte": 1300,
+                "endByte": 1368,
+                "text": "        /** The description. */\n        private String description;\n"
+              },
+              {
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "path": "src/main/java/org/apache/commons/cli/DeprecatedAttributes.java",
+                "blob": "3d19a2b799b1108c77961a73350cd8456117ed4b",
+                "startLine": 51,
+                "endLine": 56,
+                "startByte": 1667,
+                "endByte": 1941,
+                "text": "        /**\n         * The version in which the option became deprecated.\n         *\n         * @see <a href=\"https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/lang/Deprecated.html#forRemoval()\">Deprecated.since</a>\n         */\n        private String since;\n"
+              },
+              {
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "path": "src/main/java/org/apache/commons/cli/DeprecatedAttributes.java",
+                "blob": "3d19a2b799b1108c77961a73350cd8456117ed4b",
+                "startLine": 68,
+                "endLine": 70,
+                "startByte": 2141,
+                "endByte": 2280,
+                "text": "        @Override\n        public DeprecatedAttributes get() {\n            return new DeprecatedAttributes(description, since, forRemoval);\n"
+              },
+              {
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "path": "src/main/java/org/apache/commons/cli/DeprecatedAttributes.java",
+                "blob": "3d19a2b799b1108c77961a73350cd8456117ed4b",
+                "startLine": 143,
+                "endLine": 146,
+                "startByte": 4336,
+                "endByte": 4567,
+                "text": "    private DeprecatedAttributes(final String description, final String since, final boolean forRemoval) {\n        this.description = toEmpty(description);\n        this.since = toEmpty(since);\n        this.forRemoval = forRemoval;\n"
+              },
+              {
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "path": "src/main/java/org/apache/commons/cli/DeprecatedAttributes.java",
+                "blob": "3d19a2b799b1108c77961a73350cd8456117ed4b",
+                "startLine": 114,
+                "endLine": 116,
+                "startByte": 3644,
+                "endByte": 3728,
+                "text": "     * The empty string.\n     */\n    private static final String EMPTY_STRING = \"\";\n"
+              },
+              {
+                "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+                "path": "src/main/java/org/apache/commons/cli/DeprecatedAttributes.java",
+                "blob": "3d19a2b799b1108c77961a73350cd8456117ed4b",
+                "startLine": 176,
+                "endLine": 178,
+                "startByte": 5187,
+                "endByte": 5295,
+                "text": "    private String toEmpty(final String since) {\n        return since != null ? since : EMPTY_STRING;\n    }\n"
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "63b0f211ef77603c2363",
+      "intentId": "matrix-private-matches",
+      "language": "fr",
+      "query": "Quels noms d’options candidates mon application privée a-t-elle vus lors de sa dernière entrée ambiguë ?",
+      "repository": "commons-current",
+      "kind": "unavailable_runtime",
+      "expectation": "Source defines access to a supplied collection, but does not contain the private runtime collection.",
+      "witnesses": [
+        {
+          "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+          "path": "src/main/java/org/apache/commons/cli/AmbiguousOptionException.java",
+          "blob": "1a64e95c186bae05d32870393f7840a41b6912b2",
+          "startLine": 68,
+          "endLine": 70,
+          "startByte": 2254,
+          "endByte": 2466,
+          "text": "    public AmbiguousOptionException(final String option, final Collection<String> matchingOptions) {\n        super(createMessage(option, matchingOptions), option);\n        this.matchingOptions = matchingOptions;\n"
+        },
+        {
+          "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+          "path": "src/main/java/org/apache/commons/cli/AmbiguousOptionException.java",
+          "blob": "1a64e95c186bae05d32870393f7840a41b6912b2",
+          "startLine": 78,
+          "endLine": 80,
+          "startByte": 2605,
+          "endByte": 2696,
+          "text": "    public Collection<String> getMatchingOptions() {\n        return matchingOptions;\n    }\n"
+        }
+      ]
+    },
+    {
+      "id": "44f76f2117651c01d847",
+      "intentId": "matrix-private-width",
+      "language": "en",
+      "query": "What exact help output width did my production CLI use during its last invocation?",
+      "repository": "commons-current",
+      "kind": "unavailable_runtime",
+      "expectation": "Default width configuration cannot reveal the caller’s runtime override.",
+      "witnesses": [
+        {
+          "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+          "path": "src/main/java/org/apache/commons/cli/help/TextStyle.java",
+          "blob": "02346daaee6e5270dbd245b50772b57ec4f15061",
+          "startLine": 52,
+          "endLine": 59,
+          "startByte": 1567,
+          "endByte": 1822,
+          "text": "     * The builder for the TextStyle. The default values are:\n     * <ul>\n     * <li>alignment = LEFT</li>\n     * <li>leftPad = 0</li>\n     * <li>scaling = VARIABLE</li>\n     * <li>minWidth = 0</li>\n     * <li>maxWidth = UNSET_MAX_WIDTH</li>\n     * </ul>\n"
+        },
+        {
+          "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+          "path": "src/main/java/org/apache/commons/cli/help/TextStyle.java",
+          "blob": "02346daaee6e5270dbd245b50772b57ec4f15061",
+          "startLine": 75,
+          "endLine": 79,
+          "startByte": 2294,
+          "endByte": 2441,
+          "text": "        /** The minimum width. */\n        private int minWidth;\n\n        /** The maximum width. */\n        private int maxWidth = UNSET_MAX_WIDTH;\n"
+        }
+      ]
+    },
+    {
+      "id": "18178884d05e0061b1d3",
+      "intentId": "matrix-private-matches",
+      "language": "en",
+      "query": "Which candidate option names did my private application see in its most recent ambiguous input?",
+      "repository": "commons-current",
+      "kind": "unavailable_runtime",
+      "expectation": "Source defines access to a supplied collection, but does not contain the private runtime collection.",
+      "witnesses": [
+        {
+          "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+          "path": "src/main/java/org/apache/commons/cli/AmbiguousOptionException.java",
+          "blob": "1a64e95c186bae05d32870393f7840a41b6912b2",
+          "startLine": 68,
+          "endLine": 70,
+          "startByte": 2254,
+          "endByte": 2466,
+          "text": "    public AmbiguousOptionException(final String option, final Collection<String> matchingOptions) {\n        super(createMessage(option, matchingOptions), option);\n        this.matchingOptions = matchingOptions;\n"
+        },
+        {
+          "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+          "path": "src/main/java/org/apache/commons/cli/AmbiguousOptionException.java",
+          "blob": "1a64e95c186bae05d32870393f7840a41b6912b2",
+          "startLine": 78,
+          "endLine": 80,
+          "startByte": 2605,
+          "endByte": 2696,
+          "text": "    public Collection<String> getMatchingOptions() {\n        return matchingOptions;\n    }\n"
+        }
+      ]
+    },
+    {
+      "id": "bec139a20f7cd5561aa6",
+      "intentId": "matrix-next-removal",
+      "language": "fr",
+      "query": "Quelle option sera réellement supprimée dans la prochaine version non publiée et à quelle date ?",
+      "repository": "commons-current",
+      "kind": "unavailable_future",
+      "expectation": "Stored metadata can express intended removal, but cannot establish a future release event or date.",
+      "witnesses": [
+        {
+          "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+          "path": "src/main/java/org/apache/commons/cli/DeprecatedAttributes.java",
+          "blob": "3d19a2b799b1108c77961a73350cd8456117ed4b",
+          "startLine": 167,
+          "endLine": 173,
+          "startByte": 4940,
+          "endByte": 5180,
+          "text": "    /**\n     * Tests whether this option is subject to removal in a future version.\n     *\n     * @return whether this option is subject to removal in a future version.\n     */\n    public boolean isForRemoval() {\n        return forRemoval;\n"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,44 @@
+[
+  {
+    "id": "request-rate",
+    "path": "backend/server/src/domain/github.rs",
+    "anchor": "pub const MAX_REQUESTS_PER_MINUTE: u16 = 60;",
+    "en": "What is the highest allowed number of GitHub requests in a minute?",
+    "fr": "Combien de requêtes par minute peut-on envoyer à GitHub ?"
+  },
+  {
+    "id": "http-redirects",
+    "path": "backend/server/src/adapters/outbound/github/request.rs",
+    "anchor": "const MAX_REDIRECTS: usize = 3;",
+    "en": "How many redirects does the GitHub REST adapter follow at most?",
+    "fr": "Combien de redirections le client HTTP GitHub peut-il suivre au maximum ?"
+  },
+  {
+    "id": "contents-permission",
+    "path": "backend/server/src/domain/github.rs",
+    "anchor": "self.current_code || self.history || self.actions || self.code_graph",
+    "en": "Which GitHub repository features require contents access?",
+    "fr": "Quelles fonctionnalités GitHub nécessitent un accès au contenu du dépôt ?"
+  },
+  {
+    "id": "github-file-size",
+    "path": "backend/server/src/adapters/outbound/github/current.rs",
+    "anchor": "const MAX_FILE_BYTES: u64 = 256 * 1024;",
+    "en": "What is the largest GitHub source file the REST adapter will fetch?",
+    "fr": "Quelle taille de fichier maximale le client REST GitHub accepte-t-il ?"
+  },
+  {
+    "id": "search-result-count",
+    "path": "backend/server/src/application/retrieval.rs",
+    "anchor": "pub const MAX_RESULTS: usize = 20;",
+    "en": "How many local search results can the backend return at most?",
+    "fr": "Combien de résultats le serveur peut-il renvoyer pour une recherche locale ?"
+  },
+  {
+    "id": "events-per-span",
+    "path": "backend/server/src/application/telemetry.rs",
+    "anchor": "pub(crate) const MAX_PER_SPAN: u32 = 8;",
+    "en": "How many diagnostic events can the recorder retain per trace span?",
+    "fr": "Combien d’événements de diagnostic peut-on conserver dans un seul span ?"
+  }
+]

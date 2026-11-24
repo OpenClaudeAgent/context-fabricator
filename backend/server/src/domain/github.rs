@@ -1,6 +1,11 @@
+pub mod actions;
+pub mod branches;
 use serde::{Deserialize, Serialize};
 
 pub mod current;
+pub mod graph;
+pub mod history;
+pub mod source;
 
 pub const BUCKET: &str = "github";
 pub const MAX_REQUESTS_PER_MINUTE: u16 = 60;
@@ -55,6 +60,16 @@ pub enum Access {
     Unavailable,
 }
 
+impl Access {
+    pub(crate) const fn from_available(available: bool) -> Self {
+        if available {
+            Self::Available
+        } else {
+            Self::Unavailable
+        }
+    }
+}
+
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ConfiguredRepository {
@@ -67,6 +82,19 @@ pub struct ConfiguredRepository {
     pub verified: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub code_collection: Option<current::CollectionStatus>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub history_activity: Option<CollectionActivity>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub actions_activity: Option<CollectionActivity>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CollectionActivity {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub latest_attempt: Option<super::telemetry::TraceLink>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub published_snapshot: Option<super::telemetry::TraceLink>,
 }
 
 #[derive(Debug, Serialize)]
@@ -124,6 +152,17 @@ pub struct TrafficStatus {
 pub struct Defaults {
     pub interval_minutes: u16,
     pub features: Features,
+    pub refresh_interval: RefreshInterval,
+}
+
+const MIN_REFRESH_INTERVAL_MINUTES: u16 = 15;
+const MAX_REFRESH_INTERVAL_MINUTES: u16 = 1_440;
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RefreshInterval {
+    minimum_minutes: u16,
+    maximum_minutes: u16,
 }
 
 impl Default for Defaults {
@@ -136,8 +175,25 @@ impl Default for Defaults {
                 actions: false,
                 code_graph: false,
             },
+            refresh_interval: RefreshInterval {
+                minimum_minutes: MIN_REFRESH_INTERVAL_MINUTES,
+                maximum_minutes: MAX_REFRESH_INTERVAL_MINUTES,
+            },
         }
     }
+}
+
+#[derive(serde::Serialize)]
+pub struct DataState {
+    pub paused: bool,
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StorageBudget {
+    pub revision: u32,
+    pub limit_gb: u16,
+    pub bytes: i64,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, thiserror::Error)]
@@ -145,7 +201,11 @@ pub enum Error {
     #[error("Choose a GitHub request limit between 1 and 60 requests per minute.")]
     InvalidRate,
     #[error(
-        "Enter a GitHub repository as owner/repo or a github.com repository URL. Check the branch and sync interval."
+        "Choose a refresh interval between {MIN_REFRESH_INTERVAL_MINUTES} and {MAX_REFRESH_INTERVAL_MINUTES} minutes."
+    )]
+    InvalidInterval,
+    #[error(
+        "Enter a GitHub repository as owner/repo or a github.com repository URL, and check the branch name."
     )]
     InvalidSelection,
     #[error("Enter a fine-grained GitHub personal access token.")]
@@ -168,9 +228,24 @@ pub enum Error {
     ExpiredPin,
     #[error("GitHub settings changed. Refresh and try again.")]
     Conflict,
+    #[error("Choose a GitHub storage limit between 1 and 1000 GB.")]
+    InvalidStorageLimit,
+    #[error(
+        "The GitHub logical storage limit has been reached. Increase the limit or remove retained data before retrying."
+    )]
+    StorageLimit,
     #[error("The local GitHub settings store is unavailable.")]
     Storage,
-    #[error("The credential store is unavailable. Unlock the macOS Keychain and try again.")]
+    #[cfg_attr(
+        target_os = "linux",
+        error(
+            "The credential store is unavailable. Start or unlock your Secret Service keyring and try again."
+        )
+    )]
+    #[cfg_attr(
+        not(target_os = "linux"),
+        error("The credential store is unavailable. Unlock the macOS Keychain and try again.")
+    )]
     Credentials,
 }
 
@@ -210,8 +285,12 @@ impl Selection {
     /// # Errors
     /// Rejects an unsupported repository, branch, interval, or identity.
     pub fn validate(&self) -> Result<RepositoryName<'_>, Error> {
+        if !(MIN_REFRESH_INTERVAL_MINUTES..=MAX_REFRESH_INTERVAL_MINUTES)
+            .contains(&self.interval_minutes)
+        {
+            return Err(Error::InvalidInterval);
+        }
         if self.repository.len() > 240
-            || !(15..=1_440).contains(&self.interval_minutes)
             || self.expected_id.is_some_and(|id| id <= 0)
             || self
                 .branch
@@ -230,4 +309,35 @@ pub(crate) fn valid_branch(branch: &str) -> bool {
         && !branch
             .chars()
             .any(|character| character.is_whitespace() || character.is_control())
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Schedule {
+    pub next_at_ms: i64,
+    pub last_checked_at_ms: i64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub last_error: Option<String>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct ScheduleDue {
+    pub repository_id: i64,
+    pub generation: i64,
+    pub at_ms: i64,
+    pub interval_minutes: i64,
+}
+
+impl Error {
+    pub(crate) const fn schedule_code(self) -> &'static str {
+        match self {
+            Self::Throttled => "throttled",
+            Self::Reconnect | Self::Credentials => "credentials",
+            Self::Access => "access",
+            Self::Conflict => "staleScope",
+            Self::CollectionLimit => "collectionLimit",
+            Self::StorageLimit => "storageLimit",
+            _ => "unavailable",
+        }
+    }
 }

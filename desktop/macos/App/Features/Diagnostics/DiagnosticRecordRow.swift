@@ -1,33 +1,43 @@
-import DesktopFeature
 import Foundation
 import LocalAPI
 import SwiftUI
 
 struct DiagnosticsSampleRow: View {
+  @Environment(\.locale) private var locale
+  enum Kind {
+    case logs
+    case traces
+  }
+
   let value: Components.Schemas.SignalSample
-  let tab: Dashboard.DiagnosticTab
-  let showTrace: ((String, String?) -> Void)?
+  let kind: Kind
+  let showTrace: (String, String?) -> Void
 
   var body: some View {
-    HStack(alignment: .top, spacing: 8) {
+    DiagnosticRecordLayout(timestamp: value.timestamp) {
       record
-      if let trace = value.traceId, let showTrace {
-        Button("View Trace", systemImage: "waveform.path") { showTrace(trace, value.spanId) }
-          .labelStyle(.iconOnly)
-          .buttonStyle(.borderless)
-          .controlSize(.small)
-          .padding(.top, 4)
-          .help("View Trace")
-          .accessibilityLabel("View Trace")
-          .accessibilityIdentifier("view-\(tab == .logs ? "log" : "span")-trace-\(value.id)")
-      }
+        .frame(maxWidth: .infinity, alignment: .leading)
+      traceAction
+        .frame(width: 18)
+    }
+  }
+
+  @ViewBuilder private var traceAction: some View {
+    if let trace = value.traceId {
+      Button("View Trace", systemImage: "waveform.path") { showTrace(trace, value.spanId) }
+        .labelStyle(.iconOnly)
+        .buttonStyle(.borderless)
+        .controlSize(.small)
+        .help("View Trace")
+        .accessibilityLabel("View Trace")
+        .accessibilityIdentifier("view-\(kind == .logs ? "log" : "span")-trace-\(value.id)")
+    } else {
+      Color.clear.frame(height: 1).accessibilityHidden(true)
     }
   }
 
   @ViewBuilder private var record: some View {
-    if tab == .traces || tab == .logs,
-      value.traceId != nil || value.spanId != nil || value.parentSpanId != nil
-    {
+    if value.traceId != nil || value.spanId != nil || value.parentSpanId != nil {
       DisclosureGroup {
         VStack(alignment: .leading, spacing: 5) {
           if let trace = value.traceId { traceValue("Trace ID", value: trace) }
@@ -36,28 +46,78 @@ struct DiagnosticsSampleRow: View {
         }
         .padding(.vertical, 6)
       } label: {
-        sampleSummary(value)
+        sampleSummary
       }
-      .accessibilityIdentifier(tab == .traces ? "telemetry-span" : "telemetry-log-\(value.name)")
+      .accessibilityIdentifier(recordIdentifier)
     } else {
-      sampleSummary(value)
-        .accessibilityIdentifier(
-          tab == .metrics ? "telemetry-metric" : "telemetry-log-\(value.name)")
+      sampleSummary.accessibilityIdentifier(recordIdentifier)
     }
   }
 
-  private func sampleSummary(_ value: Components.Schemas.SignalSample) -> some View {
-    DiagnosticRecordLayout(timestamp: value.timestamp) {
-      Text(value.displayName ?? value.name).font(.callout.weight(.medium))
+  private var recordIdentifier: String {
+    kind == .traces ? "telemetry-span" : "telemetry-log-\(value.name)"
+  }
+
+  private var sampleSummary: some View {
+    HStack(alignment: .firstTextBaseline, spacing: 8) {
+      VStack(alignment: .leading, spacing: 3) {
+        Text(summaryTitle)
+          .font(.callout.weight(.medium))
+        if let operation = summaryOperation {
+          Text(operation).font(.caption.monospaced()).foregroundStyle(.secondary)
+        }
+        if kind == .logs, let problem = value.problemCode {
+          Text(problem).font(.caption.monospaced()).foregroundStyle(.secondary)
+        }
+      }
       Spacer(minLength: 8)
-      if let number = value.value {
-        Text(tab == .traces ? "\(number.formatted()) µs" : number.formatted())
+      if let duration = value.value {
+        Text(TraceStep.elapsed(duration))
+          .font(.callout)
           .monospacedDigit()
       }
-      if let level = value.level {
-        severity(level)
+      status
+        .frame(width: kind == .traces ? 128 : 54, alignment: .trailing)
+        .lineLimit(1)
+      if let status = value.httpStatus {
+        Text("HTTP \(status)")
+          .font(.caption.monospacedDigit())
+          .foregroundStyle(.secondary)
+          .frame(width: 55, alignment: .trailing)
+      } else {
+        Color.clear.frame(width: 55, height: 1).accessibilityHidden(true)
       }
     }
+  }
+
+  @ViewBuilder private var status: some View {
+    if kind == .traces {
+      let outcome = value.spanOutcome ?? .unknown
+      Label(outcome.title(in: locale), systemImage: outcome.symbol)
+        .font(.caption)
+        .foregroundStyle(outcome.tint)
+        .help(outcome.title(in: locale))
+    } else if let level = value.level {
+      severity(level)
+    } else {
+      Color.clear.frame(height: 1).accessibilityHidden(true)
+    }
+  }
+
+  private var summaryTitle: String {
+    TraceStep.title(for: value, in: locale)
+  }
+
+  private var summaryOperation: String? {
+    let operation =
+      if let method = value.httpMethod, let route = value.httpRoute {
+        "\(method) \(route)"
+      } else if kind == .logs, value.name == "api_request" {
+        value.httpMethod
+      } else {
+        value.operation
+      }
+    return operation == summaryTitle ? nil : operation
   }
 
   private func severity(_ level: Components.Schemas.SignalSample.levelPayload) -> some View {
@@ -70,14 +130,14 @@ struct DiagnosticsSampleRow: View {
     case .debug: (symbol, tint) = ("ladybug", .blue)
     }
     return Label {
-      Text(level.rawValue.capitalized).foregroundStyle(.secondary)
+      Text(level.localizedTitle).foregroundStyle(.secondary)
     } icon: {
       Image(systemName: symbol).foregroundStyle(tint)
     }
     .font(.caption)
   }
 
-  private func traceValue(_ title: String, value: String) -> some View {
+  private func traceValue(_ title: LocalizedStringKey, value: String) -> some View {
     LabeledContent(title) {
       Text(value).font(.caption.monospaced()).textSelection(.enabled)
     }
@@ -97,7 +157,8 @@ struct DiagnosticRecordLayout<Content: View>: View {
       )
       .monospacedDigit()
       .foregroundStyle(.secondary)
-      .frame(minWidth: 140, alignment: .leading)
+      .lineLimit(1)
+      .frame(width: 140, alignment: .leading)
       content
     }
     .padding(.vertical, 4)

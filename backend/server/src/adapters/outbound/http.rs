@@ -17,8 +17,23 @@ use hyper_util::{
 use tokio::time::timeout;
 
 use crate::application::Failure;
+use crate::application::telemetry::{Event, Stage, TraceContext};
 use crate::domain::sync::{Reply, RequestKind};
 use crate::runtime::outbound::{GateStatus, OutboundGate};
+
+#[derive(Default)]
+pub(crate) struct ArtifactAdmission<'a> {
+    pub shared: Option<&'a tokio::sync::Semaphore>,
+    pub pause: Option<tokio::sync::watch::Receiver<bool>>,
+    pub trace: Option<DispatchTrace<'a>>,
+}
+
+#[derive(Clone, Copy)]
+pub(crate) struct DispatchTrace<'a> {
+    pub context: TraceContext<'a>,
+    pub stage: Stage,
+    pub route: &'static str,
+}
 
 pub struct HttpTransport {
     gate: Arc<OutboundGate>,
@@ -52,8 +67,33 @@ impl HttpTransport {
         deadline: Duration,
         handle: impl AsyncFnOnce(&mut Response<Incoming>) -> Reply<T>,
     ) -> Result<Reply<T>, Failure> {
-        self.send_with(kind, request, deadline, async |response| {
-            match response.status() {
+        self.send_checked(
+            kind,
+            request,
+            deadline,
+            || Ok(()),
+            ArtifactAdmission::default(),
+            handle,
+        )
+        .await
+    }
+
+    pub(crate) async fn send_checked<T>(
+        &self,
+        kind: RequestKind,
+        request: Request<Full<Bytes>>,
+        deadline: Duration,
+        authorize: impl Fn() -> Result<(), Failure> + Sync,
+        admission: ArtifactAdmission<'_>,
+        handle: impl AsyncFnOnce(&mut Response<Incoming>) -> Reply<T>,
+    ) -> Result<Reply<T>, Failure> {
+        self.send_guarded_artifact(
+            kind,
+            request,
+            deadline,
+            authorize,
+            admission,
+            async |response| match response.status() {
                 StatusCode::TOO_MANY_REQUESTS => Reply::Throttled(
                     retry_after(response.headers()).unwrap_or(Duration::from_secs(2)),
                 ),
@@ -61,8 +101,8 @@ impl HttpTransport {
                     retry_after(response.headers()).map_or(Reply::Temporary, Reply::Throttled)
                 }
                 _ => handle(response).await,
-            }
-        })
+            },
+        )
         .await
     }
 
@@ -78,35 +118,88 @@ impl HttpTransport {
         self.gate.status()
     }
 
-    pub(crate) async fn send_with<T>(
-        &self,
-        kind: RequestKind,
-        request: Request<Full<Bytes>>,
-        deadline: Duration,
-        handle: impl AsyncFnOnce(&mut Response<Incoming>) -> Reply<T>,
-    ) -> Result<Reply<T>, Failure> {
-        self.send_guarded(kind, request, deadline, || Ok(()), handle)
-            .await
-    }
-
     pub(crate) async fn send_guarded<T>(
         &self,
         kind: RequestKind,
         request: Request<Full<Bytes>>,
         deadline: Duration,
         authorize: impl Fn() -> Result<(), Failure> + Sync,
+        trace: Option<DispatchTrace<'_>>,
         handle: impl AsyncFnOnce(&mut Response<Incoming>) -> Reply<T>,
     ) -> Result<Reply<T>, Failure> {
-        self.gate
-            .handoff_guarded(kind, deadline, authorize, async |_| {
-                let Ok(Ok(mut response)) =
-                    timeout(Duration::from_secs(30), self.client.request(request)).await
-                else {
-                    return Reply::Temporary;
-                };
-                handle(&mut response).await
-            })
-            .await
+        self.send_guarded_artifact(
+            kind,
+            request,
+            deadline,
+            authorize,
+            ArtifactAdmission {
+                trace,
+                ..ArtifactAdmission::default()
+            },
+            handle,
+        )
+        .await
+    }
+
+    async fn send_guarded_artifact<T>(
+        &self,
+        kind: RequestKind,
+        request: Request<Full<Bytes>>,
+        deadline: Duration,
+        authorize: impl Fn() -> Result<(), Failure> + Sync,
+        admission: ArtifactAdmission<'_>,
+        handle: impl AsyncFnOnce(&mut Response<Incoming>) -> Reply<T>,
+    ) -> Result<Reply<T>, Failure> {
+        let method = match *request.method() {
+            hyper::Method::GET => Some("GET"),
+            hyper::Method::POST => Some("POST"),
+            _ => None,
+        };
+        let mut dispatched = None;
+        let mut exchange_finished = false;
+        let result = self
+            .gate
+            .handoff_artifact(
+                kind,
+                deadline,
+                authorize,
+                admission.shared,
+                admission.pause,
+                async |_| {
+                    // The gate has reserved this handoff before the operation starts.
+                    dispatched = admission.trace.map(|trace| {
+                        let mut span = trace
+                            .context
+                            .observer
+                            .start(trace.stage, Some(trace.context.parent));
+                        if let Some(method) = method {
+                            span.http_request(method, Some(trace.route));
+                        }
+                        span
+                    });
+                    let reply = match timeout(Duration::from_secs(30), self.client.request(request))
+                        .await
+                    {
+                        Ok(Ok(mut response)) => {
+                            if let Some(span) = &mut dispatched {
+                                span.http_status(response.status().as_u16());
+                            }
+                            handle(&mut response).await
+                        }
+                        _ => Reply::Temporary,
+                    };
+                    exchange_finished = true;
+                    reply
+                },
+            )
+            .await;
+        if let Some(mut span) = dispatched {
+            if !exchange_finished {
+                span.event(Event::ProviderRequestDeadline);
+            }
+            span.finish(matches!(&result, Ok(Reply::Success(_))));
+        }
+        result
     }
 }
 

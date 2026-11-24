@@ -1,0 +1,20 @@
+{
+  "repository": "serde-rs/json",
+  "repositoryId": 35894511,
+  "defaultBranch": "master",
+  "license": "MIT OR Apache-2.0",
+  "commit": "f51fa15a7015c7d02817a46d2db44c899a0016e8",
+  "parent": "8c535a260ce561eaab4111aafc29038eb9f77ff3",
+  "tree": "a428bd2128316e398abdf3eec298a208833adf3c",
+  "trackedPaths": 93,
+  "blobs": {
+    "LICENSE-MIT": "31aa79387f27e730e33d871925e152e35e428031",
+    "LICENSE-APACHE": "1b5ec8b78e237b5c3b3d812a7c0a6589d0f7161d",
+    ".github/workflows/ci.yml": "b8f2e93a3fdddb32f45e2d9be42bcc3978ad6a89",
+    "README.md": "e19dc62c3b1bd74cfee628a02241cadbd6390cdb"
+  },
+  "expectedPublication": {
+    "paths": 93,
+    "manifestSha256": "b5b844693909114f5df112fd608ff092c3c67504cde45509b3215461d0e5ca2e"
+  }
+}

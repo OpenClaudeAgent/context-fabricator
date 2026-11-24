@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Context Fabricator
+Exec=context-fabricator-qt
+Icon=org.contextfabricator.qt
+Terminal=false
+Categories=Development;

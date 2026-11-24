@@ -18,6 +18,10 @@ final class BackendSupervisor {
   private var parentPipe: Pipe?
   private var observers: [UUID: AsyncStream<BackendConnectionError>.Continuation] = [:]
 
+  var pipelinePreferencesKey: String {
+    "inspectionSources.\(directory.standardizedFileURL.path)"
+  }
+
   var inferenceDirectory: URL {
     ProcessInfo.processInfo.environment["CTXFAB_INFERENCE_DIRECTORY"].map {
       URL(filePath: $0, directoryHint: .isDirectory)
@@ -63,7 +67,7 @@ final class BackendSupervisor {
     while ContinuousClock.now < deadline {
       try Task.checkCancellation()
       guard process === current, current.isRunning, parentPipe != nil else {
-        throw BackendConnectionError.helperExited
+        throw exitError(current)
       }
       if let endpoint = try? readEndpoint(), endpoint.processId == current.processIdentifier {
         guard endpoint.apiVersion == 1 else { throw BackendConnectionError.incompatibleAPI }
@@ -113,9 +117,16 @@ final class BackendSupervisor {
     stop()
     if unexpected {
       for observer in observers.values {
-        observer.yield(.helperExited)
+        observer.yield(exitError(task))
       }
     }
+  }
+
+  private func exitError(_ task: Process) -> BackendConnectionError {
+    guard !task.isRunning, task.terminationReason == .exit, task.terminationStatus == 75 else {
+      return .helperExited
+    }
+    return .dataDirectoryInUse
   }
 
   private func readEndpoint() throws -> Endpoint {

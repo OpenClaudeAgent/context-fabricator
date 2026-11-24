@@ -11,8 +11,8 @@ use std::sync::mpsc;
 use std::thread;
 use std::time::{Duration, Instant};
 
-use super::Profile;
-use crate::PROFILE;
+use super::valid_embedding_alias;
+use super::{Profile, WORKER_CONTEXT_TOKENS};
 
 pub const GUARD_ARGUMENT: &str = "--guard-inference-worker";
 
@@ -28,9 +28,10 @@ pub(super) struct Endpoint {
 
 impl Guardian {
     pub(super) fn spawn(
+        guardian: Option<&Path>,
         binary: &Path,
         model: &Path,
-        profile: Profile,
+        profile: &Profile,
     ) -> io::Result<(Self, Endpoint)> {
         let port = TcpListener::bind((Ipv4Addr::LOCALHOST, 0))?
             .local_addr()?
@@ -41,10 +42,16 @@ impl Guardian {
         for byte in random {
             write!(secret, "{byte:02x}").map_err(io::Error::other)?;
         }
-        let mut child = Command::new(std::env::current_exe()?)
+        let program = match guardian {
+            Some(path) => path.to_owned(),
+            None => std::env::current_exe()?,
+        };
+        let mut child = Command::new(program)
             .arg(GUARD_ARGUMENT)
             .arg(match profile {
-                Profile::Embedding => "embedding",
+                Profile::Embedding | Profile::EmbeddingF16 | Profile::ImportedEmbedding(_) => {
+                    "embedding"
+                }
                 Profile::Generation(_) => "generation",
             })
             .arg(profile.alias())
@@ -89,18 +96,17 @@ impl Drop for Guardian {
 ///
 /// # Errors
 /// Returns an error for malformed arguments or when the child process cannot be managed.
-pub fn run_guard(mut args: impl Iterator<Item = OsString>) -> io::Result<()> {
+pub fn run_guard(
+    mut args: impl Iterator<Item = OsString>,
+    verify: impl FnOnce(&std::path::Path, &std::path::Path, &str) -> io::Result<PathBuf>,
+) -> io::Result<()> {
     let invalid = || io::Error::other("invalid managed worker arguments");
     let mode = args.next().ok_or_else(invalid)?;
     let alias = args.next().ok_or_else(invalid)?;
-    let profile = match (mode.to_str(), alias.to_str()) {
-        (Some("embedding"), Some(PROFILE)) => Profile::Embedding,
-        (Some("generation"), Some(alias)) => Profile::Generation(
-            crate::generation::MODELS
-                .into_iter()
-                .find(|model| model.id == alias)
-                .ok_or_else(invalid)?,
-        ),
+    let alias = alias.to_str().ok_or_else(invalid)?;
+    let embedding = match mode.to_str() {
+        Some("embedding") if valid_embedding_alias(alias) => true,
+        Some("generation") if crate::generation::valid_generation_alias(alias) => false,
         _ => return Err(invalid()),
     };
     let binary = PathBuf::from(args.next().ok_or_else(invalid)?);
@@ -122,7 +128,7 @@ pub fn run_guard(mut args: impl Iterator<Item = OsString>) -> io::Result<()> {
         .mode(0o600)
         .open(&key)?
         .write_all(credential.as_bytes())?;
-    let mut command = Command::new(binary);
+    let mut command = Command::new(verify(&binary, &model, alias)?);
     command
         .env_clear()
         .args(["--offline", "--host", "127.0.0.1", "--port"])
@@ -133,19 +139,16 @@ pub fn run_guard(mut args: impl Iterator<Item = OsString>) -> io::Result<()> {
         .arg(model)
         .args([
             "--alias",
-            profile.alias(),
+            alias,
             "--no-ui",
             "--log-disable",
             "--gpu-layers",
             "all",
             "--ctx-size",
-            "4096",
-            "--parallel",
-            "1",
-            "--threads",
-            "4",
-        ]);
-    if matches!(profile, Profile::Embedding) {
+        ])
+        .arg(WORKER_CONTEXT_TOKENS.to_string())
+        .args(["--parallel", "1", "--threads", "4"]);
+    if embedding {
         command.args([
             "--embedding",
             "--pooling",
@@ -157,6 +160,8 @@ pub fn run_guard(mut args: impl Iterator<Item = OsString>) -> io::Result<()> {
             "--ubatch-size",
             "4096",
         ]);
+    } else {
+        command.arg("--no-context-shift");
     }
     let mut child = command
         .stdin(Stdio::null())

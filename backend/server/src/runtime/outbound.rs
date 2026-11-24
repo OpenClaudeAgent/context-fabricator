@@ -185,30 +185,63 @@ impl OutboundGate {
         authorize: impl Fn() -> Result<(), Failure> + Sync,
         operation: impl AsyncFnOnce(RequestKind) -> Reply<T>,
     ) -> Result<Reply<T>, Failure> {
-        self.queued.fetch_add(1, Ordering::Relaxed);
-        let waiting = Queued(&self.queued);
-        let _permit = self
-            .concurrency
-            .acquire()
+        self.handoff_artifact(kind, deadline, authorize, None, None, operation)
             .await
-            .map_err(|_| Failure::Storage)?;
-        {
+    }
+
+    pub(crate) async fn handoff_artifact<T>(
+        &self,
+        kind: RequestKind,
+        deadline: Duration,
+        authorize: impl Fn() -> Result<(), Failure> + Sync,
+        shared: Option<&Semaphore>,
+        mut pause: Option<tokio::sync::watch::Receiver<bool>>,
+        operation: impl AsyncFnOnce(RequestKind) -> Reply<T>,
+    ) -> Result<Reply<T>, Failure> {
+        let admit = async {
+            self.queued.fetch_add(1, Ordering::Relaxed);
+            let waiting = Queued(&self.queued);
+            let provider = self
+                .concurrency
+                .acquire()
+                .await
+                .map_err(|_| Failure::Storage)?;
             let mut next = self.next_handoff.lock().await;
             self.clock.wait_until(*next).await;
-            loop {
+            let shared_permit = loop {
+                let shared_permit = match shared {
+                    Some(slot) => Some(slot.acquire().await.map_err(|_| Failure::Storage)?),
+                    None => None,
+                };
                 authorize()?;
                 match self
                     .ledger
                     .reserve(&self.bucket, self.clock.now(), self.spacing)?
                 {
-                    Admission::Granted => break,
-                    Admission::WaitUntil(due_at) => self.clock.wait_until(due_at).await,
+                    Admission::Granted => break shared_permit,
+                    Admission::WaitUntil(due_at) => {
+                        drop(shared_permit);
+                        self.clock.wait_until(due_at).await;
+                    }
                 }
-            }
+            };
             *next = self.clock.now().saturating_add(self.spacing);
-        }
-        let reservation = Reservation(Some(self));
-        drop(waiting);
+            drop(next);
+            let reservation = Reservation(Some(self));
+            drop(waiting);
+            Ok::<_, Failure>((provider, shared_permit, reservation))
+        };
+        let (_provider, _shared, reservation) = if let Some(pause) = &mut pause {
+            tokio::select! {
+                biased;
+                changed = pause.wait_for(|paused| *paused) => {
+                    return Err(if changed.is_ok() { Failure::Conflict } else { Failure::Storage });
+                }
+                result = admit => result?,
+            }
+        } else {
+            admit.await?
+        };
         let reply = timeout(deadline, operation(kind))
             .await
             .unwrap_or(Reply::Temporary);

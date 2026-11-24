@@ -1,0 +1,1644 @@
+{
+  "references": [
+    {
+      "title": "apache/commons-cli",
+      "repository": "apache/commons-cli",
+      "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+      "questions": [
+        {
+          "id": "r1",
+          "title": "According to the README, what should I run to see the coverage report even…",
+          "query": "According to the README, what should I run to see the coverage report even if coverage fails?",
+          "expected": "Command exactly mvn clean site -Dcommons.jacoco.haltOnFailure=false -Pjacoco; report even if coverage fails.",
+          "source": "https://github.com/apache/commons-cli/blob/aec9bb2dd90df2d7f775d6da2f026a1c328a03e6/README.md#L91-L93"
+        },
+        {
+          "id": "r2",
+          "title": "According to the README, what should I do before pushing a pull request, and…",
+          "query": "According to the README, what should I do before pushing a pull request, and what does that command run?",
+          "expected": "Run mvn without arguments before pushing; default goal runs all build checks.",
+          "source": "https://github.com/apache/commons-cli/blob/aec9bb2dd90df2d7f775d6da2f026a1c328a03e6/README.md#L91-L92"
+        },
+        {
+          "id": "r3",
+          "title": "What exact minimum Java version does the README state is required to build…",
+          "query": "What exact minimum Java version does the README state is required to build the project?",
+          "expected": "No numeric minimum stated in README; it points to maven.compiler.source in pom.xml. Abstain from inventing a number. README full text lines 1-119 was inspected.",
+          "source": "https://github.com/apache/commons-cli/blob/aec9bb2dd90df2d7f775d6da2f026a1c328a03e6/README.md#L75-L81"
+        },
+        {
+          "id": "c1",
+          "title": "In OptionGroup, what happens if I select a different option after one is…",
+          "query": "In OptionGroup, what happens if I select a different option after one is already selected, reselect the same option, or pass null?",
+          "expected": "Different option throws AlreadySelectedException; same key reselection accepted; null clears selection.",
+          "source": "https://github.com/apache/commons-cli/blob/aec9bb2dd90df2d7f775d6da2f026a1c328a03e6/src/main/java/org/apache/commons/cli/OptionGroup.java#L126-L147"
+        },
+        {
+          "id": "c2",
+          "title": "In OptionGroup, what happens if I select a different option after an initial…",
+          "query": "In OptionGroup, what happens if I select a different option after an initial selection, select the same option again, or pass null?",
+          "expected": "Different option throws AlreadySelectedException; same key reselection accepted; null clears selection.",
+          "source": "https://github.com/apache/commons-cli/blob/aec9bb2dd90df2d7f775d6da2f026a1c328a03e6/src/main/java/org/apache/commons/cli/OptionGroup.java#L126-L147"
+        },
+        {
+          "id": "runtime-class-name",
+          "title": "Which class name did our production service most recently pass to the…",
+          "query": "Which class name did our production service most recently pass to the class-name converter?",
+          "expected": "Repository source cannot establish the production service most recent invocation.",
+          "source": "https://github.com/apache/commons-cli/blob/aec9bb2dd90df2d7f775d6da2f026a1c328a03e6/src/main/java/org/apache/commons/cli/Converter.java#L46-L54"
+        },
+        {
+          "id": "mr-c1",
+          "title": "In Option, how does getKey choose between the short and long option names?",
+          "query": "In Option, how does getKey choose between the short and long option names?",
+          "expected": "Returns short option when non-null; otherwise returns long option.",
+          "source": "https://github.com/apache/commons-cli/blob/aec9bb2dd90df2d7f775d6da2f026a1c328a03e6/src/main/java/org/apache/commons/cli/Option.java#L648-L651"
+        },
+        {
+          "id": "mr-c1-fr",
+          "title": "In Option, how does getKey choose between the short name and the long name?",
+          "query": "In Option, how does getKey choose between the short name and the long name?",
+          "expected": "Returns short option when non-null; otherwise returns long option.",
+          "source": "https://github.com/apache/commons-cli/blob/aec9bb2dd90df2d7f775d6da2f026a1c328a03e6/src/main/java/org/apache/commons/cli/Option.java#L648-L651"
+        },
+        {
+          "id": "mr-c2",
+          "title": "In Parser, what does processArgs do when it encounters another known option,…",
+          "query": "In Parser, what does processArgs do when it encounters another known option, and when does it throw a missing-argument exception?",
+          "expected": "A known hyphen-prefixed option is rewound with iter.previous and argument processing stops; missing argument exception when values empty and option has no optional argument.",
+          "source": "https://github.com/apache/commons-cli/blob/aec9bb2dd90df2d7f775d6da2f026a1c328a03e6/src/main/java/org/apache/commons/cli/Parser.java#L217-L237"
+        },
+        {
+          "id": "mr-c-negative1",
+          "title": "How many times did the getKey method of Option run in our production service…",
+          "query": "How many times did the getKey method of Option run in our production service last hour?",
+          "expected": "Runtime invocation count cannot be determined from source; abstain.",
+          "source": "https://github.com/apache/commons-cli/blob/aec9bb2dd90df2d7f775d6da2f026a1c328a03e6/src/main/java/org/apache/commons/cli/Option.java#L648-L651"
+        },
+        {
+          "id": "mr-c-negative2",
+          "title": "What retry delay does the retryAfterLimit method of Option return after a…",
+          "query": "What retry delay does the retryAfterLimit method of Option return after a rate limit?",
+          "expected": "The requested member is absent from entire pinned Option source; abstain.",
+          "source": "https://github.com/apache/commons-cli/blob/aec9bb2dd90df2d7f775d6da2f026a1c328a03e6/src/main/java/org/apache/commons/cli/Option.java#L648-L651"
+        }
+      ],
+      "suite": "Java development"
+    },
+    {
+      "title": "FasterXML/jackson-databind",
+      "repository": "FasterXML/jackson-databind",
+      "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+      "questions": [
+        {
+          "id": "j1",
+          "title": "When a chained name transformer applies two transformations, in what order…",
+          "query": "When a chained name transformer applies two transformations, in what order are they applied, and what happens during reversal if the first reverse fails?",
+          "expected": "Forward applies t2 then t1; reverse applies t1 first and calls t2 only if t1 returned non-null; otherwise returns null.",
+          "source": "https://github.com/FasterXML/jackson-databind/blob/c92512e95ba389d50a9ff6278906eff24ab3128e/src/main/java/com/fasterxml/jackson/databind/util/NameTransformer.java#L128-L139"
+        },
+        {
+          "id": "j2",
+          "title": "When an LRUMap is serialized and restored, what happens to its cached…",
+          "query": "When an LRUMap is serialized and restored, what happens to its cached entries and which sizing information is retained?",
+          "expected": "Cached contents are not serialized; initial and maximum sizing are retained and a new empty LRUMap is constructed on readResolve. Additional witnesses lines 32-45 and 90-92.",
+          "source": "https://github.com/FasterXML/jackson-databind/blob/c92512e95ba389d50a9ff6278906eff24ab3128e/src/main/java/com/fasterxml/jackson/databind/util/LRUMap.java#L8-L92"
+        },
+        {
+          "id": "j3",
+          "title": "In this repository, what is the exact content of…",
+          "query": "In this repository, what is the exact content of src/main/java/com/acme/private/RuntimeConfig.java?",
+          "expected": "Path is absent from pinned Git tree; abstain, never invent file content."
+        },
+        {
+          "id": "nt-trigger-j1",
+          "title": "In MappingJsonFactory, how does hasFormat behave for the exact class and for…",
+          "query": "In MappingJsonFactory, how does hasFormat behave for the exact class and for a subclass?",
+          "expected": "The base method delegates to hasJSONFormat for the exact class and returns null for a subclass.",
+          "source": "https://github.com/FasterXML/jackson-databind/blob/c92512e95ba389d50a9ff6278906eff24ab3128e/src/main/java/com/fasterxml/jackson/databind/MappingJsonFactory.java#L85-L91"
+        },
+        {
+          "id": "nt-trigger-j1-fr",
+          "title": "In MappingJsonFactory, how does hasFormat behave for the exact class and for…",
+          "query": "In MappingJsonFactory, how does hasFormat behave for the exact class and for a subclass?",
+          "expected": "The base method delegates to hasJSONFormat for the exact class and returns null for a subclass.",
+          "source": "https://github.com/FasterXML/jackson-databind/blob/c92512e95ba389d50a9ff6278906eff24ab3128e/src/main/java/com/fasterxml/jackson/databind/MappingJsonFactory.java#L85-L91"
+        },
+        {
+          "id": "nt-trigger-j2",
+          "title": "In SerializerFactoryConfig, what does withAdditionalSerializers do when…",
+          "query": "In SerializerFactoryConfig, what does withAdditionalSerializers do when passed null versus a serializer?",
+          "expected": "Null throws IllegalArgumentException; a non-null Serializers provider is added and a new configuration is returned.",
+          "source": "https://github.com/FasterXML/jackson-databind/blob/c92512e95ba389d50a9ff6278906eff24ab3128e/src/main/java/com/fasterxml/jackson/databind/cfg/SerializerFactoryConfig.java#L56-L63"
+        },
+        {
+          "id": "nt-trigger-control",
+          "title": "In MappingJsonFactory, what does validateCompanyPolicy return for a denied…",
+          "query": "In MappingJsonFactory, what does validateCompanyPolicy return for a denied policy?",
+          "expected": "The named member is absent from the pinned class; abstain.",
+          "source": "https://github.com/FasterXML/jackson-databind/blob/c92512e95ba389d50a9ff6278906eff24ab3128e/src/main/java/com/fasterxml/jackson/databind/MappingJsonFactory.java#L85-L91"
+        },
+        {
+          "id": "dev-real-method-external",
+          "title": "In MappingJsonFactory, what HTTP retry delay does hasFormat set when a…",
+          "query": "In MappingJsonFactory, what HTTP retry delay does hasFormat set when a caller is rate limited?",
+          "expected": "A runtime HTTP retry delay is not established by the named method; abstain.",
+          "source": "https://github.com/FasterXML/jackson-databind/blob/c92512e95ba389d50a9ff6278906eff24ab3128e/src/main/java/com/fasterxml/jackson/databind/MappingJsonFactory.java#L85-L91"
+        },
+        {
+          "id": "dev-real-method-memory-fr",
+          "title": "In SerializerFactoryConfig, what maximum process memory limit does…",
+          "query": "In SerializerFactoryConfig, what maximum process memory limit does withAdditionalSerializers impose?",
+          "expected": "A process memory limit is not established by the named method; abstain.",
+          "source": "https://github.com/FasterXML/jackson-databind/blob/c92512e95ba389d50a9ff6278906eff24ab3128e/src/main/java/com/fasterxml/jackson/databind/cfg/SerializerFactoryConfig.java#L56-L63"
+        },
+        {
+          "id": "mr-j1",
+          "title": "In AnnotationIntrospector, when does hasAnyGetter return true, and what does…",
+          "query": "In AnnotationIntrospector, when does hasAnyGetter return true, and what does it return otherwise?",
+          "expected": "Returns true only if annotated item is AnnotatedMethod and hasAnyGetterAnnotation is true; otherwise null.",
+          "source": "https://github.com/FasterXML/jackson-databind/blob/c92512e95ba389d50a9ff6278906eff24ab3128e/src/main/java/com/fasterxml/jackson/databind/AnnotationIntrospector.java#L1043-L1051"
+        },
+        {
+          "id": "mr-j2",
+          "title": "In DatabindContext, how does resolveSubType handle a non-generic class name…",
+          "query": "In DatabindContext, how does resolveSubType handle a non-generic class name that is not found, and what happens if the resolved class is not a subtype?",
+          "expected": "For non-generic path ClassNotFoundException returns null; resolved incompatible class raises invalidTypeIdException with Not a subtype.",
+          "source": "https://github.com/FasterXML/jackson-databind/blob/c92512e95ba389d50a9ff6278906eff24ab3128e/src/main/java/com/fasterxml/jackson/databind/DatabindContext.java#L207-L224"
+        }
+      ],
+      "suite": "Java development"
+    },
+    {
+      "title": "apache/commons-cli",
+      "repository": "apache/commons-cli",
+      "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+      "questions": [
+        {
+          "id": "ts-c1",
+          "title": "When MissingOptionException is created from a list, how does its message…",
+          "query": "When MissingOptionException is created from a list, how does its message differ for one missing option versus multiple missing options?",
+          "expected": "For a list of one: Missing required option: followed by list contents. For multiple: Missing required options: followed by list contents; brackets removed.",
+          "source": "https://github.com/apache/commons-cli/blob/aec9bb2dd90df2d7f775d6da2f026a1c328a03e6/src/main/java/org/apache/commons/cli/MissingOptionException.java#L35-L39"
+        },
+        {
+          "id": "ts-c2",
+          "title": "If AlreadySelectedException is constructed with only a message, what option…",
+          "query": "If AlreadySelectedException is constructed with only a message, what option and option group does it retain?",
+          "expected": "Message-only constructor retains null for both option and option group; corresponding accessors return them.",
+          "source": "https://github.com/apache/commons-cli/blob/aec9bb2dd90df2d7f775d6da2f026a1c328a03e6/src/main/java/org/apache/commons/cli/AlreadySelectedException.java#L53-L60"
+        },
+        {
+          "id": "ts-n1",
+          "title": "How many times was MissingOptionException raised in production yesterday?",
+          "query": "How many times was MissingOptionException raised in production yesterday?",
+          "expected": "The pinned source does not observe yesterday’s production exception count; withhold the requested count.",
+          "source": "https://github.com/apache/commons-cli/blob/aec9bb2dd90df2d7f775d6da2f026a1c328a03e6/src/main/java/org/apache/commons/cli/MissingOptionException.java#L35-L39"
+        },
+        {
+          "id": "ra-c1",
+          "title": "According to the Commons CLI README, what indentation should contributors…",
+          "query": "According to the Commons CLI README, what indentation should contributors use and what kind of diffs should they submit?",
+          "expected": "Use spaces rather than tabs; create minimal diffs and avoid unrelated automatic reformat/organize imports.",
+          "source": "https://github.com/apache/commons-cli/blob/aec9bb2dd90df2d7f775d6da2f026a1c328a03e6/README.md#L88-L90"
+        },
+        {
+          "id": "ll-c1",
+          "title": "In Option, what does hasValueSeparator return after the separator is set to…",
+          "query": "In Option, what does hasValueSeparator return after the separator is set to the null character versus '='?",
+          "expected": "Setting zero makes hasValueSeparator false; setting = makes it true, since it checks > 0.",
+          "source": "https://github.com/apache/commons-cli/blob/aec9bb2dd90df2d7f775d6da2f026a1c328a03e6/src/main/java/org/apache/commons/cli/Option.java#L806-L808"
+        },
+        {
+          "id": "cf-r3",
+          "title": "According to the Commons CLI README, what should someone who plans to…",
+          "query": "According to the Commons CLI README, what should someone who plans to contribute regularly consider filing?",
+          "expected": "Consider filing a contributor license agreement.",
+          "source": "https://github.com/apache/commons-cli/blob/aec9bb2dd90df2d7f775d6da2f026a1c328a03e6/README.md#L95-L95"
+        },
+        {
+          "id": "79e6ca0776319d09977a",
+          "title": "According to the Apache Commons CLI README, what does the library let an…",
+          "query": "According to the Apache Commons CLI README, what does the library let an application do with its command-line interface?",
+          "expected": "Present a command-line interface. Process a command-line interface. Validate a command-line interface."
+        },
+        {
+          "id": "bbbf85026b8594a092c3",
+          "title": "In the Additional Resources section of the Apache Commons CLI README, which…",
+          "query": "In the Additional Resources section of the Apache Commons CLI README, which tracker should I use to report a bug, and which Slack channel is linked?",
+          "expected": "The Apache Issue Tracker (JIRA) for CLI, identified by CLI or the linked /jira/browse/CLI URL. The Apache Commons Slack channel, accepted by the README link label or exact channel URL/ID."
+        },
+        {
+          "id": "fbc283f752150dcc1761",
+          "title": "I'm reading a CLI option pattern. What does…",
+          "query": "I'm reading a CLI option pattern. What does PatternOptionBuilder.getValueType return for '+' and for '?'?",
+          "expected": "For '+', the Class.class token. Naming CLASS_VALUE is acceptable if the answer explains it is Class.class. For '?', null because it has no matching case."
+        },
+        {
+          "id": "0104da758f916e7eadcd",
+          "title": "When I get the collection of declared options from Commons CLI, can I remove…",
+          "query": "When I get the collection of declared options from Commons CLI, can I remove an option by removing it from the returned collection? Why?",
+          "expected": "Non. L'API qui liste les options déclarées renvoie une collection en lecture seule/non modifiable."
+        },
+        {
+          "id": "edf95f233ca9bf682800",
+          "title": "How long did the last mvn invocation for Apache Commons CLI take on my machine?",
+          "query": "How long did the last mvn invocation for Apache Commons CLI take on my machine?",
+          "expected": "The pinned repository can explain how to invoke Maven but cannot establish the duration of the caller's last local build. Withhold the requested duration.",
+          "source": "https://github.com/apache/commons-cli/blob/aec9bb2dd90df2d7f775d6da2f026a1c328a03e6/README.md#L78-L81"
+        },
+        {
+          "id": "2d1ba64587e4edb043eb",
+          "title": "I expect to contribute regularly to Apache Commons CLI. What paperwork does…",
+          "query": "I expect to contribute regularly to Apache Commons CLI. What paperwork does the README suggest, and where does it send me for GitHub contribution instructions?",
+          "expected": "The README asks regular contributors to consider filing a Contributor License Agreement (CLA). Preserve the advice, and avoid presenting it as an unconditional requirement. The README directs GitHub contributors to the project's CONTRIBUTING.md guidelines."
+        },
+        {
+          "id": "74c468b0e57b77b5902e",
+          "title": "Can I clear a group's current selection by passing null to…",
+          "query": "Can I clear a group's current selection by passing null to OptionGroup.setSelected, and what happens if I select a different option without clearing the first one?",
+          "expected": "Null clears the current selection and returns. With an existing different selected option key, a non-null option causes AlreadySelectedException.",
+          "source": "https://github.com/apache/commons-cli/blob/aec9bb2dd90df2d7f775d6da2f026a1c328a03e6/src/main/java/org/apache/commons/cli/OptionGroup.java#L134-L147"
+        },
+        {
+          "id": "18e62165ec356ccc2fc2",
+          "title": "What does Option.hasArgName return for an empty argument name, and what does…",
+          "query": "What does Option.hasArgName return for an empty argument name, and what does it return for a nonempty one?",
+          "expected": "Une chaîne vide donne false. Un nom non nul et non vide donne true.",
+          "source": "https://github.com/apache/commons-cli/blob/aec9bb2dd90df2d7f775d6da2f026a1c328a03e6/src/main/java/org/apache/commons/cli/Option.java#L764-L766"
+        },
+        {
+          "id": "1fbc7e4df3ae488c83ec",
+          "title": "In OptionGroup.java, what condition does OptionGroup.isSelected check to…",
+          "query": "In OptionGroup.java, what condition does OptionGroup.isSelected check to tell whether an option is selected?",
+          "expected": "It checks that the selected field is not null. Treat OptionGroup.java as an explicit real file, and verify that exact named-method promotion does not override the file request.",
+          "source": "https://github.com/apache/commons-cli/blob/aec9bb2dd90df2d7f775d6da2f026a1c328a03e6/src/main/java/org/apache/commons/cli/OptionGroup.java#L113-L115"
+        },
+        {
+          "id": "a52abaecbe4ef16be5b7",
+          "title": "According to OptionGroupOverrides.java, what does OptionGroup.setSelected do…",
+          "query": "According to OptionGroupOverrides.java, what does OptionGroup.setSelected do when its argument is null?",
+          "expected": "The explicitly requested file does not exist in the pinned tree. Withhold claims attributed to that file. A qualified disclosure about original OptionGroup.java is distinct evidence and does not satisfy the explicitly requested file. Evaluate ordinary file-selector precedence separately."
+        },
+        {
+          "id": "3221d549c221920e75b8",
+          "title": "If an option has deprecation metadata but is not marked for removal, will…",
+          "query": "If an option has deprecation metadata but is not marked for removal, will Option.isDeprecated still return true?",
+          "expected": "Yes. It checks only that the deprecated metadata field is non-null. It does not consult the metadata's removal flag.",
+          "source": "https://github.com/apache/commons-cli/blob/aec9bb2dd90df2d7f775d6da2f026a1c328a03e6/src/main/java/org/apache/commons/cli/Option.java#L816-L818"
+        },
+        {
+          "id": "8c34f9566873a02ab64a",
+          "title": "Which key does Options.getOptionGroup use to look up an option's group, and…",
+          "query": "Which key does Options.getOptionGroup use to look up an option's group, and what does it return when no group is associated?",
+          "expected": "La recherche se fait avec option.getKey(). La méthode renvoie null si l’option n’est associée à aucun groupe.",
+          "source": "https://github.com/apache/commons-cli/blob/aec9bb2dd90df2d7f775d6da2f026a1c328a03e6/src/main/java/org/apache/commons/cli/Options.java#L249-L257"
+        },
+        {
+          "id": "35f0a9179ca751d24d89",
+          "title": "Did Option.isDeprecated return true for my application's --legacy flag when…",
+          "query": "Did Option.isDeprecated return true for my application's --legacy flag when it ran this morning?",
+          "expected": "The checked-out public source establishes the predicate but not the calling application's private option metadata or runtime result. Withhold that result.",
+          "source": "https://github.com/apache/commons-cli/blob/aec9bb2dd90df2d7f775d6da2f026a1c328a03e6/src/main/java/org/apache/commons/cli/Option.java#L398-L404"
+        },
+        {
+          "id": "4b12bc8036c1b475418c",
+          "title": "If an Option has several values and I call getValue with a fallback string,…",
+          "query": "If an Option has several values and I call getValue with a fallback string, which value comes back? What happens if the option has no value?",
+          "expected": "The String overload returns the first stored value when the no-argument getter returns a non-null value. The String overload returns the supplied fallback when there is no stored value."
+        },
+        {
+          "id": "428a76b8ecdd7d9bd516",
+          "title": "What did Option.getValue return when my application's most recent CLI…",
+          "query": "What did Option.getValue return when my application's most recent CLI invocation supplied a fallback string for its timeout option?",
+          "expected": "Pinned source states the fallback rule. It cannot establish the values, fallback or actual return from the user's private invocation. Withhold the actual result.",
+          "source": "https://github.com/apache/commons-cli/blob/aec9bb2dd90df2d7f775d6da2f026a1c328a03e6/src/main/java/org/apache/commons/cli/Option.java#L697-L699"
+        },
+        {
+          "id": "2371f5fbbc0fffa6849e",
+          "title": "If I call Options.addOption with the two Strings \"v\" and \"verbose output\",…",
+          "query": "If I call Options.addOption with the two Strings \"v\" and \"verbose output\", does v take a command-line value and is a long name registered?",
+          "expected": "L’option courte v ne prend pas de valeur. Aucun nom long n’est enregistré. La deuxième String est la description, pas un alias."
+        },
+        {
+          "id": "64229ee1dc747f5e23b2",
+          "title": "On my last invocation, what argument did I type immediately after -v, given…",
+          "query": "On my last invocation, what argument did I type immediately after -v, given that I registered the option with Options.addOption and two Strings?",
+          "expected": "Le code fixe la définition de l’option, mais ne contient pas les arguments saisis par l’utilisateur lors de son exécution privée. Il faut s’abstenir de donner le jeton réel.",
+          "source": "https://github.com/apache/commons-cli/blob/aec9bb2dd90df2d7f775d6da2f026a1c328a03e6/src/main/java/org/apache/commons/cli/Options.java#L118-L121"
+        },
+        {
+          "id": "a140b8f071d115e6c091",
+          "title": "With a parsed -D option that has just one value, foo, what does…",
+          "query": "With a parsed -D option that has just one value, foo, what does CommandLine.getOptionProperties return for foo when I look the option up by its String name?",
+          "expected": "The result is Properties with key foo mapped to the String true."
+        },
+        {
+          "id": "42af7948836b4ad2734b",
+          "title": "If I pass a String and an integer held in an Object variable to…",
+          "query": "If I pass a String and an integer held in an Object variable to TypeHandler.createValue, what kind of exception can the call throw?",
+          "expected": "The Object overload casts the argument to Class before invoking the Class overload, so an Integer throws ClassCastException at the cast."
+        },
+        {
+          "id": "ae043b7a2f97f2e29439",
+          "title": "In my last private CLI run, what value did CommandLine.getOptionProperties…",
+          "query": "In my last private CLI run, what value did CommandLine.getOptionProperties return for the key foo when I passed the option name as a String?",
+          "expected": "Withhold the specific result of this unobserved private execution. Repository behavior supplies rules, with no observation of the runtime state or value.",
+          "source": "https://github.com/apache/commons-cli/blob/aec9bb2dd90df2d7f775d6da2f026a1c328a03e6/src/main/java/org/apache/commons/cli/CommandLine.java#L323-L339"
+        },
+        {
+          "id": "cd889eb07bf814ac627f",
+          "title": "In Commons CLI, if the same flag occurs twice, once as -v and once as…",
+          "query": "In Commons CLI, if the same flag occurs twice, once as -v and once as --verbose, what does getOptionCount on CommandLine report when I give it the long name as a String? Assume both names are for the same option.",
+          "expected": "It returns 2. It looks up the canonical option using either name and counts matching parsed occurrences."
+        },
+        {
+          "id": "97e50324114b83f55bb9",
+          "title": "Starting from Option.builder with no arguments, can I call get without a…",
+          "query": "Starting from Option.builder with no arguments, can I call get without a name, or is it sufficient to set only longOpt?",
+          "expected": "With neither name, get throws IllegalStateException. A long name by itself satisfies the name requirement."
+        },
+        {
+          "id": "36c7ce3b75d8aefec93d",
+          "title": "In my last run, what did CommandLine.getOptionCount return when I passed…",
+          "query": "In my last run, what did CommandLine.getOptionCount return when I passed verbose as a String?",
+          "expected": "Withhold the specific result of the unobserved prior run. The pinned branch does not observe the caller's actual state or return.",
+          "source": "https://github.com/apache/commons-cli/blob/aec9bb2dd90df2d7f775d6da2f026a1c328a03e6/src/main/java/org/apache/commons/cli/CommandLine.java#L261-L270"
+        },
+        {
+          "id": "bd4bc0a5400ab70518e3",
+          "title": "If the only long options I register are version and verbose, how many…",
+          "query": "If the only long options I register are version and verbose, how many matches will I get for version and for ver when I call getMatchingOptions on my Options?",
+          "expected": "version gives one match. ver gives two matches."
+        },
+        {
+          "id": "9e3f50846a494ab015b5",
+          "title": "In OptionGroup.toString, which name is printed for an option with both short…",
+          "query": "In OptionGroup.toString, which name is printed for an option with both short and long names, and is its description included?",
+          "expected": "It prints the short name with a single hyphen when present, and includes its description when non-null."
+        },
+        {
+          "id": "2dc3fd4c5306848c4c56",
+          "title": "How many matches did getMatchingOptions on Options return for ver in the CLI…",
+          "query": "How many matches did getMatchingOptions on Options return for ver in the CLI run I just did?",
+          "expected": "Withhold the unobserved runtime result. The public fixture has controlled inputs and cannot establish what happened in this invocation.",
+          "source": "https://github.com/apache/commons-cli/blob/aec9bb2dd90df2d7f775d6da2f026a1c328a03e6/src/main/java/org/apache/commons/cli/Options.java#L227-L230"
+        },
+        {
+          "id": "46a3b5cb5ed46d2f010f",
+          "title": "If I clone an Option that has an empty value list, then add b1 and b2 to the…",
+          "query": "If I clone an Option that has an empty value list, then add b1 and b2 to the clone, does the original Option pick up either value?",
+          "expected": "No. The original value list stays empty because cloning gives the copy a separate list."
+        },
+        {
+          "id": "46cc84a8729e26b27cbd",
+          "title": "In Commons CLI, what string does Util.stripLeadingHyphens return for the…",
+          "query": "In Commons CLI, what string does Util.stripLeadingHyphens return for the input \"---foo\"?",
+          "expected": "The result is -foo, retaining one leading hyphen."
+        },
+        {
+          "id": "aa7e3db9ec323d25fdcf",
+          "title": "How many values did my application's original Option still have after I…",
+          "query": "How many values did my application's original Option still have after I cloned it and added two values to the copy in my last run?",
+          "expected": "The actual prior input/state and result are unobserved. Withhold the specific result; a pinned fixture is not the user's invocation.",
+          "source": "https://github.com/apache/commons-cli/blob/aec9bb2dd90df2d7f775d6da2f026a1c328a03e6/src/main/java/org/apache/commons/cli/Option.java#L557-L561"
+        }
+      ],
+      "suite": "Java branch answers"
+    },
+    {
+      "title": "FasterXML/jackson-databind",
+      "repository": "FasterXML/jackson-databind",
+      "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+      "questions": [
+        {
+          "id": "ts-j1",
+          "title": "For ByteBufferBackedInputStream, what does a single-byte read return when…",
+          "query": "For ByteBufferBackedInputStream, what does a single-byte read return when the buffer is empty, and when the next byte is 0xFF?",
+          "expected": "Empty buffer returns -1; byte 0xFF returns 255 after masking.",
+          "source": "https://github.com/FasterXML/jackson-databind/blob/c92512e95ba389d50a9ff6278906eff24ab3128e/src/main/java/com/fasterxml/jackson/databind/util/ByteBufferBackedInputStream.java#L14-L19"
+        },
+        {
+          "id": "ts-n2",
+          "title": "How does ByteBufferBackedInputStream automatically decompress gzip data from…",
+          "query": "How does ByteBufferBackedInputStream automatically decompress gzip data from its buffer?",
+          "expected": "No gzip-decompression implementation in the complete class; deny premise or withhold rather than invent behavior.",
+          "source": "https://github.com/FasterXML/jackson-databind/blob/c92512e95ba389d50a9ff6278906eff24ab3128e/src/main/java/com/fasterxml/jackson/databind/util/ByteBufferBackedInputStream.java#L1-L28"
+        },
+        {
+          "id": "ra-j1",
+          "title": "According to the Jackson Databind README, what happens to the core and…",
+          "query": "According to the Jackson Databind README, what happens to the core and annotations dependencies when I use Maven or Gradle, and what should I do if my tool does not resolve dependencies?",
+          "expected": "Maven/Gradle include the two dependencies automatically; without a dependency-resolving tool download and include both jars explicitly.",
+          "source": "https://github.com/FasterXML/jackson-databind/blob/c92512e95ba389d50a9ff6278906eff24ab3128e/README.md#L49-L54"
+        },
+        {
+          "id": "ra-j2",
+          "title": "According to the Jackson Databind README, from which versions does the jar…",
+          "query": "According to the Jackson Databind README, from which versions does the jar include Java module information and Gradle module metadata?",
+          "expected": "Java module info since 2.10; Gradle 6 module metadata since 2.12.",
+          "source": "https://github.com/FasterXML/jackson-databind/blob/c92512e95ba389d50a9ff6278906eff24ab3128e/README.md#L63-L65"
+        },
+        {
+          "id": "ra-n1",
+          "title": "According to the Jackson Databind README, what default maximum JSON nesting…",
+          "query": "According to the Jackson Databind README, what default maximum JSON nesting depth does it specify?",
+          "expected": "README does not specify a default maximum JSON nesting depth; withhold.",
+          "source": "https://github.com/FasterXML/jackson-databind/blob/c92512e95ba389d50a9ff6278906eff24ab3128e/README.md#L1-L7"
+        },
+        {
+          "id": "ef-j1",
+          "title": "When comparing two RawValue instances, what happens when their wrapped…",
+          "query": "When comparing two RawValue instances, what happens when their wrapped values are the same reference, and when the first wrapped value is null but the second is not?",
+          "expected": "Same wrapped object reference returns true; a null first value and non-null second returns false.",
+          "source": "https://github.com/FasterXML/jackson-databind/blob/c92512e95ba389d50a9ff6278906eff24ab3128e/src/main/java/com/fasterxml/jackson/databind/util/RawValue.java#L103-L112"
+        },
+        {
+          "id": "ll-j1",
+          "title": "In IgnorePropertiesUtil, how does combineNamesToInclude handle a null…",
+          "query": "In IgnorePropertiesUtil, how does combineNamesToInclude handle a null previous set versus two non-null sets?",
+          "expected": "If previous is null returns new set; if both nonnull returns intersection.",
+          "source": "https://github.com/FasterXML/jackson-databind/blob/c92512e95ba389d50a9ff6278906eff24ab3128e/src/main/java/com/fasterxml/jackson/databind/util/IgnorePropertiesUtil.java#L61-L77"
+        },
+        {
+          "id": "ll-j2-fr",
+          "title": "In ISO8601DateFormat, how do the two parse overloads handle a parsing error,…",
+          "query": "In ISO8601DateFormat, how do the two parse overloads handle a parsing error, with and without a ParsePosition?",
+          "expected": "Parse with ParsePosition catches ParseException and returns null; parse(String) delegates and allows ParseException to propagate.",
+          "source": "https://github.com/FasterXML/jackson-databind/blob/c92512e95ba389d50a9ff6278906eff24ab3128e/src/main/java/com/fasterxml/jackson/databind/util/ISO8601DateFormat.java#L33-L48"
+        },
+        {
+          "id": "ll-n1",
+          "title": "How many times did ISO8601DateFormat parse fail in production yesterday?",
+          "query": "How many times did ISO8601DateFormat parse fail in production yesterday?",
+          "expected": "Production failure count yesterday is unavailable from pinned source; withhold.",
+          "source": "https://github.com/FasterXML/jackson-databind/blob/c92512e95ba389d50a9ff6278906eff24ab3128e/src/main/java/com/fasterxml/jackson/databind/util/ISO8601DateFormat.java#L33-L48"
+        },
+        {
+          "id": "cf-r1",
+          "title": "According to the Jackson Databind README, what JDK is required to run…",
+          "query": "According to the Jackson Databind README, what JDK is required to run versions 2.11–2.12, and what JDK is required to build them?",
+          "expected": "Run JDK 7, build JDK 8 for versions 2.11–2.12.",
+          "source": "https://github.com/FasterXML/jackson-databind/blob/c92512e95ba389d50a9ff6278906eff24ab3128e/README.md#L72-L75"
+        },
+        {
+          "id": "cf-r2-fr",
+          "title": "According to the Jackson Databind README, what are the groupId and…",
+          "query": "According to the Jackson Databind README, what are the groupId and artifactId in the Maven dependency example?",
+          "expected": "groupId com.fasterxml.jackson.core; artifactId jackson-databind.",
+          "source": "https://github.com/FasterXML/jackson-databind/blob/c92512e95ba389d50a9ff6278906eff24ab3128e/README.md#L38-L44"
+        },
+        {
+          "id": "cf-j1",
+          "title": "In ByteBufferBackedInputStream, how does the byte-array read handle an empty…",
+          "query": "In ByteBufferBackedInputStream, how does the byte-array read handle an empty buffer and limit the number of bytes read when data remains?",
+          "expected": "If no bytes remain, return -1; else limit requested length to remaining bytes, copy that many, return that count.",
+          "source": "https://github.com/FasterXML/jackson-databind/blob/c92512e95ba389d50a9ff6278906eff24ab3128e/src/main/java/com/fasterxml/jackson/databind/util/ByteBufferBackedInputStream.java#L21-L26"
+        },
+        {
+          "id": "cf-j2",
+          "title": "In ISO8601DateFormat, what does clone return, and what object does format…",
+          "query": "In ISO8601DateFormat, what does clone return, and what object does format return after appending the formatted date?",
+          "expected": "clone returns this same formatter; format appends formatted date and returns the supplied StringBuffer.",
+          "source": "https://github.com/FasterXML/jackson-databind/blob/c92512e95ba389d50a9ff6278906eff24ab3128e/src/main/java/com/fasterxml/jackson/databind/util/ISO8601DateFormat.java#L27-L31"
+        },
+        {
+          "id": "cf-n1",
+          "title": "How many dates did ISO8601DateFormat format in production yesterday?",
+          "query": "How many dates did ISO8601DateFormat format in production yesterday?",
+          "expected": "Yesterday production count unavailable from pinned source; abstain.",
+          "source": "https://github.com/FasterXML/jackson-databind/blob/c92512e95ba389d50a9ff6278906eff24ab3128e/src/main/java/com/fasterxml/jackson/databind/util/ISO8601DateFormat.java#L27-L31"
+        },
+        {
+          "id": "cf-n2",
+          "title": "How does ByteBufferBackedInputStream getRetryDelay determine its network…",
+          "query": "How does ByteBufferBackedInputStream getRetryDelay determine its network retry delay?",
+          "expected": "The complete class has no getRetryDelay member; do not invent behavior.",
+          "source": "https://github.com/FasterXML/jackson-databind/blob/c92512e95ba389d50a9ff6278906eff24ab3128e/src/main/java/com/fasterxml/jackson/databind/util/ByteBufferBackedInputStream.java#L1-L28"
+        },
+        {
+          "id": "a7d493e4d5ea7b65a2ec",
+          "title": "If a JavaType represents ArrayList, will JavaType.hasRawClass match the List…",
+          "query": "If a JavaType represents ArrayList, will JavaType.hasRawClass match the List interface, or does it require the exact raw class?",
+          "expected": "It returns false for List.class. It compares the stored raw Class object with the supplied Class using == and only matches the exact raw class.",
+          "source": "https://github.com/FasterXML/jackson-databind/blob/c92512e95ba389d50a9ff6278906eff24ab3128e/src/main/java/com/fasterxml/jackson/databind/JavaType.java#L275-L276"
+        },
+        {
+          "id": "4dac531e64d8f5c95235",
+          "title": "In SerializationConfig.useRootWrapping, does an explicitly empty root name…",
+          "query": "In SerializationConfig.useRootWrapping, does an explicitly empty root name disable wrapping even when WRAP_ROOT_VALUE is enabled? What happens when no root name is configured?",
+          "expected": "Oui, un nom racine explicitement vide désactive l’enveloppe même si la fonctionnalité est active. Si aucun nom racine n’est configuré (_rootName est null), la méthode renvoie l’état de SerializationFeature.WRAP_ROOT_VALUE.",
+          "source": "https://github.com/FasterXML/jackson-databind/blob/c92512e95ba389d50a9ff6278906eff24ab3128e/src/main/java/com/fasterxml/jackson/databind/SerializationConfig.java#L848-L855"
+        },
+        {
+          "id": "842d97059b357de0c077",
+          "title": "Did SerializationConfig.useRootWrapping return true when my application…",
+          "query": "Did SerializationConfig.useRootWrapping return true when my application serialized its most recent order response?",
+          "expected": "The method establishes how the decision is made, but the application's private configuration and last execution are unavailable. Withhold the particular runtime result. The pinned snapshot supplies the production decision and a unit test using its own fixture mapper. The test's false result does not establish the caller's private execution.",
+          "source": "https://github.com/FasterXML/jackson-databind/blob/c92512e95ba389d50a9ff6278906eff24ab3128e/src/main/java/com/fasterxml/jackson/databind/SerializationConfig.java#L848-L855"
+        },
+        {
+          "id": "2a0a408430bf7988333f",
+          "title": "According to the Jackson Databind README, can I use the JAR as-is in an OSGi…",
+          "query": "According to the Jackson Databind README, can I use the JAR as-is in an OSGi container? What imports and exports does it already provide?",
+          "expected": "Oui. Le JAR est un bundle OSGi fonctionnel avec les déclarations d’import et d’export nécessaires.",
+          "source": "https://github.com/FasterXML/jackson-databind/blob/c92512e95ba389d50a9ff6278906eff24ab3128e/README.md#L61-L61"
+        },
+        {
+          "id": "3b19309e2e0d18bd4c4e",
+          "title": "In Jackson's tree model, are an explicit JSON null and a missing path both…",
+          "query": "In Jackson's tree model, are an explicit JSON null and a missing path both treated as value nodes? What does JsonNode.isValueNode return for each?",
+          "expected": "An explicit null is a value node (true). A MissingNode is excluded (false). NullNode reports NULL, and MissingNode reports MISSING.",
+          "source": "https://github.com/FasterXML/jackson-databind/blob/c92512e95ba389d50a9ff6278906eff24ab3128e/src/main/java/com/fasterxml/jackson/databind/JsonNode.java#L138-L147"
+        },
+        {
+          "id": "b211691902ce81dd4c40",
+          "title": "If my Jackson ObjectNode has no field named status, will removing status…",
+          "query": "If my Jackson ObjectNode has no field named status, will removing status with ObjectNode.remove throw, or can I detect the missing field from the return value?",
+          "expected": "No exception for a missing field on a normal ObjectNode. The method returns null when the name was not present.",
+          "source": "https://github.com/FasterXML/jackson-databind/blob/c92512e95ba389d50a9ff6278906eff24ab3128e/src/main/java/com/fasterxml/jackson/databind/node/ObjectNode.java#L786-L795"
+        },
+        {
+          "id": "84aa684a56b5e9a30d74",
+          "title": "The Jackson Databind README mentions OSGi support. Did the last CI job on my…",
+          "query": "The Jackson Databind README mentions OSGi support. Did the last CI job on my fork actually deploy the JAR successfully to our private container?",
+          "expected": "Le README établit la compatibilité du JAR. Il n’établit pas ce qui s’est passé dans le job du fork privé. S’abstenir sur le résultat concret; une réponse conditionnelle ne peut être qu’une explication de la limite.",
+          "source": "https://github.com/FasterXML/jackson-databind/blob/c92512e95ba389d50a9ff6278906eff24ab3128e/README.md#L61-L61"
+        },
+        {
+          "id": "f094ecc2659410b8ab9f",
+          "title": "When I call ObjectWriter.getFactory, does it create a fresh factory or…",
+          "query": "When I call ObjectWriter.getFactory, does it create a fresh factory or return the factory that the writer already holds?",
+          "expected": "The method returns the writer's existing _generatorFactory reference. It does not create a new factory.",
+          "source": "https://github.com/FasterXML/jackson-databind/blob/c92512e95ba389d50a9ff6278906eff24ab3128e/src/main/java/com/fasterxml/jackson/databind/ObjectWriter.java#L1002-L1004"
+        },
+        {
+          "id": "30db2e5f27d995c515dd",
+          "title": "Which concrete factory class did ObjectWriter.getFactory return when my…",
+          "query": "Which concrete factory class did ObjectWriter.getFactory return when my application handled its last export?",
+          "expected": "The method establishes that it returns its stored factory. The selected factory is instance state and the caller's private invocation and runtime class are not present. Withhold the requested concrete class.",
+          "source": "https://github.com/FasterXML/jackson-databind/blob/c92512e95ba389d50a9ff6278906eff24ab3128e/src/main/java/com/fasterxml/jackson/databind/ObjectWriter.java#L1002-L1004"
+        },
+        {
+          "id": "84fd3ea12244c7471571",
+          "title": "When making a deep copy of a Jackson tree, what does ObjectNode do with each…",
+          "query": "When making a deep copy of a Jackson tree, what does ObjectNode do with each child, and can ValueNode return the same object instead of a new one?",
+          "expected": "ObjectNode copies each property under its original key and calls deepCopy on its value. ValueNode returns itself because the current value nodes are immutable."
+        },
+        {
+          "id": "ca5d2906be86a28728d1",
+          "title": "I need stable JSON. Which Jackson setting orders POJO properties…",
+          "query": "I need stable JSON. Which Jackson setting orders POJO properties alphabetically, and which one sorts Map entries by key before serialization?",
+          "expected": "MapperFeature.SORT_PROPERTIES_ALPHABETICALLY trie les propriétés de POJO; il ne s’applique pas aux entrées de Map. SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS trie les entrées de Map par clé avant sérialisation si nécessaire."
+        },
+        {
+          "id": "eee371b744f567e0de3d",
+          "title": "According to the Jackson Databind README, what are the minimum Android SDK…",
+          "query": "According to the Jackson Databind README, what are the minimum Android SDK levels for versions 2.13 and 2.14?",
+          "expected": "Le README indique Android SDK 24+ pour Jackson 2.13. Le README indique Android SDK 26+ pour Jackson 2.14."
+        },
+        {
+          "id": "7734cc7492ff5e862a99",
+          "title": "Did ObjectNode.deepCopy copy the status field from the request my…",
+          "query": "Did ObjectNode.deepCopy copy the status field from the request my application handled most recently, and what was its copied value?",
+          "expected": "The public method describes conditional child copying. It has no observation of the private request, its status field or its value. Withhold the result.",
+          "source": "https://github.com/FasterXML/jackson-databind/blob/c92512e95ba389d50a9ff6278906eff24ab3128e/src/main/java/com/fasterxml/jackson/databind/node/ObjectNode.java#L56-L64"
+        },
+        {
+          "id": "34d5b0b0bfa2015a8918",
+          "title": "If I pass a Map of properties to ObjectNode.setAll, what happens to a Java…",
+          "query": "If I pass a Map of properties to ObjectNode.setAll, what happens to a Java null value in the Map, and does the call return the same node?",
+          "expected": "Une valeur Java null dans la Map est remplacée par un NullNode, puis la propriété est insérée. La surcharge Map renvoie le même ObjectNode (this)."
+        },
+        {
+          "id": "7c3696fc95ab70f3af08",
+          "title": "If I call ArrayNode.insert with an int index past the end and a String like…",
+          "query": "If I call ArrayNode.insert with an int index past the end and a String like \"42\", where does it put the new element, and what kind of JSON value is stored?",
+          "expected": "The element is appended after the existing elements, without filling intermediate slots. The nonnull String is stored as a text node (JSON string), including numeric-looking text."
+        },
+        {
+          "id": "3839d4eb4f544e728f0c",
+          "title": "In my last run, what was the final array element after my code called…",
+          "query": "In my last run, what was the final array element after my code called ArrayNode.insert with an int index past the end and a String?",
+          "expected": "The repository proves the String overload appends past the end. Its static source cannot identify the supplied String or final element of the user's prior invocation. Withhold the actual value unless an observed execution record is present.",
+          "source": "https://github.com/FasterXML/jackson-databind/blob/c92512e95ba389d50a9ff6278906eff24ab3128e/src/main/java/com/fasterxml/jackson/databind/node/ArrayNode.java#L948-L950"
+        },
+        {
+          "id": "0b5be2e1fdadcf94b250",
+          "title": "I look up the same JSON Pointer path many times with JsonNode.at. Does the…",
+          "query": "I look up the same JSON Pointer path many times with JsonNode.at. Does the overload that takes a String cache the compiled pointer, and what should I pass if I want to reuse it?",
+          "expected": "The String overload does not cache compiled expressions and compiles for each call. Pass a previously compiled JsonPointer and reuse it."
+        },
+        {
+          "id": "ae2472a4e0f41ae9c346",
+          "title": "When I replace a field using ObjectNode.put with a String name and a…",
+          "query": "When I replace a field using ObjectNode.put with a String name and a JsonNode value, what does the call return if the field was already present? What if it was absent?",
+          "expected": "The overload returns the old JsonNode value when it exists. The overload returns Java null for a previously absent field."
+        },
+        {
+          "id": "ece3d3c018c64362cb65",
+          "title": "On my service's last run, what did ObjectNode.put return for the status…",
+          "query": "On my service's last run, what did ObjectNode.put return for the status field when I passed a String name and JsonNode value?",
+          "expected": "Withhold the specific result of this unobserved private execution. Repository behavior supplies rules, with no observation of the runtime state or value.",
+          "source": "https://github.com/FasterXML/jackson-databind/blob/c92512e95ba389d50a9ff6278906eff24ab3128e/src/main/java/com/fasterxml/jackson/databind/node/ObjectNode.java#L741-L753"
+        },
+        {
+          "id": "fa3eba0560142659576e",
+          "title": "If I hand an ObjectNode to ObjectMapper.treeToValue and request…",
+          "query": "If I hand an ObjectNode to ObjectMapper.treeToValue and request ObjectNode.class, does it return that exact instance or create a copy?",
+          "expected": "It returns the input ObjectNode itself through the assignable TreeNode branch."
+        },
+        {
+          "id": "6487c176eb851d851d8d",
+          "title": "When I call required on an ObjectNode with a String field name, is a present…",
+          "query": "When I call required on an ObjectNode with a String field name, is a present JSON null treated like a missing field?",
+          "expected": "A present explicit JSON null is allowed and its node is returned. An absent property throws IllegalArgumentException."
+        },
+        {
+          "id": "fd9c4fa55280bffc9e2c",
+          "title": "What result did my service get when it called ObjectNode.required for the…",
+          "query": "What result did my service get when it called ObjectNode.required for the status field on its last run?",
+          "expected": "Withhold the specific result of the unobserved prior run. The pinned branch does not observe the caller's actual state or return.",
+          "source": "https://github.com/FasterXML/jackson-databind/blob/c92512e95ba389d50a9ff6278906eff24ab3128e/src/main/java/com/fasterxml/jackson/databind/JsonNode.java#L862-L881"
+        },
+        {
+          "id": "98091f252906ebbecc5e",
+          "title": "What text should BinaryNode.asText return for the bytes 00 03 03 in hex?",
+          "query": "What text should BinaryNode.asText return for the bytes 00 03 03 in hex?",
+          "expected": "It returns AAMD without surrounding JSON quotes."
+        },
+        {
+          "id": "2502d97f83aaf6c1a2b7",
+          "title": "Can LongNode.canConvertToInt still convert Integer.MAX_VALUE? What about the…",
+          "query": "Can LongNode.canConvertToInt still convert Integer.MAX_VALUE? What about the value immediately above it?",
+          "expected": "At Integer.MAX_VALUE it returns true. One above Integer.MAX_VALUE it returns false."
+        },
+        {
+          "id": "3123f5292b6d56c632e9",
+          "title": "What exact string did BinaryNode.asText return for the attachment on my…",
+          "query": "What exact string did BinaryNode.asText return for the attachment on my service's last run?",
+          "expected": "Withhold the unobserved runtime result. The public fixture has controlled inputs and cannot establish what happened in this invocation.",
+          "source": "https://github.com/FasterXML/jackson-databind/blob/c92512e95ba389d50a9ff6278906eff24ab3128e/src/main/java/com/fasterxml/jackson/databind/node/BinaryNode.java#L88-L90"
+        },
+        {
+          "id": "94e7e71d94abc2a5826a",
+          "title": "I have a Jackson TextNode containing foobar. What integer do I get from…",
+          "query": "I have a Jackson TextNode containing foobar. What integer do I get from asInt with no argument, and what do I get if I pass 27?",
+          "expected": "With no argument the result is 0. With 27 as default the result is 27."
+        },
+        {
+          "id": "58108e2469e84e5b9d0a",
+          "title": "What does LongNode.asBoolean return for -34 and for 0?",
+          "query": "What does LongNode.asBoolean return for -34 and for 0?",
+          "expected": "A LongNode of -34 yields true. A LongNode of 0 yields false."
+        },
+        {
+          "id": "505d6e51188e72f35474",
+          "title": "On my service's last run, what did asInt(27) return for the TextNode built…",
+          "query": "On my service's last run, what did asInt(27) return for the TextNode built from the client response?",
+          "expected": "The actual prior input/state and result are unobserved. Withhold the specific result; a pinned fixture is not the user's invocation.",
+          "source": "https://github.com/FasterXML/jackson-databind/blob/c92512e95ba389d50a9ff6278906eff24ab3128e/src/main/java/com/fasterxml/jackson/databind/JsonNode.java#L700-L711"
+        }
+      ],
+      "suite": "Java branch answers"
+    },
+    {
+      "title": "apache/commons-cli",
+      "repository": "apache/commons-cli",
+      "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+      "questions": [
+        {
+          "id": "9df5e75935cd7c089fcd",
+          "title": "When a help-output wrapper appends only part of a character sequence, what…",
+          "query": "When a help-output wrapper appends only part of a character sequence, what does it pass to the underlying output, and what object does the call return?",
+          "expected": "It forwards the sequence with start and end offsets to the underlying appendable, then returns the wrapper itself."
+        },
+        {
+          "id": "e684a92ac7ab25aba733",
+          "title": "When an abbreviated command-line name matches several possibilities, what…",
+          "query": "When an abbreviated command-line name matches several possibilities, what can a caller inspect to identify the original input and the candidates?",
+          "expected": "The exception retains the original option and exposes it through the inherited accessor.; It retains and exposes the collection of matching options."
+        },
+        {
+          "id": "c9f48cd7c08e9313689b",
+          "title": "If deprecation metadata is built without a description or version, what…",
+          "query": "If deprecation metadata is built without a description or version, what strings are stored for those two fields?",
+          "expected": "Both null description and null version are converted to empty strings."
+        },
+        {
+          "id": "6067c29d020972de18ca",
+          "title": "With the default help text style, what maximum width is used, and what…",
+          "query": "With the default help text style, what maximum width is used, and what numeric limit does the unset value represent?",
+          "expected": "Default max width uses the unset sentinel, equal to Integer.MAX_VALUE."
+        },
+        {
+          "id": "0d4a4c3c04db3dee4555",
+          "title": "In this repository, what does the com.acme.terminal.SecureHelpSink wrapper…",
+          "query": "In this repository, what does the com.acme.terminal.SecureHelpSink wrapper do when appending a character?",
+          "expected": "Pinned tree does not contain the named private package; a public wrapper is not that class.",
+          "source": "https://github.com/apache/commons-cli/blob/aec9bb2dd90df2d7f775d6da2f026a1c328a03e6/src/main/java/org/apache/commons/cli/help/FilterHelpAppendable.java#L55-L59"
+        },
+        {
+          "id": "70b0ec8e634a316dafb1",
+          "title": "Which option will actually be removed in the next unreleased version and on…",
+          "query": "Which option will actually be removed in the next unreleased version and on what date?",
+          "expected": "Stored metadata can express intended removal, but cannot establish a future release event or date.",
+          "source": "https://github.com/apache/commons-cli/blob/aec9bb2dd90df2d7f775d6da2f026a1c328a03e6/src/main/java/org/apache/commons/cli/DeprecatedAttributes.java#L167-L173"
+        },
+        {
+          "id": "44f76f2117651c01d847",
+          "title": "What exact help output width did my production CLI use during its last…",
+          "query": "What exact help output width did my production CLI use during its last invocation?",
+          "expected": "Default width configuration cannot reveal the caller’s runtime override.",
+          "source": "https://github.com/apache/commons-cli/blob/aec9bb2dd90df2d7f775d6da2f026a1c328a03e6/src/main/java/org/apache/commons/cli/help/TextStyle.java#L52-L59"
+        },
+        {
+          "id": "18178884d05e0061b1d3",
+          "title": "Which candidate option names did my private application see in its most…",
+          "query": "Which candidate option names did my private application see in its most recent ambiguous input?",
+          "expected": "Source defines access to a supplied collection, but does not contain the private runtime collection.",
+          "source": "https://github.com/apache/commons-cli/blob/aec9bb2dd90df2d7f775d6da2f026a1c328a03e6/src/main/java/org/apache/commons/cli/AmbiguousOptionException.java#L68-L70"
+        }
+      ],
+      "suite": "Commons CLI current branch"
+    },
+    {
+      "title": "tokio-rs/bytes",
+      "repository": "tokio-rs/bytes",
+      "revision": "62207901b65e4fc51459b2d558fad8aa882f5d33",
+      "questions": [
+        {
+          "id": "ed6fc5757373128e8487",
+          "title": "According to the bytes README, how do I build the local API docs so the…",
+          "query": "According to the bytes README, how do I build the local API docs so the feature gates are visible? Do I need a particular Rust toolchain?",
+          "expected": "Use RUSTDOCFLAGS=\"--cfg docsrs\" to build the docs. Use a nightly Rust toolchain, via cargo +nightly doc."
+        },
+        {
+          "id": "4f46de05b4354a43d031",
+          "title": "According to the bytes README, which dependencies determine the minimum Rust…",
+          "query": "According to the bytes README, which dependencies determine the minimum Rust version when I enable extra-platforms or serde?",
+          "expected": "For extra-platforms the minimum is tied to portable-atomic. For serde the minimum is tied to serde."
+        },
+        {
+          "id": "83c28d44497399b68ed0",
+          "title": "What exact Rust version number does the bytes README give as the minimum…",
+          "query": "What exact Rust version number does the bytes README give as the minimum when extra-platforms is enabled?",
+          "expected": "The README provides a dependency relationship, with no exact version number.",
+          "source": "https://github.com/tokio-rs/bytes/blob/62207901b65e4fc51459b2d558fad8aa882f5d33/README.md#L43-L43"
+        },
+        {
+          "id": "practical-1",
+          "title": "Taking a slice without copying",
+          "query": "Does slicing a Bytes buffer copy the underlying data?",
+          "expected": "A nonempty slice shares the backing storage through a new handle. The operation is constant time.",
+          "source": "https://github.com/tokio-rs/bytes/blob/62207901b65e4fc51459b2d558fad8aa882f5d33/src/bytes.rs#L351-L356"
+        },
+        {
+          "id": "practical-2",
+          "title": "Taking the first bytes",
+          "query": "How can I take the first part of a Bytes buffer and leave the remaining bytes in the original handle?",
+          "expected": "Use split_to with the split index. It returns the prefix and advances the original handle over it.",
+          "source": "https://github.com/tokio-rs/bytes/blob/62207901b65e4fc51459b2d558fad8aa882f5d33/src/bytes.rs#L499-L547"
+        },
+        {
+          "id": "practical-3",
+          "title": "Freezing a mutable buffer",
+          "query": "Does BytesMut::freeze copy the underlying buffer?",
+          "expected": "No. It consumes the mutable handle and reuses the same storage in an immutable Bytes handle.",
+          "source": "https://github.com/tokio-rs/bytes/blob/62207901b65e4fc51459b2d558fad8aa882f5d33/src/bytes_mut.rs#L241-L277"
+        },
+        {
+          "id": "practical-4",
+          "title": "Copying from a borrowed buffer",
+          "query": "When I create Bytes with copy_from_slice, may the original slice be dropped afterwards?",
+          "expected": "Yes. It copies the input into an owned vector and converts that to Bytes.",
+          "source": "https://github.com/tokio-rs/bytes/blob/62207901b65e4fc51459b2d558fad8aa882f5d33/src/bytes.rs#L345-L349"
+        }
+      ],
+      "suite": "README answers"
+    },
+    {
+      "title": "serde-rs/json",
+      "repository": "serde-rs/json",
+      "revision": "f51fa15a7015c7d02817a46d2db44c899a0016e8",
+      "questions": [
+        {
+          "id": "8493b6ac1103e0838a34",
+          "title": "According to the serde_json README, what type does bracket indexing on Value…",
+          "query": "According to the serde_json README, what type does bracket indexing on Value yield, and what happens for a missing key or out-of-bounds index?",
+          "expected": "Indexing borrows, returning &Value. An absent key or out-of-bounds array index yields Value::Null."
+        },
+        {
+          "id": "d56c0fee276e360c20a2",
+          "title": "According to the serde_json README, can I use a Rust expression as a field…",
+          "query": "According to the serde_json README, can I use a Rust expression as a field value inside json!, and when does Serde check that the value can be represented as JSON?",
+          "expected": "Yes, variables and expressions can be interpolated directly. The check is at compile time."
+        },
+        {
+          "id": "372a44a3ed7eab7de278",
+          "title": "What maximum nesting depth for JSON objects or arrays does the serde_json…",
+          "query": "What maximum nesting depth for JSON objects or arrays does the serde_json README state?",
+          "expected": "The pinned README states no maximum nesting depth.",
+          "source": "https://github.com/serde-rs/json/blob/f51fa15a7015c7d02817a46d2db44c899a0016e8/README.md#L8-L8"
+        },
+        {
+          "id": "practical-1",
+          "title": "Distinguishing a missing JSON key from null",
+          "query": "How can I tell an absent JSON key apart from a key whose value is null?",
+          "expected": "Use Value::get. An absent key yields None, and an existing null value yields Some(&Value::Null).",
+          "source": "https://github.com/serde-rs/json/blob/f51fa15a7015c7d02817a46d2db44c899a0016e8/src/value/mod.rs#L283-L307"
+        },
+        {
+          "id": "practical-2",
+          "title": "Moving a JSON value out",
+          "query": "When I take a value out with Value::take, what is left behind?",
+          "expected": "Value::take moves out the original value and replaces it with Value::Null.",
+          "source": "https://github.com/serde-rs/json/blob/f51fa15a7015c7d02817a46d2db44c899a0016e8/src/value/mod.rs#L852-L863"
+        },
+        {
+          "id": "practical-3",
+          "title": "Accessing a JSON key containing a slash",
+          "query": "How do I access an object property whose name contains a slash using a JSON Pointer?",
+          "expected": "Escape the slash in its pointer token as ~1. The implementation decodes ~1 back to a slash.",
+          "source": "https://github.com/serde-rs/json/blob/f51fa15a7015c7d02817a46d2db44c899a0016e8/src/value/mod.rs#L779-L794"
+        },
+        {
+          "id": "practical-4",
+          "title": "Checking for trailing JSON data",
+          "query": "After deserializing one JSON value, how can I check that nothing except whitespace remains?",
+          "expected": "Call Deserializer::end. It accepts trailing whitespace and reports trailing characters if another token remains.",
+          "source": "https://github.com/serde-rs/json/blob/f51fa15a7015c7d02817a46d2db44c899a0016e8/src/de.rs#L139-L150"
+        }
+      ],
+      "suite": "README answers"
+    },
+    {
+      "title": "apache/commons-cli",
+      "repository": "apache/commons-cli",
+      "revision": "d74613321325f6081fa0206c4ab608ab65d80e2e",
+      "questions": [
+        {
+          "id": "long-option-default",
+          "title": "Does DefaultParser accept an unambiguous abbreviation for a long option by…",
+          "query": "Does DefaultParser accept an unambiguous abbreviation for a long option by default, and what matching behavior remains when that is disabled?",
+          "expected": "Partial matching defaults to enabled.\nWhen disabled, only an existing exact long option is accepted.",
+          "source": "https://github.com/apache/commons-cli/blob/d74613321325f6081fa0206c4ab608ab65d80e2e/src/main/java/org/apache/commons/cli/DefaultParser.java#L50-L54"
+        },
+        {
+          "id": "option-terminator",
+          "title": "Which standalone token makes the remaining command-line tokens positional…",
+          "query": "Which standalone token makes the remaining command-line tokens positional arguments, and where is that token defined?",
+          "expected": "The standalone terminator is --, defined as OptionFormatter.DEFAULT_LONG_OPT_PREFIX.",
+          "source": "https://github.com/apache/commons-cli/blob/d74613321325f6081fa0206c4ab608ab65d80e2e/src/main/java/org/apache/commons/cli/help/OptionFormatter.java#L281-L284"
+        },
+        {
+          "id": "unexpected-switch",
+          "title": "Contrast THROW and IGNORE when DefaultParser sees an unknown hyphen-prefixed…",
+          "query": "Contrast THROW and IGNORE when DefaultParser sees an unknown hyphen-prefixed option longer than one character.",
+          "expected": "THROW raises UnrecognizedOptionException.\nIGNORE does not add the unknown option as a positional argument.",
+          "source": "https://github.com/apache/commons-cli/blob/d74613321325f6081fa0206c4ab608ab65d80e2e/src/main/java/org/apache/commons/cli/DefaultParser.java#L642-L645"
+        },
+        {
+          "id": "default-flag-values",
+          "title": "Which values in the properties file make an argumentless default option present?",
+          "query": "Which values in the properties file make an argumentless default option present?",
+          "expected": "The parser accepts yes, true, and 1. Word matching is case-insensitive.",
+          "source": "https://github.com/apache/commons-cli/blob/d74613321325f6081fa0206c4ab608ab65d80e2e/src/main/java/org/apache/commons/cli/DefaultParser.java#L516-L526"
+        },
+        {
+          "id": "default-precedence",
+          "title": "When a caller supplies an option explicitly and a default for that same…",
+          "query": "When a caller supplies an option explicitly and a default for that same option, which value wins? Can a default choose another member of its already selected option group?",
+          "expected": "An explicit option suppresses the property default for that option.\nA default is skipped for a group with an existing selection.",
+          "source": "https://github.com/apache/commons-cli/blob/d74613321325f6081fa0206c4ab608ab65d80e2e/src/main/java/org/apache/commons/cli/DefaultParser.java#L505-L516"
+        },
+        {
+          "id": "quote-defaults",
+          "title": "With quote stripping left at its default, how does the parser handle a…",
+          "query": "With quote stripping left at its default, how does the parser handle a surrounding pair of double quotes, with no interior double quotes, in the next argument token versus a property default?",
+          "expected": "A following token used as an option argument calls the default-on stripping path.\nDefault-on strips when the explicit preference is null.\nA property-supplied value uses the default-off path, which leaves it intact when the preference is null.\nDefault-off strips only when the preference is explicitly true.",
+          "source": "https://github.com/apache/commons-cli/blob/d74613321325f6081fa0206c4ab608ab65d80e2e/src/main/java/org/apache/commons/cli/DefaultParser.java#L618-L619"
+        },
+        {
+          "id": "option-group-reset",
+          "title": "What stops a previous parse's choice leaking into the next parse, and what…",
+          "query": "What stops a previous parse's choice leaking into the next parse, and what happens when the next parse tries to choose two different members of the same option group?",
+          "expected": "Parse resets every option group's selection.\nOptionGroup.setSelected clears on null and throws AlreadySelectedException when a different option is selected.",
+          "source": "https://github.com/apache/commons-cli/blob/d74613321325f6081fa0206c4ab608ab65d80e2e/src/main/java/org/apache/commons/cli/DefaultParser.java#L752-L760"
+        },
+        {
+          "id": "private-command",
+          "title": "Which option did I pass to my private application in its most recent command…",
+          "query": "Which option did I pass to my private application in its most recent command line, after migrating it to Commons CLI?",
+          "expected": "A private runtime invocation or production configuration is outside the pinned public source."
+        }
+      ],
+      "suite": "Commons CLI reference"
+    },
+    {
+      "title": "FasterXML/jackson-databind",
+      "repository": "FasterXML/jackson-databind",
+      "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+      "questions": [
+        {
+          "id": "strict-defaults",
+          "title": "With default deserialization settings, contrast an unknown property that no…",
+          "query": "With default deserialization settings, contrast an unknown property that no handler accepts with a JSON null mapped to a Java int.",
+          "expected": "An unhandled unknown property causes a JsonMappingException by default.\nA JSON null mapped to a Java int uses the primitive default 0 because FAIL_ON_NULL_FOR_PRIMITIVES is disabled.",
+          "source": "https://github.com/FasterXML/jackson-databind/blob/c92512e95ba389d50a9ff6278906eff24ab3128e/src/main/java/com/fasterxml/jackson/databind/DeserializationFeature.java#L114-L122"
+        },
+        {
+          "id": "case-insensitive-properties",
+          "title": "What does ACCEPT_CASE_INSENSITIVE_PROPERTIES canonicalize during matching,…",
+          "query": "What does ACCEPT_CASE_INSENSITIVE_PROPERTIES canonicalize during matching, and is it enabled by default?",
+          "expected": "Incoming and matching property names are lowercased.\nThe feature is disabled by default.",
+          "source": "https://github.com/FasterXML/jackson-databind/blob/c92512e95ba389d50a9ff6278906eff24ab3128e/src/main/java/com/fasterxml/jackson/databind/MapperFeature.java#L470-L472"
+        },
+        {
+          "id": "mapper-copy-contract",
+          "title": "Why must an ObjectMapper subclass override copy(), and how does JsonMapper…",
+          "query": "Why must an ObjectMapper subclass override copy(), and how does JsonMapper implement that contract?",
+          "expected": "ObjectMapper.copy performs an exact runtime-class check that throws IllegalStateException for an unhandled subclass.\nThe runtime-class mismatch throws IllegalStateException and asks for an override.\nJsonMapper checks for JsonMapper.class and returns a newly copied JsonMapper.",
+          "source": "https://github.com/FasterXML/jackson-databind/blob/c92512e95ba389d50a9ff6278906eff24ab3128e/src/main/java/com/fasterxml/jackson/databind/ObjectMapper.java#L753-L756"
+        },
+        {
+          "id": "copy-config-cache",
+          "title": "How does the ObjectMapper copy constructor initialize serialization and…",
+          "query": "How does the ObjectMapper copy constructor initialize serialization and deserialization configuration, and do populated serializer caches carry over?",
+          "expected": "New SerializationConfig and DeserializationConfig objects are initialized from the original mapper's configuration and the new mapper's copied collaborators.\nThe cached serializers and deserializers are not carried over.",
+          "source": "https://github.com/FasterXML/jackson-databind/blob/c92512e95ba389d50a9ff6278906eff24ab3128e/src/main/java/com/fasterxml/jackson/databind/ObjectMapper.java#L644-L649"
+        },
+        {
+          "id": "input-stream-tree-end",
+          "title": "In the implementation behind readTree(InputStream), which JsonNode is…",
+          "query": "In the implementation behind readTree(InputStream), which JsonNode is actually returned for empty input, and which for the literal JSON null?",
+          "expected": "No token after advancing produces the configured factory's missingNode.\nA VALUE_NULL token produces the configured factory's nullNode.",
+          "source": "https://github.com/FasterXML/jackson-databind/blob/c92512e95ba389d50a9ff6278906eff24ab3128e/src/main/java/com/fasterxml/jackson/databind/ObjectMapper.java#L5079-L5086"
+        },
+        {
+          "id": "object-property-null",
+          "title": "If I pass Java null to ObjectNode.set for an existing property, is the key…",
+          "query": "If I pass Java null to ObjectNode.set for an existing property, is the key removed? Which method would remove it?",
+          "expected": "set replaces the value with a NullNode and retains the field.\nUse remove to remove the property.",
+          "source": "https://github.com/FasterXML/jackson-databind/blob/c92512e95ba389d50a9ff6278906eff24ab3128e/src/main/java/com/fasterxml/jackson/databind/node/ObjectNode.java#L616-L621"
+        },
+        {
+          "id": "missing-property-text",
+          "title": "What kind of node does ObjectNode.path return for an unknown field, and what…",
+          "query": "What kind of node does ObjectNode.path return for an unknown field, and what does calling asText() on it return?",
+          "expected": "An absent field gets the MissingNode singleton.\nMissingNode.asText() returns the empty string.",
+          "source": "https://github.com/FasterXML/jackson-databind/blob/c92512e95ba389d50a9ff6278906eff24ab3128e/src/main/java/com/fasterxml/jackson/databind/node/ObjectNode.java#L305-L312"
+        },
+        {
+          "id": "conversion-root-wrap",
+          "title": "In ObjectMapper._convert, what happens when its input is already a…",
+          "query": "In ObjectMapper._convert, what happens when its input is already a TokenBuffer, and how is root wrapping handled for other inputs?",
+          "expected": "An existing TokenBuffer is reused directly.\nWRAP_ROOT_VALUE is disabled when serializing other inputs.",
+          "source": "https://github.com/FasterXML/jackson-databind/blob/c92512e95ba389d50a9ff6278906eff24ab3128e/src/main/java/com/fasterxml/jackson/databind/ObjectMapper.java#L4696-L4701"
+        },
+        {
+          "id": "trailing-json",
+          "title": "Does ordinary ObjectMapper root binding, by default, verify that no JSON…",
+          "query": "Does ordinary ObjectMapper root binding, by default, verify that no JSON token follows the first value, and how can that check be enabled?",
+          "expected": "FAIL_ON_TRAILING_TOKENS is off by default.\nRoot reading performs its final token check if FAIL_ON_TRAILING_TOKENS is enabled.",
+          "source": "https://github.com/FasterXML/jackson-databind/blob/c92512e95ba389d50a9ff6278906eff24ab3128e/src/main/java/com/fasterxml/jackson/databind/DeserializationFeature.java#L271-L274"
+        },
+        {
+          "id": "private-mapper-config",
+          "title": "What is the exact custom deserializer class registered by my private service…",
+          "query": "What is the exact custom deserializer class registered by my private service in its production ObjectMapper?",
+          "expected": "A private runtime invocation or production configuration is outside the pinned public source."
+        }
+      ],
+      "suite": "Jackson reference"
+    },
+    {
+      "title": "astral-sh/uv",
+      "repository": "astral-sh/uv",
+      "revision": "a58e7cd639ef2ce0f4e6717b3e06269c3e1001ad",
+      "questions": [
+        {
+          "id": "git-cache",
+          "title": "What identifies a Git dependency in the cache once its reference has been…",
+          "query": "What identifies a Git dependency in the cache once its reference has been resolved?",
+          "expected": "The fully resolved commit hash.",
+          "source": "https://github.com/astral-sh/uv/blob/a58e7cd639ef2ce0f4e6717b3e06269c3e1001ad/docs/concepts/cache.md#L13-L14"
+        },
+        {
+          "id": "digest-endian",
+          "title": "In to_hex, what byte order is used to encode the u64?",
+          "query": "In to_hex, what byte order is used to encode the u64?",
+          "expected": "Little-endian.",
+          "source": "https://github.com/astral-sh/uv/blob/a58e7cd639ef2ce0f4e6717b3e06269c3e1001ad/crates/uv-cache-key/src/digest.rs#L36-L36"
+        },
+        {
+          "id": "refresh-one",
+          "title": "Which option forces revalidation for just one dependency during synchronization?",
+          "query": "Which option forces revalidation for just one dependency during synchronization?",
+          "expected": "--refresh-package",
+          "source": "https://github.com/astral-sh/uv/blob/a58e7cd639ef2ce0f4e6717b3e06269c3e1001ad/docs/concepts/cache.md#L31-L32"
+        },
+        {
+          "id": "toolchains",
+          "title": "Give the workspace minimum Rust version and the channel pinned for…",
+          "query": "Give the workspace minimum Rust version and the channel pinned for developers, in that order.",
+          "expected": "Workspace requires Rust 1.98.0.\nToolchain channel is 1.100.0.",
+          "source": "https://github.com/astral-sh/uv/blob/a58e7cd639ef2ce0f4e6717b3e06269c3e1001ad/Cargo.toml#L12-L12"
+        },
+        {
+          "id": "id-entropy",
+          "title": "How long are the IDs produced by the fast ID crate and how many bits of…",
+          "query": "How long are the IDs produced by the fast ID crate and how many bits of entropy do they contain?",
+          "expected": "16 characters.\n96 bits of entropy.",
+          "source": "https://github.com/astral-sh/uv/blob/a58e7cd639ef2ce0f4e6717b3e06269c3e1001ad/crates/uv-fastid/src/lib.rs#L3-L4"
+        },
+        {
+          "id": "canonical-fetch",
+          "title": "For CanonicalUrl, why should fetching use the original URL? Give the two…",
+          "query": "For CanonicalUrl, why should fetching use the original URL? Give the two changes that can make the canonical URL unsuitable.",
+          "expected": "Canonicalization can remove credentials.\nIt can change paths.",
+          "source": "https://github.com/astral-sh/uv/blob/a58e7cd639ef2ce0f4e6717b3e06269c3e1001ad/crates/uv-cache-key/src/canonical_url.rs#L12-L13"
+        },
+        {
+          "id": "config-precedence",
+          "title": "Two project configuration files sit side by side. Which one takes precedence…",
+          "query": "Two project configuration files sit side by side. Which one takes precedence and what happens to the other file’s uv table?",
+          "expected": "uv.toml takes precedence.\nThe accompanying pyproject.toml tool.uv table is ignored.",
+          "source": "https://github.com/astral-sh/uv/blob/a58e7cd639ef2ce0f4e6717b3e06269c3e1001ad/docs/concepts/configuration-files.md#L41-L42"
+        },
+        {
+          "id": "lock-timeout",
+          "title": "For cache-modifying commands, give the default wait for other processes and…",
+          "query": "For cache-modifying commands, give the default wait for other processes and the environment variable that changes it.",
+          "expected": "Five minutes.\nUV_LOCK_TIMEOUT.",
+          "source": "https://github.com/astral-sh/uv/blob/a58e7cd639ef2ce0f4e6717b3e06269c3e1001ad/docs/concepts/cache.md#L164-L165"
+        },
+        {
+          "id": "bool-hashing",
+          "title": "Which unsigned integer width does CacheKey use for a bool, and which hasher…",
+          "query": "Which unsigned integer width does CacheKey use for a bool, and which hasher does cache_digest construct before finishing the hash?",
+          "expected": "u8 (8 bits).\nCacheKeyHasher.",
+          "source": "https://github.com/astral-sh/uv/blob/a58e7cd639ef2ce0f4e6717b3e06269c3e1001ad/crates/uv-cache-key/src/cache_key.rs#L32-L32"
+        },
+        {
+          "id": "local-run",
+          "title": "What exact ID did my private laptop generate on its most recent invocation…",
+          "query": "What exact ID did my private laptop generate on its most recent invocation of the uv fast ID generator?",
+          "expected": "Private runtime event outside this source snapshot."
+        },
+        {
+          "id": "local-config",
+          "title": "Which exact custom index URL is currently set in my private workstation user…",
+          "query": "Which exact custom index URL is currently set in my private workstation user configuration?",
+          "expected": "Private user file absent. Documentation examples are not user configuration."
+        }
+      ],
+      "suite": "uv retrieval"
+    },
+    {
+      "title": "psf/requests",
+      "repository": "psf/requests",
+      "revision": "b25c87d7cb8d6a18a37fa12442b5f883f9e41741",
+      "questions": [
+        {
+          "id": "requests-adapter-id",
+          "title": "Connection adapter lookup",
+          "query": "Which method selects the connection adapter for an outgoing request?",
+          "expected": "def get_adapter(self, url):",
+          "source": "https://github.com/psf/requests/blob/b25c87d7cb8d6a18a37fa12442b5f883f9e41741/src/requests/sessions.py#L781-L781"
+        },
+        {
+          "id": "requests-adapter-en",
+          "title": "Where does the session choose a connection adapter by matching the beginning…",
+          "query": "Where does the session choose a connection adapter by matching the beginning of a URL without regard to case?",
+          "expected": "url.lower().startswith(prefix.lower())",
+          "source": "https://github.com/psf/requests/blob/b25c87d7cb8d6a18a37fa12442b5f883f9e41741/src/requests/sessions.py#L788-L788"
+        },
+        {
+          "id": "requests-redirect-en",
+          "title": "Where does a redirect to a different hostname cause the authorization header…",
+          "query": "Where does a redirect to a different hostname cause the authorization header to be removed?",
+          "expected": "if old_parsed.hostname != new_parsed.hostname:",
+          "source": "https://github.com/psf/requests/blob/b25c87d7cb8d6a18a37fa12442b5f883f9e41741/src/requests/sessions.py#L131-L131"
+        },
+        {
+          "id": "practical-1",
+          "title": "Request settings override session defaults",
+          "query": "If a request sets a non-dictionary option and the session has a different default, which value wins?",
+          "expected": "The explicit request value wins. When it is None, Requests inherits the session value.",
+          "source": "https://github.com/psf/requests/blob/b25c87d7cb8d6a18a37fa12442b5f883f9e41741/src/requests/sessions.py#L61-L77"
+        },
+        {
+          "id": "practical-2",
+          "title": "POST redirects",
+          "query": "If a server redirects a POST with status 301 or 302, will Requests send another POST?",
+          "expected": "Requests changes the redirected request to GET for a POST in either case.",
+          "source": "https://github.com/psf/requests/blob/b25c87d7cb8d6a18a37fa12442b5f883f9e41741/src/requests/sessions.py#L333-L353"
+        },
+        {
+          "id": "practical-3",
+          "title": "Unmatched URL adapter",
+          "query": "What happens when a Session has no connection adapter whose prefix matches the URL?",
+          "expected": "Session.get_adapter raises InvalidSchema.",
+          "source": "https://github.com/psf/requests/blob/b25c87d7cb8d6a18a37fa12442b5f883f9e41741/src/requests/sessions.py#L781-L792"
+        },
+        {
+          "id": "practical-4",
+          "title": "HTTP redirect and Response.ok",
+          "query": "Can Response.ok be true for a redirect, or does it require a 200 status?",
+          "expected": "It can be true for a redirect. Response.ok checks whether raise_for_status raises HTTPError.",
+          "source": "https://github.com/psf/requests/blob/b25c87d7cb8d6a18a37fa12442b5f883f9e41741/src/requests/models.py#L755-L767"
+        }
+      ],
+      "suite": "Source retrieval"
+    },
+    {
+      "title": "BurntSushi/ripgrep",
+      "repository": "BurntSushi/ripgrep",
+      "revision": "af60c2de9d85e7f3d81c78601669468cf02dabab",
+      "questions": [
+        {
+          "id": "ripgrep-choice-id",
+          "title": "Testing documented flag choices",
+          "query": "Which test validates the documented choices for command-line flags?",
+          "expected": "fn choices_ascii_alphanumeric()",
+          "source": "https://github.com/BurntSushi/ripgrep/blob/af60c2de9d85e7f3d81c78601669468cf02dabab/crates/core/flags/defs.rs#L7760-L7760"
+        },
+        {
+          "id": "ripgrep-choice-en",
+          "title": "Which test checks the letters, digits and punctuation allowed in the…",
+          "query": "Which test checks the letters, digits and punctuation allowed in the documented values of flags?",
+          "expected": "choice.chars().all(|c| c.is_ascii_alphanumeric()",
+          "source": "https://github.com/BurntSushi/ripgrep/blob/af60c2de9d85e7f3d81c78601669468cf02dabab/crates/core/flags/defs.rs#L7765-L7765"
+        },
+        {
+          "id": "ripgrep-depth-en",
+          "title": "Which command-line option prevents descending more than a fixed number of…",
+          "query": "Which command-line option prevents descending more than a fixed number of directories, and what does zero mean?",
+          "expected": "This flag limits the depth of directory traversal",
+          "source": "https://github.com/BurntSushi/ripgrep/blob/af60c2de9d85e7f3d81c78601669468cf02dabab/crates/core/flags/defs.rs#L3964-L3964"
+        },
+        {
+          "id": "practical-1",
+          "title": "Searching hidden files",
+          "query": "How can I include hidden files and directories in a ripgrep search?",
+          "expected": "Use --hidden or its short form (-.).",
+          "source": "https://github.com/BurntSushi/ripgrep/blob/af60c2de9d85e7f3d81c78601669468cf02dabab/crates/core/flags/defs.rs#L2770-L2794"
+        },
+        {
+          "id": "practical-2",
+          "title": "Searching despite ignore files",
+          "query": "How do I search a file that ripgrep excludes through an ignore file?",
+          "expected": "Use --no-ignore to turn off ignore-file processing.",
+          "source": "https://github.com/BurntSushi/ripgrep/blob/af60c2de9d85e7f3d81c78601669468cf02dabab/crates/core/flags/defs.rs#L4321-L4354"
+        },
+        {
+          "id": "practical-3",
+          "title": "Searching for literal text",
+          "query": "How can I search for a string containing regex characters as literal text?",
+          "expected": "Use --fixed-strings or -F.",
+          "source": "https://github.com/BurntSushi/ripgrep/blob/af60c2de9d85e7f3d81c78601669468cf02dabab/crates/core/flags/defs.rs#L2285-L2324"
+        },
+        {
+          "id": "practical-4",
+          "title": "Printing match line numbers",
+          "query": "How can I force ripgrep to print line numbers when its output is piped?",
+          "expected": "Use --line-number or -n to force line numbers.",
+          "source": "https://github.com/BurntSushi/ripgrep/blob/af60c2de9d85e7f3d81c78601669468cf02dabab/crates/core/flags/defs.rs#L3601-L3632"
+        }
+      ],
+      "suite": "Source retrieval"
+    },
+    {
+      "title": "OpenClaudeAgent/context-fabricator",
+      "repository": "OpenClaudeAgent/context-fabricator",
+      "revision": "a3b844b3b59213156866cf913ba7aa228d7a30a8",
+      "questions": [
+        {
+          "id": "request-rate",
+          "title": "What is the highest allowed number of GitHub requests in a minute?",
+          "query": "What is the highest allowed number of GitHub requests in a minute?",
+          "expected": "pub const MAX_REQUESTS_PER_MINUTE: u16 = 60;"
+        },
+        {
+          "id": "http-redirects",
+          "title": "How many redirects does the GitHub REST adapter follow at most?",
+          "query": "How many redirects does the GitHub REST adapter follow at most?",
+          "expected": "const MAX_REDIRECTS: usize = 3;"
+        },
+        {
+          "id": "contents-permission",
+          "title": "Which GitHub repository features require contents access?",
+          "query": "Which GitHub repository features require contents access?",
+          "expected": "self.current_code || self.history || self.actions || self.code_graph"
+        },
+        {
+          "id": "github-file-size",
+          "title": "What is the largest GitHub source file the REST adapter will fetch?",
+          "query": "What is the largest GitHub source file the REST adapter will fetch?",
+          "expected": "const MAX_FILE_BYTES: u64 = 256 * 1024;"
+        },
+        {
+          "id": "search-result-count",
+          "title": "How many local search results can the backend return at most?",
+          "query": "How many local search results can the backend return at most?",
+          "expected": "pub const MAX_RESULTS: usize = 20;"
+        },
+        {
+          "id": "events-per-span",
+          "title": "How many diagnostic events can the recorder retain per trace span?",
+          "query": "How many diagnostic events can the recorder retain per trace span?",
+          "expected": "pub(crate) const MAX_PER_SPAN: u32 = 8;"
+        }
+      ],
+      "suite": "Connector source retrieval"
+    }
+  ],
+  "fixtureCases": [
+    {
+      "suite": "GitHub feature checks",
+      "id": "branch-publication",
+      "surface": "currentBranch",
+      "query": "At which exact commit is uv's main available locally, and does a check with no ref change republish files?",
+      "expected": "The published revision equals the pinned branch head. An unchanged check reports changed=false and keeps the same snapshot and source manifest.",
+      "oracle": "Git commit and tree, SQLite published paths and blobs, POST /v1/github/repositories/{id}/refresh."
+    },
+    {
+      "suite": "GitHub feature checks",
+      "id": "branch-transition",
+      "surface": "currentBranch",
+      "query": "When main advances from the parent to the pinned commit, which accepted paths change and which revision is searchable?",
+      "expected": "Only crates/uv-fastid/src/lib.rs and crates/uv-fs/src/which.rs change. The search returns only the new revision within this branch, with reopenable coordinates.",
+      "oracle": "git diff --name-status -M, Git per-revision manifests, SQLite, GET /v1/search."
+    },
+    {
+      "suite": "GitHub feature checks",
+      "id": "unpublished-branch",
+      "surface": "currentBranch",
+      "query": "Can a search scoped to an unpublished branch return the current main code?",
+      "expected": "No scoped current results. The same query returns current results on main.",
+      "oracle": "GET /v1/search with the same repository and query, varying only branch."
+    },
+    {
+      "suite": "GitHub feature checks",
+      "id": "history-comparison",
+      "surface": "history",
+      "query": "What safety guarantees replaced the short WinAPI comment in get_binary_type?",
+      "expected": "The name is null-terminated UTF-16, binary_type is a writable u32, and both remain valid during the call. The comparison uses the exact first parent and both cited lines reopen.",
+      "oracle": "Git diff and both blob byte ranges, GET and POST /v1/github/repositories/{id}/history/comparisons/{child}."
+    },
+    {
+      "suite": "GitHub feature checks",
+      "id": "history-rename-delete",
+      "surface": "history",
+      "query": "For fixture/alpha's comparison from a…a to b…b, which path was deleted and which path was renamed without a content change?",
+      "expected": "src/removed.rs was deleted. src/old.rs became src/renamed.rs with the same content. A separate src/z-new.rs was added.",
+      "oracle": "Accepted fixture tree and blob payloads, explicit_comparison_proves_both_trees_and_first_parent."
+    },
+    {
+      "suite": "GitHub feature checks",
+      "id": "history-merge-scope",
+      "surface": "history",
+      "query": "For fixture/alpha's merge a…a, is the comparison based on the first parent d…d or the other parent e…e?",
+      "expected": "d…d is the first-parent lineage and is used as the baseline; e…e is listed as a parent but is rejected as a comparison outside the active lineage.",
+      "oracle": "Ordered fixture parent payloads, history_follows_first_parent_and_reuses_a_published_lineage and explicit_comparison_proves_both_trees_and_first_parent."
+    },
+    {
+      "suite": "GitHub feature checks",
+      "id": "graph-full-uv",
+      "surface": "graph",
+      "query": "Does the Code Graph publish a Rust symbol index for the whole pinned uv workspace?",
+      "expected": "The large workspace exceeds the product limit of eight conventional Rust roots. The graph reports limit and no entries instead of implying complete coverage.",
+      "oracle": "git ls-tree of accepted paths, source root limit, GET /v1/github/repositories/{id}/graph."
+    },
+    {
+      "suite": "GitHub feature checks",
+      "id": "graph-resolution",
+      "surface": "graph",
+      "query": "On the small two-module Rust fixture, where is run defined, and to which declaration do the import and call bind?",
+      "expected": "The definition in src/target.rs is the target of the import and the direct call from src/lib.rs. Each occurrence reopens as the original identifier.",
+      "oracle": "Graph unit oracle qualified_call_and_import_reopen_their_original_identifier, plus connector graph fixture for the role=call resolution."
+    },
+    {
+      "suite": "GitHub feature checks",
+      "id": "graph-unresolved",
+      "surface": "graph",
+      "query": "What happens to a call when its declaration is removed at the next fixture commit, or its source is ambiguous or shadowed?",
+      "expected": "The indexed call stays unresolved or ambiguous and carries no invented target. The graph revision advances.",
+      "oracle": "graph_only_refresh_publishes_scoped_edges_without_general_search_rows, duplicate_modules_and_conditional_declarations_have_no_guessed_target, stale_paths_bad_syntax_and_local_shadowing_do_not_bind."
+    },
+    {
+      "suite": "GitHub feature checks",
+      "id": "actions-attempt",
+      "surface": "actions",
+      "query": "What was the outcome of CI for the selected uv revision?",
+      "expected": "Attempt 1 completed with success, on main at the exact pinned commit, with verified repository commit provenance.",
+      "oracle": "Captured GitHub attempt, packaged Actions collection/read API, immutable attempt URL."
+    },
+    {
+      "suite": "GitHub feature checks",
+      "id": "actions-unknown-executed-yaml",
+      "surface": "actions",
+      "query": "Can the product prove which exact YAML definition was executed by the selected CI attempt?",
+      "expected": "No. The known definition blob belongs to the selected commit and can be reopened, while executedDefinition remains unknown.",
+      "oracle": "Git workflow blob and GitHubActions.executedDefinition. The captured provider record has no executed-definition digest."
+    },
+    {
+      "suite": "GitHub feature checks",
+      "id": "cross-feature-provenance",
+      "surface": "crossFeature",
+      "query": "Do the current source snapshot, history comparison and observed CI attempt agree about the exact child commit? Which parent was compared?",
+      "expected": "All three records name the pinned child commit, and history names the exact parent. A failed graph projection and an unknown executed workflow remain explicit limitations.",
+      "oracle": "Cross-check the independently pinned Git tree and parent against current manifest, history materialization and captured provider attempt."
+    },
+    {
+      "suite": "GitHub family answers",
+      "id": "current-server",
+      "surface": "current",
+      "query": "Which class starts the HTTP server in the current quality/m07/github_fixture.py?",
+      "expected": "LoopbackHTTPServer starts the current server.",
+      "oracle": "context-fabricator"
+    },
+    {
+      "suite": "GitHub family answers",
+      "id": "current-bind",
+      "surface": "current",
+      "query": "At what IP address does quality/m07/github_fixture.py bind the HTTP server?",
+      "expected": "The bind address is 127.0.0.1.",
+      "oracle": "context-fabricator"
+    },
+    {
+      "suite": "GitHub family answers",
+      "id": "current-private-port",
+      "surface": "current",
+      "query": "Which exact ephemeral TCP port did quality/m07/github_fixture.py bind on my last private run yesterday?",
+      "expected": "A source declaration of port 0 does not identify the port assigned in a specific private execution.",
+      "oracle": "context-fabricator"
+    },
+    {
+      "suite": "GitHub family answers",
+      "id": "history-server-class",
+      "surface": "history",
+      "query": "How did the HTTP server class in quality/m07/github_fixture.py change between the previous and current commits?",
+      "expected": "Before the change, the server was opened with ThreadingHTTPServer.\nAfter the change, it opens with LoopbackHTTPServer.",
+      "oracle": "context-fabricator"
+    },
+    {
+      "suite": "GitHub family answers",
+      "id": "history-bound-address",
+      "surface": "history",
+      "query": "Did the server-class change in quality/m07/github_fixture.py also change the bind address?",
+      "expected": "The bind address stayed 127.0.0.1 on both sides.",
+      "oracle": "context-fabricator"
+    },
+    {
+      "suite": "GitHub family answers",
+      "id": "history-unseen-commit",
+      "surface": "history",
+      "query": "What retry timeout did the unfetched commit introduce in the GitHub fixture?",
+      "expected": "The named commit is absent from the published history.",
+      "oracle": "context-fabricator"
+    },
+    {
+      "suite": "GitHub family answers",
+      "id": "actions-run-conclusion",
+      "surface": "actions",
+      "query": "What was the outcome of the selected CI workflow?",
+      "expected": "GitHub recorded cancelled for that exact run and attempt.",
+      "oracle": "context-fabricator",
+      "action": {
+        "repository": "OpenClaudeAgent/context-fabricator",
+        "runID": 44723025441,
+        "attempt": 1
+      }
+    },
+    {
+      "suite": "GitHub family answers",
+      "id": "actions-public-event",
+      "surface": "actions",
+      "query": "What triggered the selected workflow, and did it pass?",
+      "expected": "A push triggered the run.\nThe first attempt succeeded.",
+      "oracle": "uv",
+      "action": {
+        "repository": "astral-sh/uv",
+        "runID": 44806099739,
+        "attempt": 1
+      }
+    },
+    {
+      "suite": "GitHub family answers",
+      "id": "actions-unknown-executed-definition",
+      "surface": "actions",
+      "query": "What exact workflow YAML actually ran, and can we recover it from the capture?",
+      "expected": "The captured record identifies the attempt, but does not prove which complete YAML actually executed.",
+      "oracle": "uv",
+      "action": {
+        "repository": "astral-sh/uv",
+        "runID": 44806099739,
+        "attempt": 1
+      }
+    },
+    {
+      "suite": "GitHub family answers",
+      "id": "actions-unknown-attempt",
+      "surface": "actions",
+      "query": "What outcome did CI report for the rerun missing from the capture?",
+      "expected": "Only attempt 1 is recorded for this run; its result cannot be applied to attempt 8.",
+      "oracle": "uv"
+    },
+    {
+      "suite": "GitHub family answers",
+      "id": "mixed-code-workflow",
+      "surface": "mixed",
+      "query": "Which class starts the GitHub fixture server, and what outcome did the selected CI workflow report?",
+      "expected": "The current server uses LoopbackHTTPServer.\nThe named Actions attempt was cancelled.",
+      "oracle": "context-fabricator"
+    },
+    {
+      "suite": "GitHub family answers",
+      "id": "graph-definition",
+      "surface": "graph",
+      "query": "Where is the Rust function `crate::target::run` defined?",
+      "expected": "It is defined in src/target.rs.",
+      "oracle": "rust-graph"
+    },
+    {
+      "suite": "GitHub family answers",
+      "id": "graph-caller",
+      "surface": "graph",
+      "query": "Which function calls `crate::target::run` directly, and where is the target defined?",
+      "expected": "invoke directly calls crate::target::run in src/lib.rs.\nrun is defined in src/target.rs.",
+      "oracle": "rust-graph"
+    },
+    {
+      "suite": "GitHub family answers",
+      "id": "graph-removed-target",
+      "surface": "graph",
+      "query": "Give the body of the current definition of `crate::target::run`.",
+      "expected": "The latest published commit removed src/target.rs. Remaining references do not provide the definition.",
+      "oracle": "rust-graph-after-removal"
+    },
+    {
+      "suite": "Public Actions on benchmark commits",
+      "id": "public-action-44295614907-1",
+      "surface": "actions",
+      "query": "Did Java CI pass for the selected changes?",
+      "expected": "GitHub recorded success.",
+      "oracle": "Commit aec9bb2dd90df2d7f775d6da2f026a1c328a03e6 · https://github.com/apache/commons-cli/actions/runs/44295614907/attempts/1",
+      "action": {
+        "repository": "apache/commons-cli",
+        "runID": 44295614907,
+        "attempt": 1
+      }
+    },
+    {
+      "suite": "Public Actions on benchmark commits",
+      "id": "public-action-39065541032-1",
+      "surface": "actions",
+      "query": "Did the snapshot build and deploy workflow succeed?",
+      "expected": "GitHub recorded success.",
+      "oracle": "Commit c92512e95ba389d50a9ff6278906eff24ab3128e · https://github.com/FasterXML/jackson-databind/actions/runs/39065541032/attempts/1",
+      "action": {
+        "repository": "FasterXML/jackson-databind",
+        "runID": 39065541032,
+        "attempt": 1
+      }
+    },
+    {
+      "suite": "Public Actions on benchmark commits",
+      "id": "public-action-42437411775-1",
+      "surface": "actions",
+      "query": "Did CI pass for the selected changes?",
+      "expected": "GitHub recorded failure.",
+      "oracle": "Commit 62207901b65e4fc51459b2d558fad8aa882f5d33 · https://github.com/tokio-rs/bytes/actions/runs/42437411775/attempts/1",
+      "action": {
+        "repository": "tokio-rs/bytes",
+        "runID": 42437411775,
+        "attempt": 1
+      }
+    },
+    {
+      "suite": "Public Actions on benchmark commits",
+      "id": "public-action-43809170837-1",
+      "surface": "actions",
+      "query": "Did the selected CI workflow complete successfully?",
+      "expected": "GitHub recorded success.",
+      "oracle": "Commit f51fa15a7015c7d02817a46d2db44c899a0016e8 · https://github.com/serde-rs/json/actions/runs/43809170837/attempts/1",
+      "action": {
+        "repository": "serde-rs/json",
+        "runID": 43809170837,
+        "attempt": 1
+      }
+    },
+    {
+      "suite": "Public Actions on other commits",
+      "id": "public-action-45081181907-1",
+      "surface": "actions",
+      "query": "What triggered CI, and what was the result?",
+      "expected": "A push triggered the run. GitHub recorded success.",
+      "oracle": "Commit 4a51093f78bfbef86d89275f4916fd6b6039fe9e · https://github.com/BurntSushi/ripgrep/actions/runs/45081181907/attempts/1",
+      "action": {
+        "repository": "BurntSushi/ripgrep",
+        "runID": 45081181907,
+        "attempt": 1
+      }
+    },
+    {
+      "suite": "Public Actions on other commits",
+      "id": "public-action-40366789388-1",
+      "surface": "actions",
+      "query": "Did the Tests workflow pass for the selected changes?",
+      "expected": "GitHub recorded success.",
+      "oracle": "Commit 3c7baaa05ab4aa49cc819ce3a819d260de19c157 · https://github.com/psf/requests/actions/runs/40366789388/attempts/1",
+      "action": {
+        "repository": "psf/requests",
+        "runID": 40366789388,
+        "attempt": 1
+      }
+    },
+    {
+      "suite": "Public Actions on benchmark commits",
+      "id": "selected-ci-trigger",
+      "surface": "actions",
+      "query": "What triggered this CI workflow?",
+      "expected": "GitHub recorded a scheduled event.",
+      "oracle": "Commit 62207901b65e4fc51459b2d558fad8aa882f5d33 · https://github.com/tokio-rs/bytes/actions/runs/42437411775/attempts/1",
+      "action": {
+        "repository": "tokio-rs/bytes",
+        "runID": 42437411775,
+        "attempt": 1
+      }
+    },
+    {
+      "suite": "Public Actions on benchmark commits",
+      "id": "selected-release-branch",
+      "surface": "actions",
+      "query": "Which branch did the snapshot deployment run against?",
+      "expected": "GitHub reports the head branch 2.21.",
+      "oracle": "Commit c92512e95ba389d50a9ff6278906eff24ab3128e · https://github.com/FasterXML/jackson-databind/actions/runs/39065541032/attempts/1",
+      "action": {
+        "repository": "FasterXML/jackson-databind",
+        "runID": 39065541032,
+        "attempt": 1
+      }
+    },
+    {
+      "suite": "Public Actions on other commits",
+      "id": "selected-tests-trigger",
+      "surface": "actions",
+      "query": "What started the Tests workflow?",
+      "expected": "A push triggered the workflow.",
+      "oracle": "Commit 3c7baaa05ab4aa49cc819ce3a819d260de19c157 · https://github.com/psf/requests/actions/runs/40366789388/attempts/1",
+      "action": {
+        "repository": "psf/requests",
+        "runID": 40366789388,
+        "attempt": 1
+      }
+    },
+    {
+      "suite": "Public Actions on benchmark commits",
+      "id": "selected-ci-step",
+      "surface": "actions",
+      "query": "Which CI step failed?",
+      "expected": "The capture records the workflow failure and has no observations for individual steps.",
+      "oracle": "Commit 62207901b65e4fc51459b2d558fad8aa882f5d33 · https://github.com/tokio-rs/bytes/actions/runs/42437411775/attempts/1",
+      "action": {
+        "repository": "tokio-rs/bytes",
+        "runID": 42437411775,
+        "attempt": 1
+      }
+    },
+    {
+      "suite": "GitHub family answers",
+      "id": "selected-quality-status",
+      "surface": "actions",
+      "query": "Did the Quality workflow finish or is it still running?",
+      "expected": "It completed with a cancelled conclusion.",
+      "oracle": "context-fabricator",
+      "action": {
+        "repository": "OpenClaudeAgent/context-fabricator",
+        "runID": 44723025441,
+        "attempt": 1
+      }
+    },
+    {
+      "suite": "Public Actions on benchmark commits",
+      "id": "selected-java-trigger",
+      "surface": "actions",
+      "query": "What started Java CI?",
+      "expected": "A push triggered Java CI.",
+      "oracle": "Commit aec9bb2dd90df2d7f775d6da2f026a1c328a03e6 · https://github.com/apache/commons-cli/actions/runs/44295614907/attempts/1",
+      "action": {
+        "repository": "apache/commons-cli",
+        "runID": 44295614907,
+        "attempt": 1
+      }
+    }
+  ],
+  "workflowQuestionTemplates": {
+    "event": "What triggered this workflow?",
+    "status": "What is the current status of the workflow?",
+    "conclusion": "How did the workflow finish?",
+    "branch": "Which branch did the workflow run against?"
+  }
+}

@@ -1,0 +1,297 @@
+name: Qt desktop quality
+
+on:
+  push:
+    paths: &qt_inputs
+      - 'desktop/qt/**'
+      - 'desktop/macos/App/Localizable.xcstrings'
+      - 'desktop/macos/App/Assets.xcassets/AppIcon.appiconset/**'
+      - 'desktop/macos/App/Features/Diagnostics/Resources/PipelineBenchmark*.json'
+      - 'contracts/**'
+      - 'backend/**'
+      - 'cli/**'
+      - 'quality/answers/**'
+      - 'quality/github/**'
+      - 'quality/models/**'
+      - 'quality/release/**'
+      - 'rust-toolchain.toml'
+      - 'LICENSE'
+      - '.github/workflows/qt.yml'
+  pull_request:
+    paths: *qt_inputs
+  workflow_dispatch:
+    inputs:
+      native_inference:
+        description: Exercise the installed Linux package with the catalog Qwen3 Q4_K_M weights
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event_name == 'workflow_dispatch' && github.run_id || github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  qt:
+    name: Qt checks (${{ matrix.platform }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: Linux x86-64
+            runner: ubuntu-24.04
+            arch: linux_gcc_64
+            archives: qtbase qtdeclarative qttools icu qtwayland
+          - platform: macOS arm64
+            runner: macos-26
+            arch: clang_64
+            archives: qtbase qtdeclarative qttools
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@1bcf9fb12cf4aa7d266a90ae39939e61372fe520 # v5.4.0
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Install Qt SDK
+        uses: jurplel/install-qt-action@bcb88e3bed2e992f5f9e24c0f9e364a231d278eb # v4.4.0
+        with:
+          version: '6.12.0'
+          arch: ${{ matrix.arch }}
+          archives: ${{ matrix.archives }}
+          aqtversion: '==3.3.0'
+          cache: true
+      - name: Install Linux build and analysis tools
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-19 clang-format-19 clang-tidy-19 llvm-19 libclang-rt-19-dev \
+            libgl-dev libegl-dev libxkbcommon-dev libxkbcommon-x11-0 libglib2.0-0t64 \
+            libwayland-cursor0 libxcb-cursor0 libxcb-icccm4 \
+            libxcb-keysyms1 libxcb-shape0 libssl-dev pkg-config fonts-dejavu-core xvfb xdotool weston \
+            dbus-daemon gnome-keyring libsecret-tools libglib2.0-bin
+          echo "CXX=clang++-19" >> "$GITHUB_ENV"
+      - name: Install macOS build and analysis tools
+        if: runner.os == 'macOS'
+        run: |
+          brew install llvm@19
+          brew --prefix llvm@19 | sed 's|$|/bin|' >> "$GITHUB_PATH"
+          echo "CXX=$(xcrun --find clang++)" >> "$GITHUB_ENV"
+      - name: Install pinned build and complexity tools
+        run: |
+          python3 -m venv .quality/qt-tools/qa
+          .quality/qt-tools/qa/bin/pip install --only-binary=:all: -r desktop/qt/requirements-quality.txt
+          echo "$PWD/.quality/qt-tools/qa/bin" >> "$GITHUB_PATH"
+      - name: Build the real Rust backend for the Qt lifecycle scenario
+        env:
+          CARGO_PROFILE_DEV_DEBUG: '0'
+        run: |
+          mkdir -p .quality/qt/coverage
+          cargo build --locked --manifest-path backend/Cargo.toml --target-dir .quality/qt/rust \
+            -p ctxfab-server --jobs 4 2>&1 | tee .quality/qt/coverage/backend.log
+          echo "CTXFAB_TEST_BACKEND_EXECUTABLE=$PWD/.quality/qt/rust/debug/ctxfab-server" >> "$GITHUB_ENV"
+      - name: Build, lint and run headless tests with coverage
+        working-directory: desktop/qt
+        run: |
+          mkdir -p ../../.quality/qt/coverage
+          cmake --preset coverage 2>&1 | tee ../../.quality/qt/coverage/configure.log
+          cmake --build --preset coverage --parallel 4 2>&1 | tee ../../.quality/qt/coverage/build.log
+      - name: Exercise the real Qt window and CLI on X11
+        if: runner.os == 'Linux'
+        env:
+          CARGO_PROFILE_DEV_DEBUG: '0'
+          LLVM_PROFILE_FILE: '${{ runner.temp }}/ctxfab-window-%p.profraw'
+        run: |
+          cargo build --locked --manifest-path cli/Cargo.toml --target-dir .quality/qt/rust-cli --jobs 4
+          python3 desktop/qt/tests/linux_window_smoke.py desktop/qt/build/coverage/ctxfab_qt \
+            "$CTXFAB_TEST_BACKEND_EXECUTABLE" .quality/qt/rust-cli/debug/ctxfab \
+            2>&1 | tee .quality/qt/coverage/window.log
+      - name: Replay the Qt window scenarios under Wayland
+        if: runner.os == 'Linux'
+        run: |
+          out=.quality/qt/window-wayland
+          mkdir -p "$out"
+          python3 -B desktop/qt/tests/run_window_scenarios.py \
+            desktop/qt/build/coverage/ctxfab_qt_window_tests "$CTXFAB_TEST_BACKEND_EXECUTABLE" "$out" --wayland \
+            2>&1 | tee "$out/scenarios.log"
+      - name: Exercise GitHub credentials in a Linux Secret Service session
+        if: runner.os == 'Linux'
+        run: |
+          python3 -B quality/github/secret_service_check.py "$CTXFAB_TEST_BACKEND_EXECUTABLE" \
+            2>&1 | tee .quality/qt/coverage/secret-service.log
+      - name: Run AddressSanitizer and UndefinedBehaviorSanitizer
+        working-directory: desktop/qt
+        run: |
+          mkdir -p ../../.quality/qt/sanitizers
+          cmake --preset sanitizers 2>&1 | tee ../../.quality/qt/sanitizers/configure.log
+          cmake --build --preset sanitizers --parallel 4 2>&1 | tee ../../.quality/qt/sanitizers/build.log
+          ctest --preset sanitizers
+      - name: Retain Qt quality evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: qt-quality-${{ runner.os }}
+          path: |
+            .quality/qt/*/configure.log
+            .quality/qt/*/build.log
+            .quality/qt/*/backend.log
+            .quality/qt/*/window.log
+            desktop/qt/build/coverage/window-scenarios/*.png
+            desktop/qt/build/coverage/window-scenarios/window.log
+            .quality/qt/window-wayland/*.png
+            .quality/qt/window-wayland/scenarios.log
+            .quality/qt/window-wayland/weston.log
+            .quality/qt/*/secret-service.log
+            desktop/qt/build/*/openapi/generate*.log
+            desktop/qt/build/*/tests.xml
+            desktop/qt/build/coverage/coverage.txt
+            desktop/qt/build/coverage/coverage.json
+            desktop/qt/build/coverage/coverage-diagnostics.log
+          if-no-files-found: warn
+          include-hidden-files: true
+          retention-days: 14
+
+  linux-package:
+    name: Debian package and pinned CPU runtime (Linux x86-64)
+    runs-on: ubuntu-24.04
+    timeout-minutes: ${{ inputs.native_inference && 45 || 30 }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@1bcf9fb12cf4aa7d266a90ae39939e61372fe520 # v5.4.0
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: jurplel/install-qt-action@bcb88e3bed2e992f5f9e24c0f9e364a231d278eb # v4.4.0
+        with:
+          version: '6.12.0'
+          arch: linux_gcc_64
+          archives: qtbase qtdeclarative qttools icu qtwayland
+          aqtversion: '==3.3.0'
+          cache: true
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y binutils g++ clang-19 libssl-dev pkg-config dpkg-dev patchelf desktop-file-utils \
+            libgl-dev libegl-dev libxkbcommon-dev libxkbcommon-x11-0 libglib2.0-0t64 \
+            libfontconfig1 libgssapi-krb5-2 libdbus-1-3 libvulkan1 libwayland-egl1 libwayland-cursor0 \
+            libxcb-cursor0 libxcb-icccm4 libxcb-keysyms1 libxcb-shape0
+          python3 -m venv .quality/qt-tools/qa
+          .quality/qt-tools/qa/bin/pip install --only-binary=:all: -r desktop/qt/requirements-quality.txt
+          echo "$PWD/.quality/qt-tools/qa/bin" >> "$GITHUB_PATH"
+      - name: Build the pinned runtime and release executables
+        env:
+          CARGO_PROFILE_RELEASE_STRIP: symbols
+        run: |
+          work=.quality/qt/linux-runtime
+          mkdir -p "$work"
+          commit=$(PYTHONPATH=quality/release python3 -B -c 'import runtime_source; print(runtime_source.COMMIT)')
+          curl --fail --location --retry 2 \
+            "https://codeload.github.com/ggml-org/llama.cpp/tar.gz/$commit" --output "$work/source.tar.gz"
+          python3 -B quality/release/linux_runtime.py "$work/source.tar.gz" "$work/runtime" \
+            2>&1 | tee "$work/runtime-build.log"
+          pin=$(sha256sum "$work/runtime/manifest.json")
+          CTXFAB_LINUX_RUNTIME_MANIFEST_SHA256=${pin%% *} cargo build --locked --release \
+            --manifest-path backend/Cargo.toml --target-dir "$work/rust" -p ctxfab-server --jobs 4 \
+            2>&1 | tee "$work/backend-build.log"
+          cargo build --locked --release --manifest-path cli/Cargo.toml --target-dir "$work/cli" --jobs 4 \
+            2>&1 | tee "$work/cli-build.log"
+      - name: Verify runtime authentication and refusal after tampering
+        run: |
+          work=.quality/qt/linux-runtime
+          build=$(PYTHONPATH=quality/release python3 -B -c 'import runtime_source; print(runtime_source.LINUX_BUILD_FLAGS["LLAMA_BUILD_NUMBER"])')
+          python3 -B quality/release/linux_runtime_check.py "$work/rust/release/ctxfab-server" "$work/runtime" \
+            --build "$build" 2>&1 | tee "$work/runtime-test.log"
+      - name: Deploy Qt and build the installable package
+        env:
+          CXX: clang++-19
+        run: |
+          work="$PWD/.quality/qt/linux-runtime"
+          cd desktop/qt
+          cmake --preset linux-release 2>&1 | tee "$work/qt-configure.log"
+          cmake --build --preset linux-release --parallel 4 2>&1 | tee "$work/qt-build.log"
+          cmake --install build/linux-release --prefix "$work/qt-tree" --strip \
+            2>&1 | tee "$work/qt-install.log"
+          cd ../..
+          curl --fail --location --retry 2 \
+            'https://raw.githubusercontent.com/unicode-org/icu/release-73-2/icu4c/LICENSE' \
+            --output "$work/ICU-73.2.txt"
+          version=$(python3 -c 'import tomllib; print(tomllib.load(open("cli/Cargo.toml", "rb"))["package"]["version"])')
+          SOURCE_DATE_EPOCH=$(git show -s --format=%ct HEAD) python3 -B desktop/qt/packaging/stage_linux.py \
+            --qt-tree "$work/qt-tree" --qt-sdk "$QT_ROOT_DIR" --backend "$work/rust/release/ctxfab-server" \
+            --cli "$work/cli/release/ctxfab" --runtime "$work/runtime" --icu-license "$work/ICU-73.2.txt" \
+            --version "$version~ci$GITHUB_RUN_NUMBER" "$work/package" 2>&1 | tee "$work/deb-build.log"
+      - name: Install and exercise X11 and Wayland without a Qt SDK
+        env:
+          NATIVE_INFERENCE: ${{ inputs.native_inference }}
+        run: |
+          work="$PWD/.quality/qt/linux-runtime"
+          packages=("$work"/package/*.deb)
+          inference_mounts=()
+          if [[ $NATIVE_INFERENCE == true ]]; then
+            test "$(uname -m)" = x86_64
+            test "$(docker info --format '{{.Architecture}}')" = x86_64
+            weights="$work/Qwen3-4B-Instruct-2507-Q4_K_M.gguf"
+            curl --fail --location --retry 2 --max-time 600 \
+              'https://huggingface.co/unsloth/Qwen3-4B-Instruct-2507-GGUF/resolve/a06e946bb6b655725eafa393f4a9745d460374c9/Qwen3-4B-Instruct-2507-Q4_K_M.gguf' \
+              --output "$weights"
+            printf '%s  %s\n' '3605803b982cb64aead44f6c1b2ae36e3acdb41d8e46c8a94c6533bc4c67e597' "$weights" \
+              | sha256sum --check
+            chmod a+r "$weights"
+            inference_mounts=(
+              --volume "$weights:/pinned-weights.gguf:ro"
+              --volume "$PWD/quality/release:/qualification/quality/release:ro"
+            )
+          fi
+          container=$(docker run --init --detach --volume "${packages[0]}:/candidate.deb:ro" \
+            --volume "$PWD/desktop/qt/tests:/qualification/desktop/qt/tests:ro" \
+            "${inference_mounts[@]}" ubuntu:24.04 sleep infinity)
+          trap 'docker rm -f "$container" >/dev/null' EXIT
+          docker exec "$container" bash -ec 'printf "%s\n" \
+            "path-include=/usr/share/doc/context-fabricator-qt" \
+            "path-include=/usr/share/doc/context-fabricator-qt/*" > /etc/dpkg/dpkg.cfg.d/zz-ctxfab-qualification-docs
+            apt-get update -qq
+            apt-get install -y --no-install-recommends --download-only python3 weston xvfb xdotool /candidate.deb' \
+            2>&1 | tee "$work/deb-fetch-dependencies.log"
+          docker network disconnect bridge "$container"
+          docker exec "$container" bash -ec '
+            apt-get install -y --no-install-recommends python3 weston xvfb xdotool /candidate.deb
+            install -d -m 1777 /tmp/.X11-unix' \
+            2>&1 | tee "$work/deb-install.log"
+          docker exec "$container" bash -c 'test ! -d /usr/lib/x86_64-linux-gnu/qt6 && \
+            test -z "$(find /usr/lib/context-fabricator-qt -name QtTest -o -name "libQt6*Test.so*")" && \
+            test -z "$(dpkg --verify context-fabricator-qt)"'
+          build=$(PYTHONPATH=quality/release python3 -B -c 'import runtime_source; print(runtime_source.LINUX_BUILD_FLAGS["LLAMA_BUILD_NUMBER"])')
+          docker exec --user 65534:65534 "$container" python3 -B /qualification/desktop/qt/tests/linux_window_smoke.py \
+            /usr/bin/context-fabricator-qt /usr/lib/context-fabricator-qt/bin/ctxfab-server /usr/bin/ctxfab \
+            --bundled-runtime-build "$build" 2>&1 | tee "$work/deb-x11.log"
+          docker exec --user 65534:65534 "$container" python3 -B /qualification/desktop/qt/tests/linux_wayland_smoke.py \
+            /usr/bin/context-fabricator-qt /usr/lib/context-fabricator-qt/bin/ctxfab-server /usr/bin/ctxfab \
+            --build "$build" 2>&1 | tee "$work/deb-wayland.log"
+          if [[ $NATIVE_INFERENCE == true ]]; then
+            docker exec --user 65534:65534 "$container" python3 -B \
+              /qualification/quality/release/qt_linux_cited_answer_check.py /pinned-weights.gguf --build "$build" \
+              2>&1 | tee "$work/cited-answer.log"
+          fi
+      - name: Retain the package and verification evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: qt-linux-package
+          path: |
+            .quality/qt/linux-runtime/*.log
+            .quality/qt/linux-runtime/runtime/*.json
+            .quality/qt/linux-runtime/package/*.deb
+          if-no-files-found: warn
+          include-hidden-files: true
+          retention-days: 14

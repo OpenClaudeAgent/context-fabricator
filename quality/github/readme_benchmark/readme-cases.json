@@ -1,0 +1,252 @@
+{
+  "version": 1,
+  "exposure": "Previously evaluated public README requests. Regression data.",
+  "references": {
+    "bytes": "bytes-reference.json",
+    "serde": "serde-reference.json"
+  },
+  "fixtureBranches": {
+    "bytes": "master",
+    "serde": "master"
+  },
+  "cases": [
+    {
+      "id": "ed6fc5757373128e8487",
+      "intentId": "bytes-docs-feature-gates",
+      "language": "en",
+      "query": "According to the bytes README, how do I build the local API docs so the feature gates are visible? Do I need a particular Rust toolchain?",
+      "repository": "bytes",
+      "kind": "positive",
+      "expectation": "Use RUSTDOCFLAGS=\"--cfg docsrs\" to build the docs. Use a nightly Rust toolchain, via cargo +nightly doc.",
+      "provenance": "Previously evaluated Bytes and serde_json README transfer",
+      "facts": [
+        {
+          "expected": "Use RUSTDOCFLAGS=\"--cfg docsrs\" to build the docs.",
+          "sufficientAlternatives": [
+            [
+              {
+                "path": "README.md",
+                "blob": "90d631c97fce70e2469494cdb645740ed7ce7579",
+                "revision": "62207901b65e4fc51459b2d558fad8aa882f5d33",
+                "startLine": 58,
+                "endLine": 62,
+                "startByte": 1394,
+                "endByte": 1600,
+                "text": "When building the `bytes` documentation the `docsrs` option should be used, otherwise\nfeature gates will not be shown. This requires a nightly toolchain:\n\n```\nRUSTDOCFLAGS=\"--cfg docsrs\" cargo +nightly doc\n"
+              }
+            ]
+          ]
+        },
+        {
+          "expected": "Use a nightly Rust toolchain, via cargo +nightly doc.",
+          "sufficientAlternatives": [
+            [
+              {
+                "path": "README.md",
+                "blob": "90d631c97fce70e2469494cdb645740ed7ce7579",
+                "revision": "62207901b65e4fc51459b2d558fad8aa882f5d33",
+                "startLine": 59,
+                "endLine": 62,
+                "startByte": 1480,
+                "endByte": 1600,
+                "text": "feature gates will not be shown. This requires a nightly toolchain:\n\n```\nRUSTDOCFLAGS=\"--cfg docsrs\" cargo +nightly doc\n"
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "4f46de05b4354a43d031",
+      "intentId": "bytes-msrv-feature-dependencies",
+      "language": "fr",
+      "query": "D’après le README de bytes, de quelles dépendances dépend la version minimale de Rust si j’active extra-platforms ou serde ?",
+      "repository": "bytes",
+      "kind": "positive",
+      "expectation": "For extra-platforms the minimum is tied to portable-atomic. For serde the minimum is tied to serde.",
+      "provenance": "Previously evaluated Bytes and serde_json README transfer",
+      "facts": [
+        {
+          "expected": "For extra-platforms the minimum is tied to portable-atomic.",
+          "sufficientAlternatives": [
+            [
+              {
+                "path": "README.md",
+                "blob": "90d631c97fce70e2469494cdb645740ed7ce7579",
+                "revision": "62207901b65e4fc51459b2d558fad8aa882f5d33",
+                "startLine": 43,
+                "endLine": 43,
+                "startByte": 1018,
+                "endByte": 1111,
+                "text": "The MSRV when `extra-platforms` feature is enabled depends on the MSRV of `portable-atomic`.\n"
+              }
+            ]
+          ]
+        },
+        {
+          "expected": "For serde the minimum is tied to serde.",
+          "sufficientAlternatives": [
+            [
+              {
+                "path": "README.md",
+                "blob": "90d631c97fce70e2469494cdb645740ed7ce7579",
+                "revision": "62207901b65e4fc51459b2d558fad8aa882f5d33",
+                "startLine": 54,
+                "endLine": 54,
+                "startByte": 1293,
+                "endByte": 1366,
+                "text": "The MSRV when `serde` feature is enabled depends on the MSRV of `serde`.\n"
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "83c28d44497399b68ed0",
+      "intentId": "bytes-readme-exact-feature-msrv-number",
+      "language": "en",
+      "query": "What exact Rust version number does the bytes README give as the minimum when extra-platforms is enabled?",
+      "repository": "bytes",
+      "kind": "absent_in_file",
+      "expectation": "The README provides a dependency relationship, with no exact version number.",
+      "provenance": "Previously evaluated Bytes and serde_json README transfer",
+      "witness": {
+        "path": "README.md",
+        "blob": "90d631c97fce70e2469494cdb645740ed7ce7579",
+        "revision": "62207901b65e4fc51459b2d558fad8aa882f5d33",
+        "startLine": 43,
+        "endLine": 43,
+        "text": "The MSRV when `extra-platforms` feature is enabled depends on the MSRV of `portable-atomic`.\n"
+      },
+      "absence": {
+        "path": "README.md",
+        "revision": "62207901b65e4fc51459b2d558fad8aa882f5d33",
+        "blob": "90d631c97fce70e2469494cdb645740ed7ce7579",
+        "startByte": 0,
+        "endByte": 1878,
+        "sha256": "275ac7bc295e3cc659d28f05261645ac5bd6286476afe2ee3c1ed719f7b6df02",
+        "pattern": "(?i)(?:\\bMSRV\\b[^\\n]{0,35}\\b\\d+\\.\\d+|\\bRust(?:c)?\\s+\\d+\\.\\d+)"
+      }
+    },
+    {
+      "id": "8493b6ac1103e0838a34",
+      "intentId": "serde-index-type-and-fallback",
+      "language": "fr",
+      "query": "Dans le README de serde_json, quel type obtient-on en indexant une Value avec des crochets, et que se passe-t-il si la clé est absente ou si l’indice dépasse la taille du tableau ?",
+      "repository": "serde",
+      "kind": "positive",
+      "expectation": "Indexing borrows, returning &Value. An absent key or out-of-bounds array index yields Value::Null.",
+      "provenance": "Previously evaluated Bytes and serde_json README transfer",
+      "facts": [
+        {
+          "expected": "Indexing borrows, returning &Value.",
+          "sufficientAlternatives": [
+            [
+              {
+                "path": "README.md",
+                "blob": "e19dc62c3b1bd74cfee628a02241cadbd6390cdb",
+                "revision": "f51fa15a7015c7d02817a46d2db44c899a0016e8",
+                "startLine": 112,
+                "endLine": 113,
+                "startByte": 3557,
+                "endByte": 3714,
+                "text": "The result of square bracket indexing like `v[\"name\"]` is a borrow of the data\nat that index, so the type is `&Value`. A JSON map can be indexed with string\n"
+              }
+            ]
+          ]
+        },
+        {
+          "expected": "An absent key or out-of-bounds array index yields Value::Null.",
+          "sufficientAlternatives": [
+            [
+              {
+                "path": "README.md",
+                "blob": "e19dc62c3b1bd74cfee628a02241cadbd6390cdb",
+                "revision": "f51fa15a7015c7d02817a46d2db44c899a0016e8",
+                "startLine": 115,
+                "endLine": 117,
+                "startByte": 3792,
+                "endByte": 3994,
+                "text": "data is not right for the type with which it is being indexed, or if a map does\nnot contain the key being indexed, or if the index into a vector is out of\nbounds, the returned element is `Value::Null`.\n"
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "d56c0fee276e360c20a2",
+      "intentId": "serde-json-macro-interpolates-expressions",
+      "language": "en",
+      "query": "According to the serde_json README, can I use a Rust expression as a field value inside json!, and when does Serde check that the value can be represented as JSON?",
+      "repository": "serde",
+      "kind": "positive",
+      "expectation": "Yes, variables and expressions can be interpolated directly. The check is at compile time.",
+      "provenance": "Previously evaluated Bytes and serde_json README transfer",
+      "facts": [
+        {
+          "expected": "Yes, variables and expressions can be interpolated directly.",
+          "sufficientAlternatives": [
+            [
+              {
+                "path": "README.md",
+                "blob": "e19dc62c3b1bd74cfee628a02241cadbd6390cdb",
+                "revision": "f51fa15a7015c7d02817a46d2db44c899a0016e8",
+                "startLine": 240,
+                "endLine": 243,
+                "startByte": 8360,
+                "endByte": 8611,
+                "text": "One neat thing about the `json!` macro is that variables and expressions can be\ninterpolated directly into the JSON value as you are building it. Serde will\ncheck at compile time that the value you are interpolating is able to be\nrepresented as JSON.\n"
+              }
+            ]
+          ]
+        },
+        {
+          "expected": "The check is at compile time.",
+          "sufficientAlternatives": [
+            [
+              {
+                "path": "README.md",
+                "blob": "e19dc62c3b1bd74cfee628a02241cadbd6390cdb",
+                "revision": "f51fa15a7015c7d02817a46d2db44c899a0016e8",
+                "startLine": 241,
+                "endLine": 243,
+                "startByte": 8440,
+                "endByte": 8611,
+                "text": "interpolated directly into the JSON value as you are building it. Serde will\ncheck at compile time that the value you are interpolating is able to be\nrepresented as JSON.\n"
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "372a44a3ed7eab7de278",
+      "intentId": "serde-readme-maximum-nesting-depth",
+      "language": "fr",
+      "query": "Quelle profondeur maximale d’imbrication des objets ou tableaux JSON le README de serde_json indique-t-il ?",
+      "repository": "serde",
+      "kind": "absent_in_file",
+      "expectation": "The pinned README states no maximum nesting depth.",
+      "provenance": "Previously evaluated Bytes and serde_json README transfer",
+      "witness": {
+        "path": "README.md",
+        "blob": "e19dc62c3b1bd74cfee628a02241cadbd6390cdb",
+        "revision": "f51fa15a7015c7d02817a46d2db44c899a0016e8",
+        "startLine": 8,
+        "endLine": 8,
+        "text": "**Serde is a framework for *ser*ializing and *de*serializing Rust data structures efficiently and generically.**\n"
+      },
+      "absence": {
+        "path": "README.md",
+        "revision": "f51fa15a7015c7d02817a46d2db44c899a0016e8",
+        "blob": "e19dc62c3b1bd74cfee628a02241cadbd6390cdb",
+        "startByte": 0,
+        "endByte": 14043,
+        "sha256": "10cb8c14d9d29f29a031329747b352fc149a689b449ee5a8abb43712695aed72",
+        "pattern": "(?i)\\b(?:depth|nesting|recursion limit)\\b"
+      }
+    }
+  ]
+}

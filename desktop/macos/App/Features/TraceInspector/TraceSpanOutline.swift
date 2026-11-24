@@ -2,19 +2,23 @@ import LocalAPI
 import SwiftUI
 
 struct TraceSpanOutline: View {
+  @Environment(\.locale) private var locale
   let spans: [Components.Schemas.SignalSample]
   let logs: [Components.Schemas.SignalSample]
   let initialSpanID: String?
   @Binding var selection: Int64?
+  let viewCollectionTrace: (String) -> Void
 
   var body: some View {
     let steps = TraceStep.outline(spans)
     if let focus = focusedStep(in: steps) {
       HSplitView {
         outline(steps, focus: focus.id)
-          .frame(minWidth: 240, idealWidth: 300, maxWidth: 380)
-        TraceSpanDetail(step: focus, logs: relatedLogs(to: focus))
-          .frame(minWidth: 440, maxWidth: .infinity)
+          .frame(minWidth: 205, idealWidth: 245, maxWidth: 300)
+        TraceSpanDetail(
+          step: focus, logs: relatedLogs(to: focus), viewCollectionTrace: viewCollectionTrace
+        )
+        .frame(minWidth: 440, maxWidth: .infinity)
       }
     } else {
       ContentUnavailableView(
@@ -32,7 +36,7 @@ struct TraceSpanOutline: View {
                 .foregroundStyle(.secondary)
                 .accessibilityHidden(true)
             }
-            Text(step.title)
+            Text(step.title(in: locale))
               .lineLimit(2)
               .accessibilityIdentifier("trace-step-\(step.sample.name)")
             Spacer(minLength: 6)
@@ -42,8 +46,8 @@ struct TraceSpanOutline: View {
                 .foregroundStyle(.secondary)
             }
             Image(systemName: step.outcome.symbol)
-              .foregroundStyle(step.outcome == .failed ? Color.red : Color.secondary)
-              .accessibilityLabel(step.outcome.title)
+              .foregroundStyle(tint(step.outcome))
+              .accessibilityLabel(step.outcome.title(in: locale))
           }
           .padding(.leading, CGFloat(min(step.depth, 4) * 11))
           .padding(.vertical, 4)
@@ -53,6 +57,10 @@ struct TraceSpanOutline: View {
       }
     }
     .listStyle(.inset)
+  }
+
+  private func tint(_ outcome: TraceStep.Outcome) -> Color {
+    outcome == .succeeded ? .secondary : outcome.tint
   }
 
   private func focusedStep(in steps: [TraceStep]) -> TraceStep? {

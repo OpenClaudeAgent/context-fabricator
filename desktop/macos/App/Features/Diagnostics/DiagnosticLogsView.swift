@@ -10,14 +10,24 @@ struct DiagnosticLogsView: View {
   let showTrace: (String, String?) -> Void
 
   var body: some View {
-    VStack(spacing: 0) {
-      levelPicker
-        .frame(maxWidth: .infinity, alignment: .trailing)
-        .padding(.horizontal, 18)
-        .padding(.vertical, 10)
+    let visibleEvents = store.level == nil ? events.filter { matches($0) } : []
+    return VStack(spacing: 0) {
+      filterBar(hasRecords: !store.records.isEmpty || !visibleEvents.isEmpty)
       Divider()
-      logList
+      logList(visibleEvents: visibleEvents)
     }
+  }
+
+  private func filterBar(hasRecords: Bool) -> some View {
+    HStack(spacing: 10) {
+      if hasRecords && store.isLoading {
+        ProgressView().controlSize(.small).accessibilityLabel("Loading logs")
+      }
+      levelPicker
+    }
+    .frame(maxWidth: .infinity, alignment: .trailing)
+    .padding(.horizontal, 18)
+    .padding(.vertical, 10)
   }
 
   private var levelPicker: some View {
@@ -42,9 +52,8 @@ struct DiagnosticLogsView: View {
     .font(.callout)
   }
 
-  private var logList: some View {
-    let visibleEvents = store.level == nil ? events.filter { matches($0) } : []
-    return List {
+  private func logList(visibleEvents: [Components.Schemas.Diagnostic]) -> some View {
+    List {
       if let feedback = store.feedback, !store.records.isEmpty || !visibleEvents.isEmpty {
         Label(feedback, systemImage: "exclamationmark.circle").foregroundStyle(.secondary)
       }
@@ -63,12 +72,15 @@ struct DiagnosticLogsView: View {
       if !store.records.isEmpty || store.nextBeforeId != nil {
         Section("Telemetry Logs") {
           ForEach(store.records, id: \.id) { sample in
-            DiagnosticsSampleRow(value: sample, tab: .logs, showTrace: showTrace)
+            DiagnosticsSampleRow(value: sample, kind: .logs, showTrace: showTrace)
           }
           if store.nextBeforeId != nil {
-            Button("Load more logs") { store.send(.loadMore) }
-              .disabled(!ready || store.isLoading)
-              .accessibilityIdentifier("diagnostic-logs-load-more")
+            HStack {
+              Spacer(minLength: 0)
+              Button("Load more logs") { store.send(.loadMore) }
+                .disabled(!ready || store.isLoading)
+                .accessibilityIdentifier("diagnostic-logs-load-more")
+            }
           }
         }
       }
@@ -84,7 +96,7 @@ struct DiagnosticLogsView: View {
 
   @ViewBuilder private var emptyState: some View {
     if store.isLoading {
-      ProgressView("Loading logs…").controlSize(.small)
+      LoadingStateView("Loading logs…")
     } else if let message = store.feedback {
       ContentUnavailableView(
         "Couldn’t Load Logs", systemImage: "exclamationmark.circle",

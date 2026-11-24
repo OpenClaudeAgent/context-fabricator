@@ -22,9 +22,11 @@ fn settings_survive_restart_and_reject_stale_edits() -> Result<(), Box<dyn Error
     let store = SqliteStore::open(&database)?;
     let initial = store.settings()?;
     assert_eq!(initial.revision, 0);
+    assert_eq!(initial.inference_artifact_limit_bytes(), 16_000_000_000);
     let saved = store.save_settings(Settings {
         answer_language: AnswerLanguage::Fr,
         diagnostic_storage_limit_mb: Some(5),
+        inference_artifact_limit_gb: Some(24),
         ..initial.clone()
     })?;
     assert_eq!(saved.revision, 1);
@@ -43,11 +45,20 @@ fn settings_survive_restart_and_reject_stale_edits() -> Result<(), Box<dyn Error
         }),
         Err(Failure::InvalidStorageLimit)
     );
-    let saved = store.save_settings(Settings {
-        diagnostic_storage_limit_mb: None,
-        ..saved
-    })?;
+    assert_eq!(
+        store.save_settings(Settings {
+            inference_artifact_limit_gb: Some(0),
+            ..saved.clone()
+        }),
+        Err(Failure::InvalidInferenceArtifactLimit)
+    );
+    let old_client: Settings = serde_json::from_value(json!({
+        "revision": saved.revision, "answerLanguage": "fr", "diagnosticRetentionHours": saved.diagnostic_retention_hours
+    }))?;
+    assert_eq!(old_client.inference_artifact_limit_gb, None);
+    let saved = store.save_settings(old_client)?;
     assert_eq!(saved.diagnostic_storage_limit_mb, Some(5));
+    assert_eq!(saved.inference_artifact_limit_gb, Some(24));
     drop(store);
     let reopened = SqliteStore::open(&database)?;
     assert_eq!(reopened.settings()?, saved);
@@ -208,6 +219,92 @@ async fn local_api_authentication_and_settings_contract() -> Result<(), Box<dyn 
         ),
     ];
     check_api(&app, cases).await
+}
+
+#[tokio::test]
+async fn expanded_answer_language_preserves_the_legacy_settings_contract()
+-> Result<(), Box<dyn Error>> {
+    let directory = tempfile::tempdir()?;
+    let database = directory.path().join("store.sqlite3");
+    let app = http::router(Arc::new(SqliteStore::open(&database)?), "fixture-token");
+    let (status, selected) = update_language_settings(
+        &app,
+        json!({
+            "revision": 0, "answerLanguage": "auto", "answerLocale": "es",
+            "diagnosticRetentionHours": 24,
+        }),
+    )
+    .await?;
+    assert_eq!(status, 200);
+    assert_eq!(selected["answerLanguage"], "auto");
+    assert_eq!(selected["answerLocale"], "es");
+    assert!(
+        selected["answerLanguageOptions"]
+            .as_array()
+            .is_some_and(|options| {
+                options
+                    .iter()
+                    .any(|item| item["code"] == "es" && item["nativeName"] == "Español")
+            })
+    );
+
+    let (status, preserved) = update_language_settings(
+        &app,
+        json!({
+            "revision": 1, "answerLanguage": "auto", "diagnosticRetentionHours": 36,
+        }),
+    )
+    .await?;
+    assert_eq!(status, 200);
+    assert_eq!(preserved["answerLocale"], "es");
+    assert_eq!(preserved["diagnosticRetentionHours"], 36);
+    let (status, rejected) = update_language_settings(
+        &app,
+        json!({
+            "revision": 2, "answerLanguage": "auto", "answerLocale": "zz",
+            "diagnosticRetentionHours": 36,
+        }),
+    )
+    .await?;
+    assert_eq!(status, 400);
+    assert_eq!(rejected["code"], "invalid_settings");
+    drop(app);
+
+    let reopened = Arc::new(SqliteStore::open(&database)?);
+    assert_eq!(
+        reopened.settings()?.preferred_answer_language(),
+        AnswerLanguage::Es
+    );
+    let reopened = http::router(reopened, "fixture-token");
+    let (status, fallback) = update_language_settings(
+        &reopened,
+        json!({
+            "revision": 2, "answerLanguage": "fr", "diagnosticRetentionHours": 36,
+        }),
+    )
+    .await?;
+    assert_eq!(status, 200);
+    assert_eq!(fallback["answerLanguage"], "fr");
+    assert!(fallback.get("answerLocale").is_none());
+    Ok(())
+}
+
+async fn update_language_settings(
+    app: &axum::Router,
+    body: Value,
+) -> Result<(u16, Value), Box<dyn Error>> {
+    let response = app
+        .clone()
+        .oneshot(
+            Request::put("/v1/settings")
+                .header("authorization", "Bearer fixture-token")
+                .header("content-type", "application/json")
+                .body(Body::from(serde_json::to_vec(&body)?))?,
+        )
+        .await?;
+    let status = response.status().as_u16();
+    let body = serde_json::from_slice(&to_bytes(response.into_body(), 64 * 1024).await?)?;
+    Ok((status, body))
 }
 
 #[tokio::test]

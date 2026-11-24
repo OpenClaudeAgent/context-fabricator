@@ -18,6 +18,7 @@ use ctxfab_server::adapters::{
     outbound::{
         github::{BUCKET, GitHubRest},
         sqlite::SqliteStore,
+        telemetry::EmbeddedTelemetry,
     },
 };
 use ctxfab_server::application::{
@@ -39,13 +40,92 @@ use ctxfab_server::runtime::{
 use serde_json::{Value, json};
 use tower::ServiceExt;
 
+#[path = "github/actions.rs"]
+mod actions;
+#[path = "github/branches.rs"]
+mod branches;
+#[path = "github/git_fetch.rs"]
+mod git_fetch;
+#[path = "github/graph.rs"]
+mod graph;
+#[path = "github/history.rs"]
+mod history;
 #[path = "../src/qualification/github_fixture.rs"]
 mod memory;
+#[path = "github/pacing.rs"]
+mod pacing;
 #[path = "github/scheduled.rs"]
 mod scheduled;
+#[path = "github/storage.rs"]
+mod storage;
 
 const FIRST: &str = "github_pat_fixture_primary";
 const REPLACEMENT: &str = "github_pat_fixture_replacement";
+
+fn traced_app(
+    store: &Arc<SqliteStore>,
+    github: Arc<GitHub>,
+    telemetry: Arc<EmbeddedTelemetry>,
+) -> Router {
+    router_with_services(
+        store.clone(),
+        "local-session-fixture",
+        Services {
+            github: Some(github),
+            telemetry: Some(telemetry),
+            ..Services::default()
+        },
+    )
+}
+
+async fn assert_provider_hops(
+    app: &Router,
+    trace: &str,
+    attempt: &str,
+    routes: &[&str],
+) -> Result<Value, Box<dyn Error>> {
+    let page = call(
+        app,
+        "GET",
+        &format!("/v1/telemetry/traces/{trace}"),
+        Value::Null,
+        200,
+    )
+    .await?;
+    let spans = page["spans"].as_array().ok_or("trace spans")?;
+    let attempt = spans.iter().find(|span| span["name"] == attempt);
+    let hops = spans
+        .iter()
+        .filter(|span| span["name"] == "github_provider_request")
+        .collect::<Vec<_>>();
+    let mut actual = hops
+        .iter()
+        .map(|hop| hop["httpRoute"].as_str().ok_or("provider route"))
+        .collect::<Result<Vec<_>, _>>()?;
+    actual.sort_unstable();
+    let mut expected = routes.to_vec();
+    expected.sort_unstable();
+    assert_eq!(actual, expected);
+    let attempt = attempt.ok_or("collection attempt")?;
+    assert_eq!(attempt["level"], "ok");
+    assert!(hops.iter().all(|hop| {
+        hop["parentSpanId"] == attempt["spanId"]
+            && hop["httpMethod"] == "GET"
+            && hop["httpStatus"] == 200
+            && hop["value"].as_i64().is_some_and(|duration| duration >= 0)
+    }));
+    assert!(!page.to_string().contains("fixture/alpha"));
+    assert!(!page.to_string().contains(FIRST));
+    Ok(attempt.clone())
+}
+
+fn retained_trace(database: &Path, stage: &str) -> rusqlite::Result<String> {
+    rusqlite::Connection::open(database)?.query_row(
+        "SELECT trace_id FROM signals WHERE signal = 'trace' AND name = ?",
+        [stage],
+        |row| row.get(0),
+    )
+}
 
 struct Origin {
     process: Child,
@@ -64,7 +144,7 @@ impl Origin {
     async fn start() -> Result<Self, Box<dyn Error>> {
         let directory = tempfile::tempdir()?;
         let script =
-            Path::new(env!("CARGO_MANIFEST_DIR")).join("../../quality/m07/github_fixture.py");
+            Path::new(env!("CARGO_MANIFEST_DIR")).join("../../quality/github/github_fixture.py");
         let log = directory.path().join("fixture.log");
         let output = fs::File::create(&log)?;
         let mut origin = Self {
@@ -137,8 +217,12 @@ impl Origin {
                 spacing: Duration::from_millis(8),
             },
         )?;
-        let provider =
-            Arc::new(GitHubRest::fixture(gate, self.port)?.with_scope_authority(store.clone()));
+        let provider = GitHubRest::fixture(gate, self.port)?.with_scope_authority(store.clone());
+        let provider = Arc::new(if self.directory.path().join("smart-git").exists() {
+            provider.with_git_fixture()
+        } else {
+            provider
+        });
         Ok(Arc::new(
             GitHub::new(
                 provider.clone(),
@@ -150,7 +234,9 @@ impl Origin {
                         .map_err(|_| github::Error::Storage)
                 },
             )
-            .with_current_code(provider, store.clone(), move || clock.now()),
+            .with_current_code(provider.clone(), store.clone(), move || clock.now())
+            .with_history(provider.clone(), store.clone(), move || clock.now())
+            .with_actions(provider, store.clone(), move || clock.now()),
         ))
     }
 
@@ -204,6 +290,37 @@ async fn call(
     Ok(serde_json::from_slice(
         &to_bytes(response.into_body(), 128 * 1024).await?,
     )?)
+}
+
+async fn post_with_trace(
+    app: &Router,
+    uri: &str,
+    status: u16,
+) -> Result<(Value, String, Option<String>), Box<dyn Error>> {
+    let response = app
+        .clone()
+        .oneshot(
+            Request::post(uri)
+                .header("Authorization", "Bearer local-session-fixture")
+                .body(Body::empty())?,
+        )
+        .await?;
+    assert_eq!(response.status().as_u16(), status, "POST {uri}");
+    let trace = response.headers()["x-context-trace-id"]
+        .to_str()?
+        .to_owned();
+    let work_trace = response
+        .headers()
+        .get("x-context-work-trace-id")
+        .map(|value| value.to_str().map(str::to_owned))
+        .transpose()?;
+    let body = serde_json::from_slice(&to_bytes(response.into_body(), 128 * 1024).await?)?;
+    Ok((body, trace, work_trace))
+}
+
+async fn repository_trace_activity(app: &Router, key: &str) -> Result<Value, Box<dyn Error>> {
+    let state = call(app, "GET", "/v1/github", Value::Null, 200).await?;
+    Ok(state["repositories"][0][key].clone())
 }
 
 async fn authorize(
@@ -311,25 +428,7 @@ async fn current_code_search_selects_the_repository_and_branch() -> Result<(), B
     assert_eq!(beta[0]["trackedRef"], "refs/heads/trunk");
     assert_eq!(beta[0]["revision"], "c".repeat(40));
     let selected = SearchQuery::parse_scoped("paced", Some(42), Some("trunk".into()))?;
-    let lexical = store.search(&selected)?;
-    let mut values = vec![0.; DIMENSIONS];
-    values[0] = 1.;
-    let vector = Embedding::new(values)?;
-    for passage in store.pending("scoped-fixture", 20)? {
-        if passage.evidence.source == "github:42:old.rs" {
-            assert!(store.save_vector("scoped-fixture", &passage, &vector)?);
-        }
-    }
-    assert_eq!(store.progress("scoped-fixture", None)?.state, "incomplete");
-    assert_eq!(
-        store.progress("scoped-fixture", selected.scope())?.state,
-        "ready"
-    );
-    let (dense, hybrid_lexical) =
-        store.rank("scoped-fixture", &vector, lexical, selected.scope())?;
-    assert_eq!(dense.len(), 1);
-    assert_eq!(hybrid_lexical.len(), 1);
-    assert!(dense[0].same_evidence(&hybrid_lexical[0]));
+    verify_scoped_vector_rankings(&store, &selected)?;
     let global = store.search(&SearchQuery::parse("paced")?)?;
     let excerpts = store.excerpts(&global, selected.scope())?;
     assert_eq!(excerpts.len(), 1);
@@ -367,6 +466,63 @@ async fn current_code_search_selects_the_repository_and_branch() -> Result<(), B
         question["query"] = json!("paced");
         call(&app, "POST", "/v1/answers", question, 400).await?;
     }
+    Ok(())
+}
+
+fn verify_scoped_vector_rankings(
+    store: &SqliteStore,
+    selected: &SearchQuery,
+) -> Result<(), Box<dyn Error>> {
+    let lexical = store.search(selected)?;
+    let mut values = vec![0.; DIMENSIONS];
+    values[0] = 1.;
+    let vector = Embedding::new(values)?;
+    for passage in store.pending("scoped-fixture", 20)? {
+        if passage.evidence.source == "github:42:old.rs" {
+            assert!(store.save_vector("scoped-fixture", &passage, &vector)?);
+        }
+    }
+    assert_eq!(store.progress("scoped-fixture", None)?.state, "incomplete");
+    assert_eq!(
+        store.progress("scoped-fixture", selected.scope())?.state,
+        "ready"
+    );
+    let ranking = store.rank(
+        "scoped-fixture",
+        &vector,
+        lexical.clone(),
+        selected.scope(),
+        Some((
+            &vector,
+            std::time::Instant::now() + std::time::Duration::from_secs(1),
+        )),
+        true,
+    )?;
+    let (dense, hybrid_lexical) = (ranking.dense, ranking.lexical);
+    assert_eq!(dense.len(), 1);
+    assert_eq!(ranking.nearest.len(), 1);
+    let neighbor = &ranking.nearest[0];
+    assert!(neighbor.evidence.same_evidence(&dense[0]));
+    assert_eq!(neighbor.vector, vector.values());
+    assert!((neighbor.similarity - 1.0).abs() < f32::EPSILON);
+    assert_ne!(neighbor.text, "");
+    assert_eq!(ranking.reformulated_nearest.len(), 1);
+    assert_eq!(hybrid_lexical.len(), 1);
+    assert!(dense[0].same_evidence(&hybrid_lexical[0]));
+    assert_eq!(ranking.formulation.len(), 1);
+    assert!(dense[0].same_evidence(&ranking.formulation[0]));
+    let expired = store.rank(
+        "scoped-fixture",
+        &vector,
+        lexical,
+        selected.scope(),
+        Some((&vector, std::time::Instant::now())),
+        false,
+    )?;
+    assert!(expired.formulation.is_empty());
+    assert!(expired.nearest.is_empty());
+    assert_eq!(expired.dense.len(), 1);
+    assert!(dense[0].same_evidence(&expired.dense[0]));
     Ok(())
 }
 
@@ -595,6 +751,13 @@ async fn resuming_a_sealed_stage_checks_contents_permission() -> Result<(), Box<
         tracked_ref: "refs/heads/main",
     })?;
     store.append_snapshot(stage.id, 0, None, &[])?;
+    let before = call(&app, "GET", "/v1/github", Value::Null, 200).await?;
+    let progress = &before["repositories"][0]["codeCollection"];
+    assert_eq!(progress["commit"], "a".repeat(40));
+    assert_eq!(
+        progress["pending"],
+        json!({"commit": pinned, "stagedFiles": 0, "phase": "manifestComplete"})
+    );
     fs::write(origin.directory.path().join("deny-contents"), [])?;
     call(&app, "POST", route, Value::Null, 403).await?;
     assert_eq!(
@@ -609,6 +772,12 @@ async fn resuming_a_sealed_stage_checks_contents_permission() -> Result<(), Box<
     assert_eq!(hits[0].access, "retained");
     let mut configured = store.snapshot()?;
     assert_eq!(configured.revision, 3);
+    let status = configured.repositories[0]
+        .code_collection
+        .as_ref()
+        .ok_or("retained status")?;
+    assert!(status.pending.is_none());
+    assert_eq!(status.published_files, Some(2));
     let mut obsolete_probe = configured.repositories.remove(0);
     obsolete_probe.contents = github::Access::Available;
     assert!(matches!(
@@ -642,6 +811,8 @@ fn current_authority_fences_replacement_and_preserves_rate_edits() -> Result<(),
         actions: Access::Unchecked,
         verified: true,
         code_collection: None,
+        history_activity: None,
+        actions_activity: None,
     };
     store.bind(0, Some(("fixture/a", "test-a")))?;
     store.save(1, &config)?;
@@ -1083,10 +1254,8 @@ async fn paces_denials_and_allows_only_same_origin_redirects() -> Result<(), Box
 
 #[tokio::test]
 async fn late_verification_cannot_overwrite_a_newer_credential() -> Result<(), Box<dyn Error>> {
-    use ctxfab_server::application::github::{GitHubFuture, Provider};
-    use ctxfab_server::domain::github::{
-        ConfiguredRepository, Discovery, RepositoryName, Selection,
-    };
+    use ctxfab_server::application::github::{AccessProbe, GitHubFuture, Provider};
+    use ctxfab_server::domain::github::{Discovery, Repository, RepositoryName};
     use std::sync::atomic::{AtomicUsize, Ordering};
     use tokio::sync::Notify;
 
@@ -1113,12 +1282,29 @@ async fn late_verification_cannot_overwrite_a_newer_credential() -> Result<(), B
             Box::pin(std::future::ready(Err(github::Error::Upstream)))
         }
 
-        fn inspect<'a>(
+        fn branches<'a>(
+            &'a self,
+            _: ctxfab_server::application::github::MetadataRequest<'a>,
+            _: RepositoryName<'a>,
+            _: u16,
+        ) -> GitHubFuture<'a, github::branches::Page> {
+            Box::pin(std::future::ready(Err(github::Error::Upstream)))
+        }
+
+        fn repository<'a>(
             &'a self,
             _: &'a [u8],
             _: RepositoryName<'a>,
-            _: &'a Selection,
-        ) -> GitHubFuture<'a, ConfiguredRepository> {
+        ) -> GitHubFuture<'a, Repository> {
+            Box::pin(std::future::ready(Err(github::Error::Upstream)))
+        }
+
+        fn probe_access<'a>(
+            &'a self,
+            _: &'a [u8],
+            _: &'a Repository,
+            _: AccessProbe<'a>,
+        ) -> GitHubFuture<'a, bool> {
             Box::pin(std::future::ready(Err(github::Error::Upstream)))
         }
     }

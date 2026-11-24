@@ -1,0 +1,314 @@
+{
+  "commit": "a58e7cd639ef2ce0f4e6717b3e06269c3e1001ad",
+  "repository": "astral-sh/uv",
+  "cases": [
+    {
+      "id": "git-cache",
+      "split": "dev",
+      "style": "prose",
+      "questions": {
+        "en": "What identifies a Git dependency in the cache once its reference has been resolved?",
+        "fr": "Une fois la référence résolue, quelle valeur identifie une dépendance Git dans le cache ?"
+      },
+      "facts": [
+        {
+          "expected": "The fully resolved commit hash.",
+          "anchors": [
+            {
+              "path": "docs/concepts/cache.md",
+              "blob": "4c8a6899a4a1bf53deefa81aff246c6ba4ff8274",
+              "startLine": 13,
+              "endLine": 14,
+              "text": "- **For Git dependencies**, uv caches based on the fully-resolved Git commit hash. As such,\n  `uv pip compile` will pin Git dependencies to a specific commit hash when writing the resolved"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "digest-endian",
+      "split": "dev",
+      "style": "identifier",
+      "questions": {
+        "en": "In to_hex, what byte order is used to encode the u64?",
+        "fr": "Dans to_hex, dans quel ordre les octets du u64 sont-ils encodés ?"
+      },
+      "facts": [
+        {
+          "expected": "Little-endian.",
+          "anchors": [
+            {
+              "path": "crates/uv-cache-key/src/digest.rs",
+              "blob": "775448469e95157d8a09bd53e59b1a18972e6678",
+              "startLine": 36,
+              "endLine": 36,
+              "text": "    hex::encode(num.to_le_bytes())"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "refresh-one",
+      "split": "dev",
+      "style": "prose",
+      "questions": {
+        "en": "Which option forces revalidation for just one dependency during synchronization?",
+        "fr": "Quelle option force une nouvelle validation pour une seule dépendance lors de la synchronisation ?"
+      },
+      "facts": [
+        {
+          "expected": "--refresh-package",
+          "anchors": [
+            {
+              "path": "docs/concepts/cache.md",
+              "blob": "4c8a6899a4a1bf53deefa81aff246c6ba4ff8274",
+              "startLine": 31,
+              "endLine": 32,
+              "text": "- To force uv to revalidate cached data for a specific dependency pass `--refresh-package` to any\n  command (e.g., `uv sync --refresh-package ruff` or `uv pip install --refresh-package ruff ...`)."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "toolchains",
+      "split": "heldout",
+      "style": "cross-file",
+      "questions": {
+        "en": "Give the workspace minimum Rust version and the channel pinned for developers, in that order.",
+        "fr": "Quelles sont, dans cet ordre, la version minimale de Rust pour le workspace et la version du canal épinglée pour les développeurs ?"
+      },
+      "facts": [
+        {
+          "expected": "Workspace requires Rust 1.98.0.",
+          "anchors": [
+            {
+              "path": "Cargo.toml",
+              "blob": "6082af50961b8d69065c3dcc8d078d8960b39377",
+              "startLine": 12,
+              "endLine": 12,
+              "text": "rust-version = \"1.98.0\""
+            }
+          ]
+        },
+        {
+          "expected": "Toolchain channel is 1.100.0.",
+          "anchors": [
+            {
+              "path": "rust-toolchain.toml",
+              "blob": "580617b59669ee5daa1eb69db8d21ac1ecbcce68",
+              "startLine": 2,
+              "endLine": 2,
+              "text": "channel = \"1.100.0\""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "id-entropy",
+      "split": "heldout",
+      "style": "prose",
+      "questions": {
+        "en": "How long are the IDs produced by the fast ID crate and how many bits of entropy do they contain?",
+        "fr": "Quelle est la longueur des identifiants du générateur rapide et de combien de bits d’entropie disposent-ils ?"
+      },
+      "facts": [
+        {
+          "expected": "16 characters.",
+          "anchors": [
+            {
+              "path": "crates/uv-fastid/src/lib.rs",
+              "blob": "208f722c1312c32e36218a0e4d6c4e8ce31f89a9",
+              "startLine": 3,
+              "endLine": 4,
+              "text": "//! This crate provides a nanoid-style ID generator, but with IDs of length 16\n//! instead of 21. We use the same 64-character alphabet as nanoid,"
+            },
+            {
+              "path": "crates/uv-fastid/src/lib.rs",
+              "blob": "208f722c1312c32e36218a0e4d6c4e8ce31f89a9",
+              "startLine": 55,
+              "endLine": 55,
+              "text": "            .ok_or_else(|| format!(\"invalid ID: {s:?} (must be 16 ID characters in the alphabet)\"))"
+            }
+          ]
+        },
+        {
+          "expected": "96 bits of entropy.",
+          "anchors": [
+            {
+              "path": "crates/uv-fastid/src/lib.rs",
+              "blob": "208f722c1312c32e36218a0e4d6c4e8ce31f89a9",
+              "startLine": 5,
+              "endLine": 5,
+              "text": "//! which means that our IDs have 96 bits of entropy."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "canonical-fetch",
+      "split": "heldout",
+      "style": "identifier",
+      "questions": {
+        "en": "For CanonicalUrl, why should fetching use the original URL? Give the two changes that can make the canonical URL unsuitable.",
+        "fr": "Pour CanonicalUrl, pourquoi faut-il utiliser l’URL originale pour le téléchargement ? Citez les deux changements possibles."
+      },
+      "facts": [
+        {
+          "expected": "Canonicalization can remove credentials.",
+          "anchors": [
+            {
+              "path": "crates/uv-cache-key/src/canonical_url.rs",
+              "blob": "d30bc6fccf61586eeef1c43e974c011233cdc680",
+              "startLine": 12,
+              "endLine": 13,
+              "text": "/// This is **only** for internal purposes. All fetching should happen within the context of the\n/// original URL, since canonicalization can remove credentials and change paths."
+            }
+          ]
+        },
+        {
+          "expected": "It can change paths.",
+          "anchors": [
+            {
+              "path": "crates/uv-cache-key/src/canonical_url.rs",
+              "blob": "d30bc6fccf61586eeef1c43e974c011233cdc680",
+              "startLine": 12,
+              "endLine": 13,
+              "text": "/// This is **only** for internal purposes. All fetching should happen within the context of the\n/// original URL, since canonicalization can remove credentials and change paths."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "config-precedence",
+      "split": "heldout",
+      "style": "prose",
+      "questions": {
+        "en": "Two project configuration files sit side by side. Which one takes precedence and what happens to the other file’s uv table?",
+        "fr": "Lorsque les deux fichiers de configuration du projet coexistent dans le même dossier, lequel est prioritaire et que devient la table uv de l’autre ?"
+      },
+      "facts": [
+        {
+          "expected": "uv.toml takes precedence.",
+          "anchors": [
+            {
+              "path": "docs/concepts/configuration-files.md",
+              "blob": "d5e27f56ca87eb834fd4943ff9b01defc9a3dfd2",
+              "startLine": 41,
+              "endLine": 42,
+              "text": "    `uv.toml` files take precedence over `pyproject.toml` files, so if both `uv.toml` and\n    `pyproject.toml` files are present in a directory, configuration will be read from `uv.toml`, and"
+            }
+          ]
+        },
+        {
+          "expected": "The accompanying pyproject.toml tool.uv table is ignored.",
+          "anchors": [
+            {
+              "path": "docs/concepts/configuration-files.md",
+              "blob": "d5e27f56ca87eb834fd4943ff9b01defc9a3dfd2",
+              "startLine": 42,
+              "endLine": 43,
+              "text": "    `pyproject.toml` files are present in a directory, configuration will be read from `uv.toml`, and\n    the `[tool.uv]` section in the accompanying `pyproject.toml` will be ignored."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "lock-timeout",
+      "split": "heldout",
+      "style": "prose",
+      "questions": {
+        "en": "For cache-modifying commands, give the default wait for other processes and the environment variable that changes it.",
+        "fr": "Pour les commandes qui modifient le cache, quel est le délai d’attente par défaut des autres processus et quelle variable permet de le modifier ?"
+      },
+      "facts": [
+        {
+          "expected": "Five minutes.",
+          "anchors": [
+            {
+              "path": "docs/concepts/cache.md",
+              "blob": "4c8a6899a4a1bf53deefa81aff246c6ba4ff8274",
+              "startLine": 164,
+              "endLine": 165,
+              "text": "uv blocks cache-modifying operations while other uv commands are running. By default, those\n`uv cache` commands have a 5 min timeout waiting for other uv processes to terminate to avoid"
+            }
+          ]
+        },
+        {
+          "expected": "UV_LOCK_TIMEOUT.",
+          "anchors": [
+            {
+              "path": "docs/concepts/cache.md",
+              "blob": "4c8a6899a4a1bf53deefa81aff246c6ba4ff8274",
+              "startLine": 166,
+              "endLine": 167,
+              "text": "deadlocks. This timeout can be changed with\n[`UV_LOCK_TIMEOUT`](../reference/environment.md#uv_lock_timeout). In cases where it is known that no"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "bool-hashing",
+      "split": "heldout",
+      "style": "cross-file",
+      "questions": {
+        "en": "Which unsigned integer width does CacheKey use for a bool, and which hasher does cache_digest construct before finishing the hash?",
+        "fr": "Quelle largeur d’entier non signé CacheKey utilise-t-il pour un booléen, et quel hacheur cache_digest construit-il avant de terminer le calcul ?"
+      },
+      "facts": [
+        {
+          "expected": "u8 (8 bits).",
+          "anchors": [
+            {
+              "path": "crates/uv-cache-key/src/cache_key.rs",
+              "blob": "033ca38840d40e2abd53fdf4121d5e2834157997",
+              "startLine": 32,
+              "endLine": 32,
+              "text": "        state.write_u8(u8::from(*self));"
+            }
+          ]
+        },
+        {
+          "expected": "CacheKeyHasher.",
+          "anchors": [
+            {
+              "path": "crates/uv-cache-key/src/digest.rs",
+              "blob": "775448469e95157d8a09bd53e59b1a18972e6678",
+              "startLine": 14,
+              "endLine": 16,
+              "text": "        let mut hasher = CacheKeyHasher::new();\n        hashable.cache_key(&mut hasher);\n        hasher.finish()"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "local-run",
+      "split": "heldout",
+      "style": "unanswerable",
+      "questions": {
+        "en": "What exact ID did my private laptop generate on its most recent invocation of the uv fast ID generator?",
+        "fr": "Quel identifiant exact mon ordinateur privé a-t-il généré lors de son dernier appel au générateur rapide de uv ?"
+      },
+      "facts": [],
+      "insufficientReason": "Private runtime event outside this source snapshot."
+    },
+    {
+      "id": "local-config",
+      "split": "dev",
+      "style": "unanswerable",
+      "questions": {
+        "en": "Which exact custom index URL is currently set in my private workstation user configuration?",
+        "fr": "Quelle URL d’index personnalisée est actuellement définie dans la configuration utilisateur de mon poste privé ?"
+      },
+      "facts": [],
+      "insufficientReason": "Private user file absent. Documentation examples are not user configuration."
+    }
+  ]
+}

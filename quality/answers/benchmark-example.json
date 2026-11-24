@@ -1,0 +1,20 @@
+{
+  "documents": [
+    {
+      "path": "src/retry.rs",
+      "text": "pub const RETRY_DELAY_SECONDS: u64 = 73;\n\npub fn retry_delay() -> std::time::Duration {\n    std::time::Duration::from_secs(RETRY_DELAY_SECONDS)\n}\n"
+    }
+  ],
+  "questions": [
+    {
+      "title": "Retry delay",
+      "query": "What is the retry delay in seconds according to src/retry.rs?",
+      "expected": "73 seconds. The function passes RETRY_DELAY_SECONDS to Duration::from_secs."
+    },
+    {
+      "title": "Private execution · no evidence",
+      "query": "Did the last production retry complete successfully?",
+      "expected": "The uploaded file defines a delay. It cannot establish the result of a particular execution."
+    }
+  ]
+}

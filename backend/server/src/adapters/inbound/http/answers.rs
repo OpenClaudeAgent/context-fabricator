@@ -1,22 +1,46 @@
 use axum::extract::rejection::JsonRejection;
-use axum::extract::{Path, State};
-use axum::http::StatusCode;
+use axum::extract::{DefaultBodyLimit, Path, State};
+use axum::http::{StatusCode, header};
 use axum::response::{IntoResponse, Response};
 use axum::routing::{delete, get, post};
-use axum::{Json, Router};
+use axum::{Extension, Json, Router};
 use ctxfab_inference::generation::{GenerationError, Models};
 use serde::{Deserialize, Deserializer, Serialize};
 use uuid::Uuid;
 
 use super::{
     Api,
-    response::{failure, problem, traced},
+    request_trace::RequestTrace,
+    response::{failure, problem},
 };
-use crate::application::{Failure, SearchQuery, answers::AnswerError, telemetry::Stage};
+use crate::application::{
+    Failure, SearchQuery,
+    answers::{Answer, AnswerError, AnswerRequest, EvidenceReview, ModelContext, Submission},
+    telemetry::{Event, Observer},
+};
+use crate::runtime::clock::Clock;
+
+pub(super) mod benchmark;
 
 pub(super) fn routes() -> Router<Api> {
     Router::new()
         .route("/v1/answers", post(ask))
+        .route(
+            "/v1/benchmarks/corpus",
+            get(benchmark::list)
+                .post(benchmark::load)
+                .delete(benchmark::unload),
+        )
+        .route("/v1/benchmarks/corpus/embeddings", post(benchmark::embed))
+        .route("/v1/benchmarks/actions", get(benchmark::actions::list))
+        .route(
+            "/v1/benchmarks/actions/downloads",
+            get(benchmark::action_downloads::list).post(benchmark::action_downloads::download),
+        )
+        .route(
+            "/v1/benchmarks/answers",
+            post(benchmark::ask).layer(DefaultBodyLimit::max(benchmark::MAX_REQUEST_BYTES)),
+        )
         .route("/v1/answers/{requestId}", delete(cancel_answer))
         .route(
             "/v1/generation/models",
@@ -29,10 +53,20 @@ pub(super) fn routes() -> Router<Api> {
 struct Question {
     query: String,
     request_id: Option<String>,
+    #[serde(default)]
+    include_model_context: bool,
+    #[serde(default)]
+    inspect_pipeline: bool,
     #[serde(default, deserialize_with = "scope_value")]
     repository_id: Option<i64>,
     #[serde(default, deserialize_with = "scope_value")]
     branch: Option<String>,
+    #[serde(default, deserialize_with = "scope_value")]
+    history_commit: Option<String>,
+    #[serde(default, deserialize_with = "scope_value")]
+    actions_run_id: Option<i64>,
+    #[serde(default, deserialize_with = "scope_value")]
+    actions_run_attempt: Option<u32>,
 }
 
 fn scope_value<'de, D: Deserializer<'de>, T: Deserialize<'de>>(
@@ -41,56 +75,130 @@ fn scope_value<'de, D: Deserializer<'de>, T: Deserialize<'de>>(
     T::deserialize(input).map(Some)
 }
 
-async fn ask(State(api): State<Api>, input: Result<Json<Question>, JsonRejection>) -> Response {
-    let span = api
-        .telemetry
-        .as_ref()
-        .map(|observer| observer.start(Stage::ApiAnswer, None));
-    let Ok(Json(question)) = input else {
-        return traced(failure(Failure::InvalidQuery), span);
+async fn ask(
+    State(api): State<Api>,
+    Extension(request): Extension<RequestTrace>,
+    input: Result<Json<Question>, JsonRejection>,
+) -> Response {
+    let Ok(Json(mut question)) = input else {
+        return failure(Failure::InvalidQuery);
     };
-    let query =
-        match SearchQuery::parse_scoped(&question.query, question.repository_id, question.branch) {
-            Ok(query) => query,
-            Err(error) => return traced(failure(error), span),
-        };
+    let query = match SearchQuery::parse_scoped(
+        &question.query,
+        question.repository_id,
+        question.branch.take(),
+    ) {
+        Ok(query) => query,
+        Err(error) => return failure(error),
+    };
     let Ok(id) = question
         .request_id
         .as_deref()
         .map(Uuid::parse_str)
         .transpose()
     else {
-        return traced(invalid_request_id(), span);
+        return invalid_request_id();
     };
-    let Some(answers) = api.answers else {
-        return traced(
-            problem(
-                StatusCode::SERVICE_UNAVAILABLE,
-                "generation_not_configured",
-                "The local generation model is not configured.".into(),
-                None,
-            ),
-            span,
-        );
-    };
-    let trace = span.as_ref().map(|span| span.link());
+    let trace = request.clone();
     let result = tokio::task::spawn_blocking(move || {
-        answers.ask(
+        match Submission::parse(
             &query,
-            id,
-            api.telemetry
-                .as_deref()
-                .map(|observer| observer as &dyn crate::application::telemetry::Observer),
-            trace,
-        )
+            question.history_commit.as_deref(),
+            question.actions_run_id,
+            question.actions_run_attempt,
+        ) {
+            Ok(submission) => answer_question(&api, &submission, id, &trace, &question),
+            Err(error) => (failure(error), Event::AnswerFailed),
+        }
     })
     .await;
-    let response = match result {
-        Ok(Ok(answer)) => Json(answer).into_response(),
-        Ok(Err(error)) => answer_failure(error),
-        Err(_) => failure(Failure::Storage),
+    let (response, outcome) =
+        result.unwrap_or_else(|_| (failure(Failure::Storage), Event::AnswerFailed));
+    request.event(outcome);
+    response
+}
+
+fn answer_question(
+    api: &Api,
+    submission: &Submission<'_>,
+    id: Option<Uuid>,
+    request_trace: &RequestTrace,
+    question: &Question,
+) -> (Response, Event) {
+    let Some(answers) = &api.answers else {
+        return generation_missing();
     };
-    traced(response, span)
+    let observer = api
+        .telemetry
+        .as_deref()
+        .map(|observer| observer as &dyn Observer);
+    let metadata = AnswerRequest {
+        id,
+        observer,
+        trace: request_trace.link(),
+        include_model_context: question.include_model_context || question.inspect_pipeline,
+        inspect_pipeline: question.inspect_pipeline,
+        record_model: &|model| request_trace.model_profile(model),
+    };
+    let journal = if question.inspect_pipeline {
+        None
+    } else {
+        api.answer_history.as_deref()
+    };
+    let result = submission.execute(answers, &metadata, journal, || Clock::system().now());
+    present_answer(result)
+}
+
+fn present_answer(result: Result<Answer, AnswerError>) -> (Response, Event) {
+    match result {
+        Ok(answer) => {
+            let outcome = if answer.outcome == "answered" {
+                Event::AnswerPublished
+            } else {
+                Event::AnswerAbstained
+            };
+            let response = PresentedAnswer {
+                model_context: answer.model_context.as_ref(),
+                evidence_review: answer.evidence_review.as_ref(),
+                answer: &answer,
+            };
+            (
+                ([(header::CACHE_CONTROL, "no-store")], Json(response)).into_response(),
+                outcome,
+            )
+        }
+        Err(error) => {
+            let outcome = if matches!(error, AnswerError::Generation(GenerationError::Cancelled)) {
+                Event::AnswerCancelled
+            } else {
+                Event::AnswerFailed
+            };
+            (answer_failure(error), outcome)
+        }
+    }
+}
+
+fn generation_missing() -> (Response, Event) {
+    (
+        problem(
+            StatusCode::SERVICE_UNAVAILABLE,
+            "generation_not_configured",
+            "The local generation model is not configured.".into(),
+            None,
+        ),
+        Event::AnswerFailed,
+    )
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct PresentedAnswer<'a> {
+    #[serde(flatten)]
+    answer: &'a Answer,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    model_context: Option<&'a ModelContext>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    evidence_review: Option<&'a EvidenceReview>,
 }
 
 fn answer_failure(error: AnswerError) -> Response {
@@ -107,7 +215,7 @@ fn answer_failure(error: AnswerError) -> Response {
 
 fn generation_failure(error: GenerationError) -> Response {
     let (status, code) = match error {
-        GenerationError::Runtime => (
+        GenerationError::Runtime | GenerationError::Deadline => (
             StatusCode::SERVICE_UNAVAILABLE,
             "generation_runtime_unavailable",
         ),
@@ -140,16 +248,11 @@ async fn cancel_answer(State(api): State<Api>, Path(request): Path<String>) -> R
     let Some(answers) = api.answers else {
         return generation_failure(GenerationError::UnknownRequest);
     };
-    let span = api
-        .telemetry
-        .as_ref()
-        .map(|observer| observer.start(Stage::AnswerCancellation, None));
-    let response = inference_response(move || {
+    inference_response(move || {
         answers.cancel(id)?;
         Ok(serde_json::json!({"requestId":id.to_string(),"status":"cancelled"}))
     })
-    .await;
-    traced(response, span)
+    .await
 }
 
 async fn generation_models(State(api): State<Api>) -> Response {
@@ -181,12 +284,7 @@ async fn select_model(
     let Some(answers) = api.answers else {
         return generation_failure(GenerationError::UnknownProfile);
     };
-    let span = api
-        .telemetry
-        .as_ref()
-        .map(|observer| observer.start(Stage::GenerationSelection, None));
-    let response = inference_response(move || answers.select_model(&selection.profile)).await;
-    traced(response, span)
+    inference_response(move || answers.select_model(&selection.profile)).await
 }
 
 async fn inference_response<T: Serialize + Send + 'static>(

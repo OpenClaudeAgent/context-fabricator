@@ -62,8 +62,8 @@ struct AnswerComposer: View {
     .accessibilityLabel("Question")
     .accessibilityIdentifier("answer-question")
     .onKeyPress(.return, phases: .down) { press in
-      guard press.modifiers.contains(.command) else { return .ignored }
-      if canAsk { store.send(.ask) }
+      guard !press.modifiers.contains(.shift), canAsk else { return .ignored }
+      store.send(.ask)
       return .handled
     }
   }
@@ -88,16 +88,7 @@ struct AnswerComposer: View {
   }
 
   private var sendControls: some View {
-    HStack(spacing: 8) {
-      if canAsk {
-        Text("⌘↩")
-          .font(.callout.monospaced())
-          .foregroundStyle(.secondary)
-          .accessibilityHidden(true)
-      }
-      answerAction
-    }
-    .fixedSize()
+    answerAction.fixedSize()
   }
 
   private var answerAction: some View {
@@ -105,10 +96,19 @@ struct AnswerComposer: View {
       if store.answerBusy {
         Button("Cancel answer") { store.send(.cancelAnswer) }.disabled(store.answerCancelling)
       } else {
-        Button("Ask locally", systemImage: "arrow.up") { store.send(.ask) }
-          .keyboardShortcut(.return, modifiers: .command)
-          .buttonStyle(.borderedProminent)
-          .disabled(!canAsk)
+        Button {
+          store.send(.ask)
+        } label: {
+          HStack(spacing: 7) {
+            Label("Ask locally", systemImage: "arrow.up")
+            Text("↵").font(.callout.monospaced()).accessibilityHidden(true)
+          }
+        }
+        .accessibilityLabel("Ask locally")
+        .keyboardShortcut(.return, modifiers: .command)
+        .help("Return to send. Shift-Return for a new line.")
+        .buttonStyle(.borderedProminent)
+        .disabled(!canAsk)
       }
     }
     .controlSize(.regular)

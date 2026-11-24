@@ -3,6 +3,15 @@ allow = ["Apache-2.0", "MIT"]
 
 [bans]
 multiple-versions = "deny"
+# Gitoxide's transport, utility, cache and macro dependencies still require
+# these versions alongside the versions used by the local service.
+skip = [
+    { crate = "base64@=0.22.1", reason = "gix-transport still requires base64 0.22" },
+    { crate = "getrandom@=0.4.3", reason = "gix-utils requires 0.4 while OpenTelemetry uses rand 0.9" },
+    { crate = "hashbrown@=0.14.5", reason = "dashmap used by gix-tempfile requires hashbrown 0.14" },
+    { crate = "hashbrown@=0.16.1", reason = "clru used by gix-pack requires hashbrown 0.16" },
+    { crate = "syn@=2.0.119", reason = "gix-macros still requires syn 2" },
+]
 
 [sources]
 unknown-registry = "deny"
@@ -27,3 +36,15 @@ allow = ["Zlib"]
 [[licenses.exceptions]]
 crate = "unicode-ident@=1.0.27"
 allow = ["Unicode-3.0"]
+
+[[licenses.exceptions]]
+crate = "encoding_rs@=0.8.44"
+allow = ["BSD-3-Clause"]
+
+[[licenses.exceptions]]
+crate = "unicode-normalization@=0.1.26"
+allow = ["Unicode-3.0"]
+
+[[licenses.exceptions]]
+crate = "zlib-rs@=0.6.8"
+allow = ["Zlib"]

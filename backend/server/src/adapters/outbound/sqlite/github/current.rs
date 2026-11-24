@@ -7,8 +7,10 @@ use crate::domain::github::{Access, ConfiguredRepository, Error, current::Scope}
 pub(super) mod jobs;
 
 pub(super) fn configured(tx: &Connection, config: &ConfiguredRepository) -> Result<(), Error> {
+    super::graph::configure(tx, config)?;
     let id = config.repository.id;
-    let eligible = config.features.current_code && config.contents == Access::Available;
+    let eligible =
+        config.verified && config.features.current_code && config.contents == Access::Available;
     let branch = eligible.then_some(config.branch.as_str());
     retire(tx, Some(id), branch)?;
     if let Some(branch) = branch {
@@ -44,6 +46,10 @@ pub(super) fn retire(
     id: Option<i64>,
     keep_branch: Option<&str>,
 ) -> Result<(), Error> {
+    // Graph-only owners are fenced together with the credential or repository binding.
+    if keep_branch.is_none() && id.is_none() {
+        super::graph::retire(tx, None, None)?;
+    }
     tx.execute(
         "UPDATE collections SET generation = generation + 1, access_lost = 1
          WHERE access_lost = 0 AND name IN (
@@ -57,31 +63,17 @@ pub(super) fn retire(
 }
 
 impl Store for SqliteStore {
+    fn publish_current(&self, scope: &Scope, stage: i64) -> Result<(), Error> {
+        super::graph::publish(self, scope, stage)
+    }
+
+    fn refresh_graph_profile(&self, scope: &Scope, publication: i64) -> Result<bool, Error> {
+        super::graph::refresh_profile(self, scope, publication)
+    }
+
     fn current_scope(&self, id: i64) -> Result<Scope, Error> {
         let reader = self.read().map_err(|_| Error::Storage)?;
-        reader
-            .query_row(
-                "SELECT e.repository_id, e.full_name, e.branch, e.collection, e.generation,
-                    e.credential_ref, p.id
-             FROM github_current_eligible e
-             LEFT JOIN source_snapshots p ON p.collection = e.collection AND p.phase = 'published'
-             WHERE e.repository_id = ?1",
-                [id],
-                |row| {
-                    Ok(Scope {
-                        repository_id: row.get(0)?,
-                        full_name: row.get(1)?,
-                        branch: row.get(2)?,
-                        collection: row.get(3)?,
-                        generation: row.get(4)?,
-                        credential: row.get(5)?,
-                        predecessor: row.get(6)?,
-                    })
-                },
-            )
-            .optional()
-            .map_err(storage)?
-            .ok_or(Error::Access)
+        scope_in(&reader, id)
     }
 
     fn check_scope(&self, scope: &Scope) -> Result<(), Error> {
@@ -130,11 +122,38 @@ impl Store for SqliteStore {
         )
         .map_err(storage)?;
         retire(&tx, Some(scope.repository_id), None)?;
+        super::graph::retire(&tx, Some(scope.repository_id), None)?;
         tx.commit().map_err(storage)
     }
 }
 
-fn authorized(tx: &Connection, scope: &Scope) -> Result<bool, Error> {
+fn scope_in(database: &Connection, id: i64) -> Result<Scope, Error> {
+    database
+        .query_row(
+            "SELECT e.repository_id, e.full_name, e.branch, e.collection, e.generation,
+                    e.credential_ref, p.id
+             FROM github_current_eligible e
+             LEFT JOIN source_snapshots p ON p.collection = e.collection AND p.phase = 'published'
+             WHERE e.repository_id = ?1",
+            [id],
+            |row| {
+                Ok(Scope {
+                    repository_id: row.get(0)?,
+                    full_name: row.get(1)?,
+                    branch: row.get(2)?,
+                    collection: row.get(3)?,
+                    generation: row.get(4)?,
+                    credential: row.get(5)?,
+                    predecessor: row.get(6)?,
+                })
+            },
+        )
+        .optional()
+        .map_err(storage)?
+        .ok_or(Error::Access)
+}
+
+pub(super) fn authorized(tx: &Connection, scope: &Scope) -> Result<bool, Error> {
     tx.query_row(
         "SELECT EXISTS (
              SELECT 1 FROM github_current_eligible

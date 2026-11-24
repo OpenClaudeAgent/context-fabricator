@@ -11,6 +11,7 @@ pub enum RequestKind {
     Retry,
     Redirect,
     ModelDownload,
+    ModelCatalog,
 }
 
 #[derive(Debug)]

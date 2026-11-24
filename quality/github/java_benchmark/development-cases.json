@@ -1,0 +1,357 @@
+{
+  "version": 1,
+  "exposure": "Previously used development, diagnostic and evaluated prospective questions; not a blind holdout.",
+  "references": {
+    "commons-current": "commons-cli-current-reference.json",
+    "jackson": "jackson-databind-reference.json"
+  },
+  "cases": [
+    {
+      "id": "r1",
+      "language": "en",
+      "query": "According to the README, what should I run to see the coverage report even if coverage fails?",
+      "repository": "commons-current",
+      "kind": "positive",
+      "expectation": "Command exactly mvn clean site -Dcommons.jacoco.haltOnFailure=false -Pjacoco; report even if coverage fails.",
+      "witness": {
+        "path": "README.md",
+        "blob": "c241c798bdc322848214fe909d0fe05f66146d1b",
+        "startLine": 91,
+        "endLine": 93,
+        "text": "+ Provide JUnit tests for your changes and make sure your changes don't break any existing tests by running `mvn`.\n+ Before you push a PR, run `mvn` (without arguments). This runs the default goal which contains all build checks.\n+ To see the code coverage report, regardless of coverage failures, run `mvn clean site -Dcommons.jacoco.haltOnFailure=false -Pjacoco`\n"
+      }
+    },
+    {
+      "id": "r2",
+      "language": "fr",
+      "query": "Selon le README, que doit-on faire avant de pousser une pull request, et que lance cette commande ?",
+      "repository": "commons-current",
+      "kind": "positive",
+      "expectation": "Run mvn without arguments before pushing; default goal runs all build checks.",
+      "witness": {
+        "path": "README.md",
+        "blob": "c241c798bdc322848214fe909d0fe05f66146d1b",
+        "startLine": 91,
+        "endLine": 92,
+        "text": "+ Provide JUnit tests for your changes and make sure your changes don't break any existing tests by running `mvn`.\n+ Before you push a PR, run `mvn` (without arguments). This runs the default goal which contains all build checks.\n"
+      }
+    },
+    {
+      "id": "r3",
+      "language": "en",
+      "query": "What exact minimum Java version does the README state is required to build the project?",
+      "repository": "commons-current",
+      "kind": "absent_in_file",
+      "expectation": "No numeric minimum stated in README; it points to maven.compiler.source in pom.xml. Abstain from inventing a number. README full text lines 1-119 was inspected.",
+      "witness": {
+        "path": "README.md",
+        "blob": "c241c798bdc322848214fe909d0fe05f66146d1b",
+        "startLine": 75,
+        "endLine": 81,
+        "text": "Building\n--------\n\nBuilding requires a Java JDK and [Apache Maven](https://maven.apache.org/).\nThe required Java version is found in the `pom.xml` as the `maven.compiler.source` property.\n\nFrom a command shell, run `mvn` without arguments to invoke the default Maven goal to run all tests and checks.\n"
+      },
+      "absence": {
+        "path": "README.md",
+        "blob": "c241c798bdc322848214fe909d0fe05f66146d1b",
+        "pattern": "(?i)\\bjava\\s+(?:jdk\\s+)?\\d+",
+        "description": "numeric Java version in the complete README"
+      }
+    },
+    {
+      "id": "c1",
+      "language": "en",
+      "query": "In OptionGroup, what happens if I select a different option after one is already selected, reselect the same option, or pass null?",
+      "repository": "commons-current",
+      "kind": "positive",
+      "expectation": "Different option throws AlreadySelectedException; same key reselection accepted; null clears selection.",
+      "witness": {
+        "path": "src/main/java/org/apache/commons/cli/OptionGroup.java",
+        "blob": "ce5384f4d2de06906e6d5ba28b429f3aef49e9a3",
+        "startLine": 126,
+        "endLine": 147,
+        "text": "    /**\n     * Sets the selected option of this group to {@code name}.\n     *\n     * If the selected option is deprecated <em>no warning is logged</em>.\n     *\n     * @param option The option that is selected.\n     * @throws AlreadySelectedException if an option from this group has already been selected.\n     */\n    public void setSelected(final Option option) throws AlreadySelectedException {\n        if (option == null) {\n            // reset the option previously selected\n            selected = null;\n            return;\n        }\n        // if no option has already been selected or the\n        // same option is being reselected then set the\n        // selected member variable\n        if (selected != null && !selected.equals(option.getKey())) {\n            throw new AlreadySelectedException(this, option);\n        }\n        selected = option.getKey();\n    }\n"
+      }
+    },
+    {
+      "id": "c2",
+      "language": "fr",
+      "query": "Dans OptionGroup, que se passe-t-il si je sélectionne une autre option après une première sélection, si je resélectionne la même, ou si je passe null ?",
+      "repository": "commons-current",
+      "kind": "positive",
+      "expectation": "Different option throws AlreadySelectedException; same key reselection accepted; null clears selection.",
+      "witness": {
+        "path": "src/main/java/org/apache/commons/cli/OptionGroup.java",
+        "blob": "ce5384f4d2de06906e6d5ba28b429f3aef49e9a3",
+        "startLine": 126,
+        "endLine": 147,
+        "text": "    /**\n     * Sets the selected option of this group to {@code name}.\n     *\n     * If the selected option is deprecated <em>no warning is logged</em>.\n     *\n     * @param option The option that is selected.\n     * @throws AlreadySelectedException if an option from this group has already been selected.\n     */\n    public void setSelected(final Option option) throws AlreadySelectedException {\n        if (option == null) {\n            // reset the option previously selected\n            selected = null;\n            return;\n        }\n        // if no option has already been selected or the\n        // same option is being reselected then set the\n        // selected member variable\n        if (selected != null && !selected.equals(option.getKey())) {\n            throw new AlreadySelectedException(this, option);\n        }\n        selected = option.getKey();\n    }\n"
+      }
+    },
+    {
+      "id": "j1",
+      "language": "en",
+      "query": "When a chained name transformer applies two transformations, in what order are they applied, and what happens during reversal if the first reverse fails?",
+      "repository": "jackson",
+      "kind": "positive",
+      "expectation": "Forward applies t2 then t1; reverse applies t1 first and calls t2 only if t1 returned non-null; otherwise returns null.",
+      "witness": {
+        "path": "src/main/java/com/fasterxml/jackson/databind/util/NameTransformer.java",
+        "blob": "8f3d0fca3104c920fe4dfeebce12b258dfbbc6e9",
+        "startLine": 128,
+        "endLine": 139,
+        "text": "        @Override\n        public String transform(String name) {\n            return _t1.transform(_t2.transform(name));\n        }\n\n        @Override\n        public String reverse(String transformed) {\n            transformed = _t1.reverse(transformed);\n            if (transformed != null) {\n                transformed = _t2.reverse(transformed);\n            }\n            return transformed;\n"
+      }
+    },
+    {
+      "id": "j2",
+      "language": "en",
+      "query": "When an LRUMap is serialized and restored, what happens to its cached entries and which sizing information is retained?",
+      "repository": "jackson",
+      "kind": "positive",
+      "expectation": "Cached contents are not serialized; initial and maximum sizing are retained and a new empty LRUMap is constructed on readResolve. Additional witnesses lines 32-45 and 90-92.",
+      "witness": {
+        "path": "src/main/java/com/fasterxml/jackson/databind/util/LRUMap.java",
+        "blob": "b60c530939ac13e0a0850d36f46ea84af79e6761",
+        "startLine": 8,
+        "endLine": 92,
+        "text": "/**\n * Helper for simple bounded maps used for reusing lookup values.\n *<p>\n * Note that serialization behavior is such that contents are NOT serialized,\n * on assumption that all use cases are for caching where persistence\n * does not make sense. The only thing serialized is the cache size of Map.\n *<p>\n * Since Jackson 2.12, there has been pluggable {@link LookupCache} interface which\n * allows users, frameworks, provide their own cache implementations.\n *<p>\n * Since Jackson 2.14, the implementation\n *<ul>\n *<li>Evicts the least recently used  entry when max size is reached\n * </li>\n *<li>Is thread-safe and does NOT require external synchronization\n * </li>\n *</ul>\n */\npublic class LRUMap<K,V>\n    implements LookupCache<K,V>, // since 2.12\n        java.io.Serializable\n{\n    private static final long serialVersionUID = 2L;\n\n    protected final int _initialEntries;\n    protected final int _maxEntries;\n    protected final transient PrivateMaxEntriesMap<K,V> _map;\n\n    public LRUMap(int initialEntries, int maxEntries)\n    {\n        _initialEntries = initialEntries;\n        _maxEntries = maxEntries;\n        // We'll use concurrency level of 4, seems reasonable\n        _map = new PrivateMaxEntriesMap.Builder<K, V>()\n                .initialCapacity(initialEntries)\n                .maximumCapacity(maxEntries)\n                .concurrencyLevel(4)\n                .build();\n    }\n\n    // @since 2.16\n    @Override\n    public LookupCache<K,V> emptyCopy() {\n        return new LRUMap<K,V>(_initialEntries, _maxEntries);\n    }\n\n    @Override\n    public V put(K key, V value) {\n        return _map.put(key, value);\n    }\n\n    /**\n     * @since 2.5\n     */\n    @Override\n    public V putIfAbsent(K key, V value) {\n        return _map.putIfAbsent(key, value);\n    }\n\n    // NOTE: key is of type Object only to retain binary backwards-compatibility\n    @Override\n    public V get(Object key) { return _map.get(key); }\n\n    @Override\n    public void clear() { _map.clear(); }\n\n    @Override\n    public int size() { return _map.size(); }\n\n    @Override\n    public void contents(BiConsumer<K,V> consumer) {\n        for (Map.Entry<K,V> entry : _map.entrySet()) {\n            consumer.accept(entry.getKey(), entry.getValue());\n        }\n    }\n\n    /*\n    /**********************************************************************\n    /* Serializable overrides\n    /**********************************************************************\n     */\n\n    protected Object readResolve() {\n        return new LRUMap<K,V>(_initialEntries, _maxEntries);\n    }\n"
+      }
+    },
+    {
+      "id": "j3",
+      "language": "en",
+      "query": "In this repository, what is the exact content of src/main/java/com/acme/private/RuntimeConfig.java?",
+      "repository": "jackson",
+      "kind": "absent_path",
+      "expectation": "Path is absent from pinned Git tree; abstain, never invent file content.",
+      "absentPath": "src/main/java/com/acme/private/RuntimeConfig.java"
+    },
+    {
+      "id": "runtime-class-name",
+      "language": "en",
+      "query": "Which class name did our production service most recently pass to the class-name converter?",
+      "repository": "commons-current",
+      "kind": "unavailable_runtime",
+      "expectation": "Repository source cannot establish the production service most recent invocation.",
+      "witness": {
+        "path": "src/main/java/org/apache/commons/cli/Converter.java",
+        "blob": "a5e9c9b8ff50e45cccaca53f1ece5ac99f54304b",
+        "startLine": 46,
+        "endLine": 54,
+        "text": "    /**\n     * Converts a String to a {@link Class}. Calls {@link Class#forName(String, boolean, ClassLoader)} with {@code initialize} set to {@code false} so that\n     * resolving the name does not by itself trigger the class's static initializer.\n     * <p>\n     * The value can name any class visible to the class loader of this library. Do not apply this converter, the default for options of type {@link Class},\n     * to values from an untrusted source.\n     * </p>\n     */\n    Converter<Class<?>, ClassNotFoundException> CLASS = s -> Class.forName(s, false, Converter.class.getClassLoader());\n"
+      }
+    },
+    {
+      "id": "nt-trigger-j1",
+      "language": "en",
+      "query": "In MappingJsonFactory, how does hasFormat behave for the exact class and for a subclass?",
+      "repository": "jackson",
+      "kind": "positive",
+      "expectation": "The base method delegates to hasJSONFormat for the exact class and returns null for a subclass.",
+      "witness": {
+        "path": "src/main/java/com/fasterxml/jackson/databind/MappingJsonFactory.java",
+        "blob": "f21ee3bc86606ccabcfa582032efe2e18e1c76e6",
+        "startLine": 85,
+        "endLine": 91,
+        "text": "    public MatchStrength hasFormat(InputAccessor acc) throws IOException\n    {\n        if (getClass() == MappingJsonFactory.class) {\n            return hasJSONFormat(acc);\n        }\n        return null;\n    }\n"
+      }
+    },
+    {
+      "id": "nt-trigger-j1-fr",
+      "language": "fr",
+      "query": "Dans MappingJsonFactory, comment hasFormat se comporte-t-il pour la classe exacte et pour une sous-classe ?",
+      "repository": "jackson",
+      "kind": "positive",
+      "expectation": "The base method delegates to hasJSONFormat for the exact class and returns null for a subclass.",
+      "witness": {
+        "path": "src/main/java/com/fasterxml/jackson/databind/MappingJsonFactory.java",
+        "blob": "f21ee3bc86606ccabcfa582032efe2e18e1c76e6",
+        "startLine": 85,
+        "endLine": 91,
+        "text": "    public MatchStrength hasFormat(InputAccessor acc) throws IOException\n    {\n        if (getClass() == MappingJsonFactory.class) {\n            return hasJSONFormat(acc);\n        }\n        return null;\n    }\n"
+      }
+    },
+    {
+      "id": "nt-trigger-j2",
+      "language": "en",
+      "query": "In SerializerFactoryConfig, what does withAdditionalSerializers do when passed null versus a serializer?",
+      "repository": "jackson",
+      "kind": "positive",
+      "expectation": "Null throws IllegalArgumentException; a non-null Serializers provider is added and a new configuration is returned.",
+      "witness": {
+        "path": "src/main/java/com/fasterxml/jackson/databind/cfg/SerializerFactoryConfig.java",
+        "blob": "2cc0e6967f5e9d28d5fbe0682c8729883d5043c9",
+        "startLine": 56,
+        "endLine": 63,
+        "text": "    public SerializerFactoryConfig withAdditionalSerializers(Serializers additional)\n    {\n        if (additional == null) {\n            throw new IllegalArgumentException(\"Cannot pass null Serializers\");\n        }\n        Serializers[] all = ArrayBuilders.insertInListNoDup(_additionalSerializers, additional);\n        return new SerializerFactoryConfig(all, _additionalKeySerializers, _modifiers);\n    }\n"
+      },
+      "strictDetail": "The helper uses reference identity; the new configuration retains existing key serializers and modifiers."
+    },
+    {
+      "id": "nt-trigger-control",
+      "language": "en",
+      "query": "In MappingJsonFactory, what does validateCompanyPolicy return for a denied policy?",
+      "repository": "jackson",
+      "kind": "absent_in_file",
+      "expectation": "The named member is absent from the pinned class; abstain.",
+      "witness": {
+        "path": "src/main/java/com/fasterxml/jackson/databind/MappingJsonFactory.java",
+        "blob": "f21ee3bc86606ccabcfa582032efe2e18e1c76e6",
+        "startLine": 85,
+        "endLine": 91,
+        "text": "    public MatchStrength hasFormat(InputAccessor acc) throws IOException\n    {\n        if (getClass() == MappingJsonFactory.class) {\n            return hasJSONFormat(acc);\n        }\n        return null;\n    }\n"
+      },
+      "absence": {
+        "path": "src/main/java/com/fasterxml/jackson/databind/MappingJsonFactory.java",
+        "blob": "f21ee3bc86606ccabcfa582032efe2e18e1c76e6",
+        "pattern": "\\bvalidateCompanyPolicy\\s*\\(",
+        "description": "named member in the complete class source"
+      }
+    },
+    {
+      "id": "dev-real-method-external",
+      "language": "en",
+      "query": "In MappingJsonFactory, what HTTP retry delay does hasFormat set when a caller is rate limited?",
+      "repository": "jackson",
+      "kind": "unavailable_runtime",
+      "expectation": "A runtime HTTP retry delay is not established by the named method; abstain.",
+      "witness": {
+        "path": "src/main/java/com/fasterxml/jackson/databind/MappingJsonFactory.java",
+        "blob": "f21ee3bc86606ccabcfa582032efe2e18e1c76e6",
+        "startLine": 85,
+        "endLine": 91,
+        "text": "    public MatchStrength hasFormat(InputAccessor acc) throws IOException\n    {\n        if (getClass() == MappingJsonFactory.class) {\n            return hasJSONFormat(acc);\n        }\n        return null;\n    }\n"
+      }
+    },
+    {
+      "id": "dev-real-method-memory-fr",
+      "language": "fr",
+      "query": "Dans SerializerFactoryConfig, quelle limite de mémoire maximale withAdditionalSerializers impose-t-elle au processus Java ?",
+      "repository": "jackson",
+      "kind": "unavailable_runtime",
+      "expectation": "A process memory limit is not established by the named method; abstain.",
+      "witness": {
+        "path": "src/main/java/com/fasterxml/jackson/databind/cfg/SerializerFactoryConfig.java",
+        "blob": "2cc0e6967f5e9d28d5fbe0682c8729883d5043c9",
+        "startLine": 56,
+        "endLine": 63,
+        "text": "    public SerializerFactoryConfig withAdditionalSerializers(Serializers additional)\n    {\n        if (additional == null) {\n            throw new IllegalArgumentException(\"Cannot pass null Serializers\");\n        }\n        Serializers[] all = ArrayBuilders.insertInListNoDup(_additionalSerializers, additional);\n        return new SerializerFactoryConfig(all, _additionalKeySerializers, _modifiers);\n    }\n"
+      }
+    },
+    {
+      "id": "mr-c1",
+      "language": "en",
+      "query": "In Option, how does getKey choose between the short and long option names?",
+      "repository": "commons-current",
+      "kind": "positive",
+      "expectation": "Returns short option when non-null; otherwise returns long option.",
+      "witness": {
+        "path": "src/main/java/org/apache/commons/cli/Option.java",
+        "blob": "6062d9d801f0e67d510715c826107a5485b6ef79",
+        "startLine": 648,
+        "endLine": 651,
+        "text": "    public String getKey() {\n        // if 'opt' is null, then it is a 'long' option\n        return option == null ? longOption : option;\n    }\n"
+      }
+    },
+    {
+      "id": "mr-c1-fr",
+      "language": "fr",
+      "query": "Dans Option, comment getKey choisit-il entre le nom court et le nom long de l’option ?",
+      "repository": "commons-current",
+      "kind": "positive",
+      "expectation": "Returns short option when non-null; otherwise returns long option.",
+      "witness": {
+        "path": "src/main/java/org/apache/commons/cli/Option.java",
+        "blob": "6062d9d801f0e67d510715c826107a5485b6ef79",
+        "startLine": 648,
+        "endLine": 651,
+        "text": "    public String getKey() {\n        // if 'opt' is null, then it is a 'long' option\n        return option == null ? longOption : option;\n    }\n"
+      }
+    },
+    {
+      "id": "mr-c2",
+      "language": "en",
+      "query": "In Parser, what does processArgs do when it encounters another known option, and when does it throw a missing-argument exception?",
+      "repository": "commons-current",
+      "kind": "positive",
+      "expectation": "A known hyphen-prefixed option is rewound with iter.previous and argument processing stops; missing argument exception when values empty and option has no optional argument.",
+      "witness": {
+        "path": "src/main/java/org/apache/commons/cli/Parser.java",
+        "blob": "d120ea21204a83635eb740a3c7db598d4bd0352d",
+        "startLine": 217,
+        "endLine": 237,
+        "text": "    public void processArgs(final Option opt, final ListIterator<String> iter) throws ParseException {\n        // loop until an option is found\n        while (iter.hasNext()) {\n            final String str = iter.next();\n            // found an Option, not an argument\n            if (getOptions().hasOption(str) && str.startsWith(OptionFormatter.DEFAULT_OPT_PREFIX)) {\n                iter.previous();\n                break;\n            }\n            // found a value\n            try {\n                opt.processValue(Util.stripLeadingAndTrailingQuotes(str));\n            } catch (final RuntimeException exp) {\n                iter.previous();\n                break;\n            }\n        }\n        if (opt.isValuesEmpty() && !opt.hasOptionalArg()) {\n            throw new MissingArgumentException(opt);\n        }\n    }\n"
+      }
+    },
+    {
+      "id": "mr-c-negative1",
+      "language": "en",
+      "query": "How many times did the getKey method of Option run in our production service last hour?",
+      "repository": "commons-current",
+      "kind": "unavailable_runtime",
+      "expectation": "Runtime invocation count cannot be determined from source; abstain.",
+      "witness": {
+        "path": "src/main/java/org/apache/commons/cli/Option.java",
+        "blob": "6062d9d801f0e67d510715c826107a5485b6ef79",
+        "startLine": 648,
+        "endLine": 651,
+        "text": "    public String getKey() {\n        // if 'opt' is null, then it is a 'long' option\n        return option == null ? longOption : option;\n    }\n"
+      }
+    },
+    {
+      "id": "mr-c-negative2",
+      "language": "en",
+      "query": "What retry delay does the retryAfterLimit method of Option return after a rate limit?",
+      "repository": "commons-current",
+      "kind": "absent_in_file",
+      "expectation": "The requested member is absent from entire pinned Option source; abstain.",
+      "witness": {
+        "path": "src/main/java/org/apache/commons/cli/Option.java",
+        "blob": "6062d9d801f0e67d510715c826107a5485b6ef79",
+        "startLine": 648,
+        "endLine": 651,
+        "text": "    public String getKey() {\n        // if 'opt' is null, then it is a 'long' option\n        return option == null ? longOption : option;\n    }\n"
+      },
+      "absence": {
+        "path": "src/main/java/org/apache/commons/cli/Option.java",
+        "blob": "6062d9d801f0e67d510715c826107a5485b6ef79",
+        "pattern": "\\bretryAfterLimit\\s*\\(",
+        "description": "named member in complete pinned Option source"
+      }
+    },
+    {
+      "id": "mr-j1",
+      "language": "en",
+      "query": "In AnnotationIntrospector, when does hasAnyGetter return true, and what does it return otherwise?",
+      "repository": "jackson",
+      "kind": "positive",
+      "expectation": "Returns true only if annotated item is AnnotatedMethod and hasAnyGetterAnnotation is true; otherwise null.",
+      "witness": {
+        "path": "src/main/java/com/fasterxml/jackson/databind/AnnotationIntrospector.java",
+        "blob": "0325e43f8d70112b5011cc7dcc7086c12cf19d04",
+        "startLine": 1043,
+        "endLine": 1051,
+        "text": "    public Boolean hasAnyGetter(Annotated ann) {\n        // 21-Nov-2016, tatu: Delegate in 2.9; remove redirect from later versions\n        if (ann instanceof AnnotatedMethod) {\n            if (hasAnyGetterAnnotation((AnnotatedMethod) ann)) {\n                return true;\n            }\n        }\n        return null;\n    }\n"
+      }
+    },
+    {
+      "id": "mr-j2",
+      "language": "en",
+      "query": "In DatabindContext, how does resolveSubType handle a non-generic class name that is not found, and what happens if the resolved class is not a subtype?",
+      "repository": "jackson",
+      "kind": "positive",
+      "expectation": "For non-generic path ClassNotFoundException returns null; resolved incompatible class raises invalidTypeIdException with Not a subtype.",
+      "witness": {
+        "path": "src/main/java/com/fasterxml/jackson/databind/DatabindContext.java",
+        "blob": "8123b639a766d719330b25c11d593d1771002a26",
+        "startLine": 207,
+        "endLine": 224,
+        "text": "        } else {\n            Class<?> cls;\n            try {\n                cls =  getTypeFactory().findClass(subClassName);\n            } catch (ClassNotFoundException e) { // let caller handle this problem\n                return null;\n            } catch (Exception e) {\n                throw invalidTypeIdException(baseType, subClassName, String.format(\n                        \"problem: (%s) %s\",\n                        e.getClass().getName(),\n                        ClassUtil.exceptionMessage(e)));\n            }\n            if (baseType.isTypeOrSuperTypeOf(cls)) {\n                return getTypeFactory().constructSpecializedType(baseType, cls);\n            }\n        }\n        throw invalidTypeIdException(baseType, subClassName, \"Not a subtype\");\n    }\n"
+      }
+    }
+  ],
+  "fixtureBranches": {
+    "commons-current": "master",
+    "jackson": "validation"
+  }
+}

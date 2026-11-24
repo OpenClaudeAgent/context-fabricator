@@ -38,16 +38,86 @@ func generatedClientReadsAndUpdatesTheLiveRustService() async throws {
   #expect(try await client.controlTelemetry(.enableDebug).health.debugUntil > 0)
   #expect(try await client.controlTelemetry(.disableDebug).health.debugUntil == 0)
   try await verifyAnswerErrors(client)
+  try await verifyBenchmarkCorpusErrors(client)
+  try await verifyAnswerHistory(client)
   try await verifyGenerationControls(client)
   try await verifyModelAndLogCatalogs(client)
+  try await verifyRuntimeInstallation(client)
+}
+
+private func verifyBenchmarkCorpusErrors(_ client: SessionClient) async throws {
+  let reference = Components.Schemas.BenchmarkReference(
+    repository: "FasterXML/jackson-databind",
+    revision: "c92512e95ba389d50a9ff6278906eff24ab3128e")
+  #expect(try await client.listBenchmarkCorpora().isEmpty)
+  #expect(try await client.benchmarkActionDownloads().isEmpty)
+  #expect(try await client.recordedBenchmarkActions().contains { $0.repository == "astral-sh/uv" })
+  try await client.unloadBenchmarkCorpus(reference)
+  do {
+    _ = try await client.askBenchmark(
+      "What does ArrayNode.remove return?", id: UUID(), reference: reference, retrieval: .hybrid)
+    Issue.record("Expected the missing corpus to block a benchmark answer.")
+  } catch let rejection as AnswerRejection {
+    #expect(rejection.problemCode == "benchmark_corpus_not_loaded")
+    #expect(rejection.traceID?.count == 32)
+  }
+  do {
+    _ = try await client.embedBenchmarkCorpusBatch(reference)
+    Issue.record("Expected the missing corpus to block benchmark indexing.")
+  } catch let rejection as AnswerRejection {
+    #expect(rejection.problemCode == "benchmark_corpus_not_loaded")
+  }
+  #expect(try await client.status().outboundAttempts == 0)
+}
+
+private func verifyAnswerHistory(_ client: SessionClient) async throws {
+  let initial = try await client.answerHistorySettings()
+  #expect(initial == .init(revision: 0, enabled: false, retentionDays: 30))
+  #expect(try await client.answerHistory(beforeId: nil) == .init(entries: []))
+  var draft = initial
+  draft.enabled = true
+  draft.retentionDays = 0
+  await #expect(throws: AnswerRejection.self) {
+    _ = try await client.saveAnswerHistorySettings(draft)
+  }
+  draft.retentionDays = 7
+  let confirmed = try await client.saveAnswerHistorySettings(draft)
+  #expect(confirmed == .init(revision: 1, enabled: true, retentionDays: 7))
+  await #expect(throws: AnswerRejection.self) {
+    _ = try await client.saveAnswerHistorySettings(draft)
+  }
+  await #expect(throws: AnswerRejection.self) {
+    _ = try await client.answerHistoryEntry(id: 1)
+  }
+  try await client.clearAnswerHistory()
+  #expect(try await client.answerHistory(beforeId: 1) == .init(entries: []))
+  #expect(try await client.answerHistorySettings() == confirmed)
+}
+
+private func verifyRuntimeInstallation(_ client: SessionClient) async throws {
+  let status = try await client.runtimeStatus()
+  #expect(status.state == .unavailable && status.archiveBytes == nil && status.error == nil)
+  #expect(try await client.installRuntime(archivePath: "/tmp/unmanaged.zip") == status)
+  do {
+    _ = try await client.installRuntime(archivePath: "unmanaged.zip")
+    Issue.record("The backend accepted a relative runtime path.")
+  } catch let failure as AnswerRejection {
+    #expect(failure.message == "Choose a local runtime archive.")
+  }
+  #expect(try await client.status().outboundAttempts == 0)
 }
 
 private func verifyModelAndLogCatalogs(_ client: SessionClient) async throws {
   let catalog = try await client.modelDownloads()
-  #expect(catalog.count == 3)
+  #expect(catalog.count == 4)
   #expect(catalog.allSatisfy { $0.label != nil && $0.state == .notInstalled })
   #expect(catalog.filter { $0.kind == .generation }.count == 2)
-  #expect(catalog.filter { $0.kind == .embedding }.count == 1)
+  let embeddings = catalog.filter { $0.kind == .embedding }
+  #expect(
+    Set(embeddings.map(\.profile)) == [
+      "qwen3-embedding-0.6b-q8_0-06507c7b-d1024-v1",
+      "qwen3-embedding-0.6b-f16-421a27e5-d1024-v1",
+    ])
   do {
     try await client.installModel("unlisted-fixture-profile")
     Issue.record("The backend accepted an unknown model.")
@@ -87,6 +157,15 @@ private func verifyDiagnosticSettings(_ client: SessionClient) async throws {
   #expect(updated.revision == draft.revision + 1)
   #expect(try await client.telemetry().health.retentionHours == 48)
   #expect(try await client.telemetry().health.budgetBytes == 1_000_000_000)
+  #expect(
+    updated.answerLanguageOptions?.contains {
+      $0.code == "ja" && $0.nativeName == "日本語"
+    } == true)
+  var localized = updated
+  localized.answerLocale = "ja"
+  let savedLanguage = try await client.save(localized)
+  #expect(savedLanguage.answerLocale == "ja" && savedLanguage.answerLanguage == .auto)
+  #expect(try await client.settings() == savedLanguage)
 }
 
 private func verifyGenerationControls(_ client: SessionClient) async throws {
@@ -119,12 +198,14 @@ private func verifyAnswerErrors(_ client: SessionClient) async throws {
       #expect(failure.message == expected)
       let traceID = try #require(failure.traceID)
       #expect(traceID.count == 32)
-      try await verifyRejectedAnswerTrace(traceID, client: client)
+      try await verifyRejectedAnswerTrace(traceID, question: question, client: client)
     }
   }
 }
 
-private func verifyRejectedAnswerTrace(_ id: String, client: SessionClient) async throws {
+private func verifyRejectedAnswerTrace(_ id: String, question: String, client: SessionClient)
+  async throws
+{
   let deadline = ContinuousClock.now + .seconds(3)
   while ContinuousClock.now < deadline {
     let page = try await client.diagnosticTrace(id, beforeId: nil)
@@ -132,7 +213,15 @@ private func verifyRejectedAnswerTrace(_ id: String, client: SessionClient) asyn
       #expect(span.name == "api_answer" && span.level == .error && span.traceId == id)
       #expect(span.displayName == "Answer request")
       #expect(span.operation == "POST /v1/answers")
-      #expect(span.events?.isEmpty == true)
+      let eventNames = span.events?.map(\.name) ?? []
+      #expect(
+        eventNames
+          == (question.trimmingCharacters(in: .whitespaces).isEmpty
+            ? [] : ["Answer request failed"]))
+      if !question.trimmingCharacters(in: .whitespaces).isEmpty {
+        let encoded = try JSONEncoder().encode(page)
+        #expect(!String(decoding: encoded, as: UTF8.self).contains(question))
+      }
       let start = try #require(span.startedAtUnixMicros)
       let duration = try #require(span.value)
       #expect(start > 0 && start / 1_000_000 <= span.timestamp)

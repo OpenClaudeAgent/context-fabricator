@@ -56,10 +56,34 @@ extension SessionClient {
     }
   }
 
+  public func githubBranches(id: Int64, revision: Int, page: Int) async throws
+    -> Components.Schemas.GitHubBranchPage
+  {
+    switch try await longRequestClient.listGitHubRepositoryBranches(
+      path: .init(id: id), query: .init(revision: revision, page: page))
+    {
+    case .ok(let response): return try response.body.json
+    case .default(_, let response): throw try Self.githubRejection(response)
+    default: throw URLError(.badServerResponse)
+    }
+  }
+
   public func saveGitHub(_ selection: Components.Schemas.GitHubSelection) async throws
     -> Components.Schemas.GitHubState
   {
     switch try await longRequestClient.saveGitHubRepository(body: .json(selection)) {
+    case .ok(let response): return try response.body.json
+    case .default(_, let response): throw try Self.githubRejection(response)
+    default: throw URLError(.badServerResponse)
+    }
+  }
+
+  public func checkGitHubAccess(id: Int64, revision: Int) async throws
+    -> Components.Schemas.GitHubState
+  {
+    switch try await longRequestClient.checkGitHubRepositoryAccess(
+      path: .init(id: id), query: .init(revision: revision))
+    {
     case .ok(let response): return try response.body.json
     case .default(_, let response): throw try Self.githubRejection(response)
     default: throw URLError(.badServerResponse)
@@ -82,6 +106,72 @@ extension SessionClient {
       path: .init(id: id), query: .init(background: true))
     {
     case .accepted(let response): return try response.body.json
+    case .default(_, let response): throw try Self.githubRejection(response)
+    default: throw URLError(.badServerResponse)
+    }
+  }
+
+  public func githubGraph(id: Int64, branch: String, root: String?, symbol: String?) async throws
+    -> Components.Schemas.GitHubGraph
+  {
+    switch try await longRequestClient.readGitHubGraph(
+      path: .init(id: id), query: .init(branch: branch, root: root, symbol: symbol))
+    {
+    case .ok(let response): return try response.body.json
+    case .default(_, let response): throw try Self.githubRejection(response)
+    default: throw URLError(.badServerResponse)
+    }
+  }
+
+  public func refreshGitHubHistory(id: Int64) async throws -> Components.Schemas.GitHubHistory {
+    switch try await longRequestClient.refreshGitHubHistory(path: .init(id: id)) {
+    case .ok(let response): return try response.body.json
+    case .default(_, let response): throw try Self.githubRejection(response)
+    default: throw URLError(.badServerResponse)
+    }
+  }
+
+  public func materializeGitHubHistory(id: Int64, child: String) async throws {
+    switch try await longRequestClient.materializeGitHubHistoryComparison(
+      path: .init(id: id, child: child))
+    {
+    case .ok: return
+    case .default(_, let response): throw try Self.githubRejection(response)
+    default: throw URLError(.badServerResponse)
+    }
+  }
+
+  public func githubStorage() async throws -> Components.Schemas.GitHubStorageBudget {
+    switch try await longRequestClient.readGitHubStorage() {
+    case .ok(let response): return try response.body.json
+    case .default(_, let response): throw try Self.githubRejection(response)
+    default: throw URLError(.badServerResponse)
+    }
+  }
+
+  public func updateGitHubStorage(limitGb: Int, revision: Int) async throws
+    -> Components.Schemas.GitHubStorageBudget
+  {
+    switch try await longRequestClient.setGitHubStorage(
+      body: .json(.init(revision: revision, limitGb: limitGb)))
+    {
+    case .ok(let response): return try response.body.json
+    case .default(_, let response): throw try Self.githubRejection(response)
+    default: throw URLError(.badServerResponse)
+    }
+  }
+
+  public func githubDataPaused(id: Int64) async throws -> Bool {
+    switch try await longRequestClient.readGitHubRepositoryDataState(path: .init(id: id)) {
+    case .ok(let response): return try response.body.json.paused
+    case .default(_, let response): throw try Self.githubRejection(response)
+    default: throw URLError(.badServerResponse)
+    }
+  }
+
+  public func purgeGitHubData(id: Int64) async throws -> Components.Schemas.GitHubStorageBudget {
+    switch try await longRequestClient.purgeGitHubRepositoryData(path: .init(id: id)) {
+    case .ok(let response): return try response.body.json
     case .default(_, let response): throw try Self.githubRejection(response)
     default: throw URLError(.badServerResponse)
     }

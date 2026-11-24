@@ -56,5 +56,25 @@ pub struct CollectionStatus {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub commit: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub published_files: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub pending: Option<SourceProgress>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
+}
+
+/// Files durably staged for the active pin, independent of the retained publication.
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SourceProgress {
+    pub commit: String,
+    pub staged_files: u32,
+    pub phase: ManifestPhase,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum ManifestPhase {
+    Collecting,
+    ManifestComplete,
 }

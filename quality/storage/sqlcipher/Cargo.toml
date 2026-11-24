@@ -1,0 +1,27 @@
+[package]
+name = "ctxfab-storage-protection-qualification"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+publish = false
+
+[dependencies]
+getrandom = "=0.3.4"
+percent-encoding = "=2.3.2"
+rusqlite = { version = "=0.43.0", features = ["bundled-sqlcipher"] }
+tempfile = "=3.27.0"
+thiserror = "2"
+zeroize = "=1.9.2"
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+all = { level = "deny", priority = -1 }
+pedantic = { level = "deny", priority = -1 }
+dbg_macro = "deny"
+expect_used = "deny"
+panic = "deny"
+todo = "deny"
+unimplemented = "deny"
+unwrap_used = "deny"

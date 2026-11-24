@@ -30,7 +30,10 @@ async fn status(State(api): State<Api>) -> Response {
 }
 
 async fn settings(State(api): State<Api>) -> Response {
-    read(api, |store| store.settings()).await
+    read(api, |store| {
+        store.settings().map(Settings::with_answer_language_options)
+    })
+    .await
 }
 
 async fn diagnostics(State(api): State<Api>) -> Response {
@@ -55,7 +58,7 @@ async fn save_settings(
         if let Some(telemetry) = telemetry {
             telemetry.apply_settings(&saved);
         }
-        Ok(saved)
+        Ok(saved.with_answer_language_options())
     })
     .await
 }

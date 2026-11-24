@@ -1,0 +1,3 @@
+[clang]
+src:*/desktop/qt/src/*
+!src:*/desktop/qt/src/app/main.cpp

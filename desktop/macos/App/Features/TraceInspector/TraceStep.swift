@@ -1,42 +1,25 @@
 import Foundation
 import LocalAPI
+import SwiftUI
 
 struct TraceStep: Identifiable {
-  enum Outcome {
-    case succeeded
-    case failed
-    case unknown
-
-    var title: String {
-      switch self {
-      case .succeeded: "Succeeded"
-      case .failed: "Failed"
-      case .unknown: "Unknown"
-      }
-    }
-
-    var symbol: String {
-      switch self {
-      case .succeeded: "checkmark.circle"
-      case .failed: "exclamationmark.circle"
-      case .unknown: "questionmark.circle"
-      }
-    }
-  }
+  typealias Outcome = Components.Schemas.DiagnosticSpanOutcome
 
   let sample: Components.Schemas.SignalSample
   let depth: Int
   let parentMissing: Bool
 
   var id: Int64 { sample.id }
-  var title: String { sample.displayName ?? Self.stageTitle(sample.name) }
-  var outcome: Outcome {
-    switch sample.level {
-    case .ok: .succeeded
-    case .error: .failed
-    default: .unknown
+  func title(in locale: Locale) -> String { Self.title(for: sample, in: locale) }
+
+  static func title(for sample: Components.Schemas.SignalSample, in locale: Locale) -> String {
+    if sample.name == "api_request", let method = sample.httpMethod, let route = sample.httpRoute {
+      return "\(method) \(route)"
     }
+    return sample.displayName.map { locale.localizedKey($0) }
+      ?? stageTitle(sample.name, in: locale)
   }
+  var outcome: Outcome { sample.spanOutcome ?? .unknown }
 
   static func outline(_ spans: [Components.Schemas.SignalSample]) -> [Self] {
     let ordered = spans.sorted { startOrder($0) < startOrder($1) }
@@ -68,13 +51,14 @@ struct TraceStep: Identifiable {
     (span.startedAtUnixMicros.map(Double.init) ?? Double(span.timestamp) * 1_000_000, span.id)
   }
 
-  static func stageTitle(_ name: String) -> String {
+  private static func stageTitle(_ name: String, in locale: Locale) -> String {
     switch name {
-    case "api_answer": "Answer request"
-    case "api_query": "Search request"
-    case "answer_retrieval": "Retrieve evidence"
-    case "answer_generation": "Generate answer"
-    case "lexical_lookup": "Lexical lookup"
+    case "api_answer": locale.localized("Answer request")
+    case "api_query": locale.localized("Search request")
+    case "api_request": locale.localized("Local API request")
+    case "answer_retrieval": locale.localized("Retrieve evidence")
+    case "answer_generation": locale.localized("Generate answer")
+    case "lexical_lookup": locale.localized("Lexical lookup")
     default: name.replacingOccurrences(of: "_", with: " ").capitalized
     }
   }
@@ -87,6 +71,36 @@ struct TraceStep: Identifiable {
       "\((Double(micros) / 1_000).formatted(.number.precision(.fractionLength(0...3)))) ms"
     default:
       "\((Double(micros) / 1_000_000).formatted(.number.precision(.fractionLength(0...6)))) s"
+    }
+  }
+}
+
+extension Components.Schemas.DiagnosticSpanOutcome {
+  func title(in locale: Locale) -> String {
+    switch self {
+    case .succeeded: locale.localized("Succeeded")
+    case .failed: locale.localized("Failed")
+    case .insufficientEvidence: locale.localized("Insufficient evidence")
+    case .cancelled: locale.localized("Cancelled")
+    case .unknown: locale.localized("Unknown")
+    }
+  }
+
+  var symbol: String {
+    switch self {
+    case .succeeded: "checkmark.circle"
+    case .failed, .insufficientEvidence: "exclamationmark.circle"
+    case .cancelled: "xmark.circle"
+    case .unknown: "questionmark.circle"
+    }
+  }
+
+  var tint: Color {
+    switch self {
+    case .succeeded: .green
+    case .failed: .red
+    case .insufficientEvidence: .orange
+    case .cancelled, .unknown: .secondary
     }
   }
 }

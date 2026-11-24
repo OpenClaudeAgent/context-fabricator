@@ -1,0 +1,18 @@
+{
+  "repository": "FasterXML/jackson-databind",
+  "repositoryId": 3038937,
+  "releaseTag": "jackson-databind-2.21.8",
+  "license": "Apache-2.0",
+  "commit": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+  "parent": "0a41b7c37764bb664f3bf0ef7f468d18f1f8b299",
+  "tree": "f8dfb3964731beb551b766667aa92b5c85396834",
+  "trackedPaths": 1383,
+  "blobs": {
+    "LICENSE": "d645695673349e3947e8e5ae42332d0ac3164cd7",
+    "src/main/resources/META-INF/NOTICE": "738b11fda42c8a5b48e65e030ee10ee6a7bf171d"
+  },
+  "expectedPublication": {
+    "paths": 1382,
+    "manifestSha256": "e716051c9fcda3d1e3b5b0d05214f3223e72bb5c788a86a58071601d68fec42c"
+  }
+}

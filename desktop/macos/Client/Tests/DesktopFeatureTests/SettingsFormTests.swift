@@ -46,10 +46,12 @@ func aFailedSaveKeepsTheDraftAndPresentsTheBackendError() async {
   await store.send(.answerLanguageChanged(.fr)) { $0.draft?.answerLanguage = .fr }
   await store.send(.retentionChanged(48)) { $0.draft?.diagnosticRetentionHours = 48 }
   await store.send(.storageLimitChanged(50)) { $0.draft?.diagnosticStorageLimitMb = 50 }
+  await store.send(.inferenceArtifactLimitChanged(32)) { $0.draft?.inferenceArtifactLimitGb = 32 }
   var submitted = initial
   submitted.answerLanguage = .fr
   submitted.diagnosticRetentionHours = 48
   submitted.diagnosticStorageLimitMb = 50
+  submitted.inferenceArtifactLimitGb = 32
   await store.send(.save) { $0.submitted = .init(draft: submitted, baseline: initial) }
   await store.receive(\.saveFailed) {
     $0.submitted = nil
@@ -143,4 +145,34 @@ func refreshDuringSavePreservesAnEditBackToThePreviousValue() async {
     $0.settingsForm.submitted = nil
     $0.settingsForm.feedback = "Settings saved."
   }
+}
+
+@MainActor
+@Test
+func embeddingModelSwitchKeepsConfirmedSelectionOnFailure() async {
+  let first = Components.Schemas.EmbeddingModelProfile(profile: "first", label: "First")
+  let second = Components.Schemas.EmbeddingModelProfile(profile: "second", label: "Second")
+  let initial = Components.Schemas.EmbeddingModelSelection(
+    activeProfile: "first", profiles: [first, second])
+  let store = TestStore(initialState: SettingsForm.State()) {
+    SettingsForm(
+      loadEmbeddingModels: { initial },
+      selectEmbeddingModel: { profile in
+        #expect(profile == "second")
+        throw BackendConnectionError.helperExited
+      }, save: { $0 })
+  }
+  await store.send(.loadEmbeddingModels) { $0.embeddingLoading = true }
+  await store.receive(\.embeddingModelsLoaded) {
+    $0.embeddingLoading = false
+    $0.embeddingModels = initial
+  }
+  await store.send(.selectEmbeddingModel("missing"))
+  await store.send(.selectEmbeddingModel("first"))
+  await store.send(.selectEmbeddingModel("second")) { $0.embeddingSwitching = true }
+  await store.receive(\.embeddingSelectionFailed) {
+    $0.embeddingSwitching = false
+    $0.embeddingFeedback = BackendConnectionError.helperExited.localizedDescription
+  }
+  #expect(store.state.embeddingModels?.activeProfile == "first")
 }

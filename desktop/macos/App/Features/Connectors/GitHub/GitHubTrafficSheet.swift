@@ -8,6 +8,7 @@ struct GitHubTrafficSheet: View {
   let store: StoreOf<GitHubConnector>
   let traffic: Components.Schemas.GitHubTraffic
   @State private var rate: String
+  @State private var limit = ""
 
   init(store: StoreOf<GitHubConnector>, traffic: Components.Schemas.GitHubTraffic) {
     self.store = store
@@ -19,7 +20,7 @@ struct GitHubTrafficSheet: View {
   }
 
   var body: some View {
-    GitHubSheet(title: "GitHub Requests", message: store.feedback, busy: store.busy) {
+    GitHubSheet(title: "GitHub Requests & Storage", message: store.feedback, busy: store.busy) {
       Form {
         Section {
           LabeledContent(
@@ -48,6 +49,39 @@ struct GitHubTrafficSheet: View {
             "Choose 1–\(traffic.maximumConfigurableRequestsPerMinute) requests per minute for all repositories."
           )
         }
+        Section {
+          if let storage = store.storage {
+            LabeledContent("Retained payload") {
+              Text(
+                "\((Double(storage.bytes) / 1_000_000_000).formatted(.number.precision(.fractionLength(3)))) GB (\(storage.bytes.formatted()) bytes)"
+              )
+              .accessibilityIdentifier("github-storage-bytes")
+            }
+            LabeledContent("Storage limit") {
+              HStack(spacing: 6) {
+                TextField("Storage limit in decimal GB", text: $limit)
+                  .labelsHidden().multilineTextAlignment(.trailing).frame(width: 64)
+                  .accessibilityIdentifier("github-storage-limit")
+                Text("GB").foregroundStyle(.secondary)
+              }
+            }
+            Button("Apply Storage Limit") {
+              if let value = Int(limit) { store.send(.setStorage(value)) }
+            }
+            .disabled(
+              store.busy || !(1...1000).contains(Int(limit) ?? 0) || Int(limit) == storage.limitGb
+            )
+            .accessibilityIdentifier("github-apply-storage")
+          } else {
+            Text("Storage usage unavailable.").foregroundStyle(.secondary)
+          }
+        } header: {
+          Text("GitHub Storage")
+        } footer: {
+          Text(
+            "Choose 1–1,000 decimal GB. Logical payload excludes SQLite indexes, free pages, WAL and filesystem overhead. Lowering the limit does not delete data."
+          )
+        }
         Section("Request Activity") {
           LabeledContent("Attempts", value: traffic.attempts.formatted())
             .accessibilityElement(children: .combine)
@@ -66,9 +100,9 @@ struct GitHubTrafficSheet: View {
       }
       .formStyle(.grouped)
       .contentMargins(.bottom, 16, for: .scrollContent)
-      .frame(minHeight: 290, idealHeight: 455, maxHeight: 500)
+      .frame(minHeight: 290, idealHeight: 540, maxHeight: 650)
     } buttons: {
-      Button("Refresh") { store.send(.reload) }.disabled(store.busy)
+      Button("Refresh Storage") { store.send(.loadStorage) }.disabled(store.busy)
       Spacer()
       Button("Done", role: .cancel) { store.send(.dismissPanel) }
         .keyboardShortcut(.cancelAction)
@@ -78,6 +112,9 @@ struct GitHubTrafficSheet: View {
       }
       .disabled(store.busy || Int(rate) == nil || Int(rate) == traffic.effectiveRequestsPerMinute)
       .accessibilityIdentifier("github-apply-rate")
+    }
+    .onChange(of: store.storage?.revision, initial: true) {
+      if let storage = store.storage { limit = String(storage.limitGb) }
     }
   }
 }

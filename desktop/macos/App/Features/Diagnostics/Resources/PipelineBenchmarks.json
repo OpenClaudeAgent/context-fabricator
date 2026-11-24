@@ -1,0 +1,77 @@
+[
+  {
+    "title": "commons-cli · Java",
+    "repository": "apache/commons-cli",
+    "revision": "aec9bb2dd90df2d7f775d6da2f026a1c328a03e6",
+    "questions": [
+      {
+        "title": "Quote cleanup",
+        "query": "In Commons CLI, what does quote stripping return for these two input strings: `\"foo\"` and `\"foo\" and \"bar\"`? Treat each as one string.",
+        "expected": "The first input becomes foo. The second input, \"foo\" and \"bar\", stays unchanged."
+      },
+      {
+        "title": "Third option value",
+        "query": "Suppose an Option is configured to take two arguments and already contains two values. Does Option.acceptsArg still accept a third value at that point?",
+        "expected": "Option.acceptsArg returns false when the option already holds its maximum number of values."
+      },
+      {
+        "title": "Private invocation · control",
+        "query": "Did Option.acceptsArg accept one more value for --include on the last run of my tool?",
+        "expected": "The code can describe the general predicate. It cannot establish what a particular private invocation did."
+      }
+    ]
+  },
+  {
+    "title": "Jackson · Java",
+    "repository": "FasterXML/jackson-databind",
+    "revision": "c92512e95ba389d50a9ff6278906eff24ab3128e",
+    "questions": [
+      {
+        "title": "ArrayNode.remove(-1)",
+        "query": "In Jackson, what does ArrayNode.remove(-1) return? Does it remove the last element?",
+        "expected": "The call returns Java null and leaves the array unchanged."
+      },
+      {
+        "title": "ObjectNode.findValue",
+        "query": "If a Jackson object has an id property at the root and another id inside a nested object, which does findValue return when called on the root object?",
+        "expected": "The property at the root wins over the nested property."
+      },
+      {
+        "title": "Two-index remove · control",
+        "query": "In the current ArrayNode source, does the overload remove(int fromIndex, int toIndex) treat its end index as inclusive?",
+        "expected": "ArrayNode has no remove(int, int) overload in this snapshot."
+      },
+      {
+        "title": "ArrayNode.remove(-1) vs remove(0)",
+        "query": "I have two fresh Jackson ArrayNodes, each containing [\"a\", \"b\"]. I call remove(-1) on the first and remove(0) on the second. What does each call return and what remains in each array?",
+        "expected": "-1 returns Java null and leaves [a,b] intact 0 returns the removed node a and leaves [b]",
+        "source": "https://github.com/FasterXML/jackson-databind/blob/c92512e95ba389d50a9ff6278906eff24ab3128e/src/main/java/com/fasterxml/jackson/databind/node/ArrayNode.java#L494-L522"
+      },
+      {
+        "title": "ObjectNode.replace with null",
+        "query": "I am using ObjectNode.replace(\"p\", null) as a possible way to delete a field. If p already held a text node, what comes back and what is stored? What changes if p was absent?",
+        "expected": "existing key returns prior text node absent key returns Java null both calls store a JSON null node at p and leave the field present",
+        "source": "https://github.com/FasterXML/jackson-databind/blob/c92512e95ba389d50a9ff6278906eff24ab3128e/src/main/java/com/fasterxml/jackson/databind/node/ObjectNode.java#L605-L622"
+      }
+    ]
+  },
+  {
+    "title": "bytes · Rust",
+    "repository": "tokio-rs/bytes",
+    "revision": "62207901b65e4fc51459b2d558fad8aa882f5d33",
+    "questions": [
+      {
+        "title": "Chain.copy_to_bytes",
+        "query": "I chain buffers containing abc and defg. On fresh chains, how does copy_to_bytes(3) differ from copy_to_bytes(5)? Which buffer does Chain delegate to or copy from, and what data remains in each half?",
+        "expected": "3 delegates to a only and returns abc, leaving a empty and b defg 5 takes all abc plus de into a new combined buffer, returns abcde and leaves a empty, b fg",
+        "source": "https://github.com/tokio-rs/bytes/blob/62207901b65e4fc51459b2d558fad8aa882f5d33/src/buf/chain.rs#L172-L188"
+      },
+      {
+        "title": "BytesMut::try_unsplit",
+        "query": "I have two nonempty BytesMut buffers backed by separate allocations. Can I call try_unsplit and recover the second buffer if the fast path fails? What would unsplit do with the same inputs, and would my original bytes be preserved?",
+        "expected": "try_unsplit returns Err(other), so caller recovers the original second buffer; first is unchanged unsplit falls back to appending the contents of the second to the first by copying original bytes of first precede bytes of second",
+        "source": "https://github.com/tokio-rs/bytes/blob/62207901b65e4fc51459b2d558fad8aa882f5d33/src/bytes_mut.rs#L1086-L1104"
+      }
+    ]
+  }
+]

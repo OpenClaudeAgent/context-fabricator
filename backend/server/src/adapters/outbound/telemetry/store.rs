@@ -336,7 +336,9 @@ fn prepare_schema(connection: &mut Connection) -> rusqlite::Result<()> {
             name TEXT NOT NULL, value INTEGER, level TEXT,
             trace_id TEXT, span_id TEXT, parent_span_id TEXT, span_timing TEXT
         ) STRICT;
-        CREATE INDEX IF NOT EXISTS signals_kind ON signals (signal, id);",
+        CREATE INDEX IF NOT EXISTS signals_kind ON signals (signal, id);
+        CREATE INDEX IF NOT EXISTS signals_span_identity ON signals (trace_id, span_id)
+        WHERE signal = 'trace';",
     )?;
     let has_span_timing = tx.query_row(
         "SELECT EXISTS(SELECT 1 FROM pragma_table_info('signals') WHERE name = 'span_timing')",

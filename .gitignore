@@ -1,13 +1,18 @@
 /.quality/
+/.ctxfab-report-*/
 /.idea/
 /backend/target/
 /desktop/macos/.build/
 /desktop/macos/.swiftpm/
 .DS_Store
+*.profraw
 /desktop/macos/Client/.build/
 /desktop/macos/Client/.swiftpm/
 /desktop/macos/ContextFabricator.xcodeproj/
+/desktop/macos/LocalSigning.xcconfig
+/desktop/qt/build/
 /cli/target/
-/quality/m01-rust/target/
+/quality/toolchain/rust-fixture/target/
+/quality/**/__pycache__/
 
 /.schemathesis/

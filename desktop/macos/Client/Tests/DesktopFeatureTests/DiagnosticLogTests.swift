@@ -67,6 +67,7 @@ func leavingLogsCancelsThePendingSearchAndReturningReloadsIt() async {
     id: 7, timestamp: 0, name: "api_query", level: .debug)
   var initial = Dashboard.State()
   initial.connection = .ready
+  initial.diagnosticTab = .logs
   let store = TestStore(initialState: initial) {
     Dashboard(
       client: .init(

@@ -6,7 +6,7 @@ use tokio::sync::{Mutex, Notify};
 
 use super::{CredentialError, CredentialStore, GitHubFuture, Provider};
 use crate::application::ports::SnapshotStore;
-use crate::application::telemetry::{Observer, Stage};
+use crate::application::telemetry::{Event, Observer, Stage, TraceContext, TraceLink};
 use crate::domain::corpus::snapshot::{Phase, Plan, Snapshot, SnapshotError};
 use crate::domain::github::{
     Error,
@@ -16,33 +16,47 @@ use crate::domain::sync::{JobState, Phase as JobPhase};
 
 mod walk;
 
+#[derive(Clone, Copy)]
+pub struct SourceRequest<'a> {
+    pub secret: &'a [u8],
+    pub scope: &'a Scope,
+    pub trace: Option<TraceContext<'a>>,
+}
+
 pub trait Source: Send + Sync {
-    fn verify_repository<'a>(
+    fn verify_repository<'a>(&'a self, request: SourceRequest<'a>) -> GitHubFuture<'a, String>;
+    fn verify_contents<'a>(&'a self, request: SourceRequest<'a>) -> GitHubFuture<'a, ()>;
+    fn branch<'a>(&'a self, request: SourceRequest<'a>) -> GitHubFuture<'a, Pin>;
+    fn prepare<'a>(
         &'a self,
-        secret: &'a [u8],
-        scope: &'a Scope,
-    ) -> GitHubFuture<'a, String>;
-    fn verify_contents<'a>(&'a self, secret: &'a [u8], scope: &'a Scope) -> GitHubFuture<'a, ()>;
-    fn branch<'a>(&'a self, secret: &'a [u8], scope: &'a Scope) -> GitHubFuture<'a, Pin>;
+        request: SourceRequest<'a>,
+        revision: &'a str,
+    ) -> GitHubFuture<'a, Option<Arc<dyn Objects>>>;
+    fn evict_inactive(&self);
     fn commit_tree<'a>(
         &'a self,
-        secret: &'a [u8],
-        scope: &'a Scope,
+        request: SourceRequest<'a>,
         id: &'a str,
     ) -> GitHubFuture<'a, String>;
-    fn tree<'a>(
-        &'a self,
-        secret: &'a [u8],
-        scope: &'a Scope,
-        id: &'a str,
-    ) -> GitHubFuture<'a, Vec<Entry>>;
+    fn tree<'a>(&'a self, request: SourceRequest<'a>, id: &'a str) -> GitHubFuture<'a, Vec<Entry>>;
     fn blob<'a>(
         &'a self,
-        secret: &'a [u8],
-        scope: &'a Scope,
+        request: SourceRequest<'a>,
         id: &'a str,
         bytes: u32,
     ) -> GitHubFuture<'a, Option<String>>;
+}
+
+pub trait Objects: Send + Sync {
+    /// # Errors
+    /// Rejects an invalid or unavailable commit.
+    fn root(&self, revision: &str) -> Result<String, Error>;
+    /// # Errors
+    /// Rejects an invalid or unavailable tree.
+    fn tree(&self, id: &str) -> Result<Vec<Entry>, Error>;
+    /// # Errors
+    /// Rejects an invalid or unavailable blob.
+    fn blob(&self, id: &str, bytes: u32) -> Result<Option<String>, Error>;
 }
 
 pub trait ScheduleStore: Send + Sync {
@@ -51,22 +65,61 @@ pub trait ScheduleStore: Send + Sync {
     fn next(&self) -> Result<Option<Due>, Error>;
     /// # Errors
     /// Rejects a stale scope or an unavailable job store.
-    fn enqueue(&self, scope: &Scope, now: i64) -> Result<(), Error>;
+    fn enqueue(
+        &self,
+        repository_id: i64,
+        now: i64,
+        trigger: Option<TraceLink>,
+    ) -> Result<Option<TraceLink>, Error>;
+    /// # Errors
+    /// Rejects a missing or inaccessible scope when resuming manually.
+    fn resume_scope(&self, repository_id: i64) -> Result<Scope, Error>;
     /// # Errors
     /// Rejects a stale scope, a job that is not due, or an unavailable job store.
-    fn claim(&self, scope: &Scope, manual: bool, now: i64) -> Result<u8, Error>;
+    fn claim(&self, scope: &Scope, request: ClaimRequest<'_>, now: i64) -> Result<Claim, Error>;
     /// # Errors
     /// Returns a storage error if the job result cannot be saved.
+    /// Returns `false` when the captured scope is no longer current.
     fn finish(
         &self,
         scope: &Scope,
         state: JobState,
         error: Option<Error>,
         now: i64,
-    ) -> Result<(), Error>;
+    ) -> Result<bool, Error>;
+}
+
+pub struct ClaimRequest<'a> {
+    pub manual: bool,
+    pub trigger: Option<TraceLink>,
+    /// Lazily allocate a scheduler root when this job has no explicit trigger.
+    pub new_origin: &'a mut dyn FnMut() -> Option<TraceLink>,
+}
+
+pub struct Claim {
+    pub failures: u8,
+    pub origin: Option<TraceLink>,
+}
+
+pub struct Refresh {
+    pub origin: Option<TraceLink>,
+    pub result: Result<Published, Error>,
+}
+
+enum Trigger {
+    Manual(Option<TraceLink>),
+    Scheduled,
 }
 
 pub trait Store: SnapshotStore + ScheduleStore {
+    /// Publish the eligible source projections together under the captured scope.
+    /// # Errors
+    /// Rejects a stale pin, publication predecessor or credential generation.
+    fn publish_current(&self, scope: &Scope, stage: i64) -> Result<(), Error>;
+    /// Rebuild a stale graph projection from the already published manifest.
+    /// # Errors
+    /// Rejects a replaced publication, changed scope, or insufficient graph storage.
+    fn refresh_graph_profile(&self, scope: &Scope, publication: i64) -> Result<bool, Error>;
     /// # Errors
     /// Rejects a repository without verified current-code access.
     fn current_scope(&self, id: i64) -> Result<Scope, Error>;
@@ -109,20 +162,33 @@ impl Collector {
         id: i64,
         credentials: &(dyn CredentialStore + Send + Sync),
         provider: &dyn Provider,
-    ) -> Result<Published, Error> {
+        observer: Option<&dyn Observer>,
+        trigger: Option<TraceLink>,
+    ) -> Result<Refresh, Error> {
         let _active = self.active.try_lock().map_err(|_| Error::Conflict)?;
-        let scope = self.store.current_scope(id)?;
-        self.run(&scope, true, credentials, provider, None).await
+        let scope = self.store.resume_scope(id)?;
+        self.run(
+            &scope,
+            Trigger::Manual(trigger),
+            credentials,
+            provider,
+            observer,
+        )
+        .await
     }
 
-    pub(super) fn queue(&self, id: i64) -> Result<(), Error> {
-        self.store
-            .enqueue(&self.store.current_scope(id)?, (self.now)())?;
+    pub(super) fn queue(
+        &self,
+        id: i64,
+        trigger: Option<TraceLink>,
+    ) -> Result<Option<TraceLink>, Error> {
+        let origin = self.store.enqueue(id, (self.now)(), trigger)?;
         self.changed();
-        Ok(())
+        Ok(origin)
     }
 
     pub(super) fn changed(&self) {
+        self.source.evict_inactive();
         self.wake.notify_one();
     }
 
@@ -146,89 +212,140 @@ impl Collector {
         if scope.collection != due.collection || scope.generation != due.generation {
             return Err(Error::Conflict);
         }
-        self.run(&scope, false, credentials, provider, observer)
-            .await
+        self.run(&scope, Trigger::Scheduled, credentials, provider, observer)
+            .await?
+            .result
     }
 
     async fn run(
         &self,
         scope: &Scope,
-        manual: bool,
+        trigger: Trigger,
         credentials: &(dyn CredentialStore + Send + Sync),
         provider: &dyn Provider,
         observer: Option<&dyn Observer>,
-    ) -> Result<Published, Error> {
-        let failures = self.store.claim(scope, manual, (self.now)())?;
+    ) -> Result<Refresh, Error> {
+        let mut job_root = None;
+        let (manual, trigger) = match trigger {
+            Trigger::Manual(trace) => (true, trace),
+            Trigger::Scheduled => (false, None),
+        };
+        let claim = self.store.claim(
+            scope,
+            ClaimRequest {
+                manual,
+                trigger,
+                new_origin: &mut || {
+                    job_root =
+                        observer.map(|observer| observer.start(Stage::GitHubCurrentJob, None));
+                    job_root.as_ref().map(|span| span.link())
+                },
+            },
+            (self.now)(),
+        )?;
+        if let Some(root) = job_root {
+            root.finish(true);
+        }
         if manual {
             self.changed();
         }
-        let span = observer.map(|observer| observer.start(Stage::GitHubCurrentCode, None));
-        let result = self.with_credential(scope, credentials).await;
+        let span =
+            observer.map(|observer| observer.start(Stage::GitHubCurrentCollection, claim.origin));
+        let trace = observer
+            .zip(span.as_ref())
+            .map(|(observer, span)| TraceContext {
+                observer,
+                parent: span.link(),
+            });
+        let result = self.with_credential(scope, credentials, trace).await;
         let error = result.as_ref().err().copied();
         let now = (self.now)();
-        let recorded =
-            self.store
-                .finish(scope, outcome(error, failures, now, provider), error, now);
-        if let Some(span) = span {
-            span.finish(result.is_ok() && recorded.is_ok());
+        let state = outcome(error, claim.failures, now, provider);
+        let recorded = self.store.finish(scope, state, error, now);
+        if let Some(mut span) = span {
+            if let Some(event) = match (state.phase, &result, &recorded) {
+                (_, _, Ok(false)) => Some(Event::CollectionScopeChanged),
+                (JobPhase::Throttled, _, Ok(true)) => Some(Event::CollectionCooldown),
+                (JobPhase::Retry, _, Ok(true)) => Some(Event::CollectionRetry),
+                (JobPhase::Succeeded, Ok(publication), Ok(true)) if publication.changed => {
+                    Some(Event::CollectionPublished)
+                }
+                (JobPhase::Succeeded, Ok(_), Ok(true)) => Some(Event::CollectionUnchanged),
+                _ => None,
+            } {
+                span.event(event);
+            }
+            span.finish(result.is_ok() && recorded == Ok(true));
         }
-        recorded?;
-        result
+        Ok(Refresh {
+            origin: claim.origin,
+            result: recorded.and(result),
+        })
     }
 
     async fn with_credential(
         &self,
         scope: &Scope,
         credentials: &(dyn CredentialStore + Send + Sync),
+        trace: Option<TraceContext<'_>>,
     ) -> Result<Published, Error> {
         let secret = match credentials.read(&scope.credential) {
             Ok(secret) => secret,
             Err(CredentialError::Missing) => {
                 self.store.expire_scope_credential(scope)?;
+                self.source.evict_inactive();
                 return Err(Error::Reconnect);
             }
             Err(_) => return Err(Error::Credentials),
         };
-        let result = self.collect(scope, &secret).await;
+        let request = SourceRequest {
+            scope,
+            secret: &secret,
+            trace,
+        };
+        let result = self.collect(request).await;
         if matches!(result, Err(Error::Reconnect)) {
             self.store.expire_scope_credential(scope)?;
+            self.source.evict_inactive();
         } else if matches!(result, Err(Error::Access)) && self.store.check_scope(scope).is_ok() {
-            match self.source.verify_contents(&secret, scope).await {
+            match self.source.verify_contents(request).await {
                 Err(Error::Access) => self.store.retire_scope(scope)?,
                 Err(Error::Reconnect) => self.store.expire_scope_credential(scope)?,
                 _ => {}
             }
+            self.source.evict_inactive();
         }
         result
     }
 
-    async fn collect(&self, scope: &Scope, secret: &[u8]) -> Result<Published, Error> {
-        self.store.check_scope(scope)?;
-        let full_name = self.source.verify_repository(secret, scope).await?;
+    async fn collect(&self, request: SourceRequest<'_>) -> Result<Published, Error> {
+        self.store.check_scope(request.scope)?;
+        let full_name = self.source.verify_repository(request).await?;
         let canonical = Scope {
             full_name,
-            ..scope.clone()
+            ..request.scope.clone()
         };
         let scope = &canonical;
+        let request = SourceRequest { scope, ..request };
         self.store.check_scope(scope)?;
-        let (mut stage, root) = self.stage(scope, secret).await?;
+        let (mut stage, root) = self.stage(request).await?;
         if stage.phase == Phase::Published {
             return Ok(Published {
                 commit: stage.revision,
-                changed: false,
+                changed: self.store.refresh_graph_profile(scope, stage.id)?,
             });
         }
         let prepared = if stage.phase == Phase::Staging {
-            walk::stage_files(self, scope, secret, &mut stage, root).await
+            walk::stage_files(self, request, &mut stage, root).await
         } else {
             // A sealed stage can outlive upstream permission changes across a restart.
             self.source
-                .commit_tree(secret, scope, &stage.revision)
+                .commit_tree(request, &stage.revision)
                 .await
                 .map(|_| ())
         };
         if matches!(prepared, Err(Error::ExpiredPin)) {
-            let branch = self.source.branch(secret, scope).await?;
+            let branch = self.source.branch(request).await?;
             if branch.revision == stage.revision {
                 return Err(Error::Upstream);
             }
@@ -240,24 +357,19 @@ impl Collector {
                 .map_err(snapshot_error)?;
         }
         prepared?;
-        if self.source.verify_repository(secret, scope).await? != scope.full_name {
+        if self.source.verify_repository(request).await? != scope.full_name {
             return Err(Error::Conflict);
         }
         self.store.check_scope(scope)?;
-        self.store
-            .publish_snapshot(stage.id)
-            .map_err(snapshot_error)?;
+        self.store.publish_current(scope, stage.id)?;
         Ok(Published {
             commit: stage.revision,
             changed: true,
         })
     }
 
-    async fn stage(
-        &self,
-        scope: &Scope,
-        secret: &[u8],
-    ) -> Result<(Snapshot, Option<String>), Error> {
+    async fn stage(&self, request: SourceRequest<'_>) -> Result<(Snapshot, Option<String>), Error> {
+        let scope = request.scope;
         if let Some(pending) = self
             .store
             .pending_snapshot(&scope.collection)
@@ -268,7 +380,7 @@ impl Collector {
             }
             return Ok((pending, None));
         }
-        let pin = self.source.branch(secret, scope).await?;
+        let pin = self.source.branch(request).await?;
         let snapshot = self
             .store
             .begin_snapshot(&Plan {
@@ -319,5 +431,6 @@ fn snapshot_error(error: SnapshotError) -> Error {
         SnapshotError::AccessLost => Error::Access,
         SnapshotError::Invalid => Error::CollectionLimit,
         SnapshotError::Storage => Error::Storage,
+        SnapshotError::StorageLimit => Error::StorageLimit,
     }
 }

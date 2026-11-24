@@ -4,7 +4,7 @@
 
 The [server composition root](../server/src/main.rs) selects the adapter. The [retrieval use case](../server/src/application/retrieval.rs) depends on the embedding contract and owns rebuild, ranking and provenance through its repository and vector-index ports.
 
-For a normal app session, the backend looks for `llama-server` and the pinned GGUF filenames in the `inference` subdirectory of its private data directory. `CTXFAB_INFERENCE_DIRECTORY` can point to a staged directory for development. See [M09 reproduction](../../quality/FOUNDATION.md#local-answer-qualification) for the pinned model and executable.
+The macOS app contains a verified llama.cpp runtime. The Qt Ubuntu package pairs the backend with the pinned CPU runtime. Model weights live in the private profile. The app and CLI can install verified profiles while the backend is running. A development session can use `CTXFAB_INFERENCE_DIRECTORY` to point at a staged fixture and weights. [Runtime packaging](../../ARCHITECTURE.md#local-inference)
 
 The [supervisor](src/supervisor.rs) exposes three internal responsibilities.
 
@@ -16,4 +16,4 @@ The [supervisor](src/supervisor.rs) exposes three internal responsibilities.
 
 The [generation controller](src/generation.rs) admits a single answer or profile activation at a time. A fresh request UUID lets a client cancel that answer before it commits. The controller warms a provisioned generation profile before switching the session to it and releases the previous worker after success. A failed activation preserves the previous selection. The embedding worker has a separate lifetime and index.
 
-The M08 benchmark keeps its external-worker entry point for reproducibility. The [M09 harness](../../quality/m09/check.sh) exercises app-owned Q4_K_M and Q5_K_M weights, cancellation, and switching. Weight installation is available through the [CLI](../../cli/README.md) and the app-session backend. Restart the app to discover a newly installed profile. Distributing the native worker remains release work.
+The [answer qualification harness](../../quality/answers/check.sh) exercises app-owned Q4_K_M and Q5_K_M weights, cancellation and model switching. The [benchmark guide](../../quality/github/README.md) describes the retrieval and answer fixtures. [Release preparation](../../docs/RELEASE.md)

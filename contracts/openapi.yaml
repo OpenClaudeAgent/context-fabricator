@@ -2,6 +2,9 @@ openapi: 3.0.3
 info:
   title: Context Fabricator Local API
   version: 1.0.0
+  description: >-
+    When local telemetry is active, API responses include a server-generated X-Context-Trace-Id.
+    Read requests to the telemetry endpoints are excluded so inspecting a trace does not retain another one.
 servers:
   - url: http://127.0.0.1
 security:
@@ -98,6 +101,17 @@ paths:
               schema: { $ref: '#/components/schemas/Problem' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '503': { $ref: '#/components/responses/Unavailable' }
+  /v1/telemetry/answer-usage:
+    get:
+      operationId: readAnswerUsage
+      responses:
+        '200':
+          description: Answer usage and latency grouped from up to 500 retained authenticated request traces
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AnswerUsage' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '503': { $ref: '#/components/responses/Unavailable' }
   /v1/telemetry/logs:
     get:
       operationId: readTelemetryLogs
@@ -148,6 +162,256 @@ paths:
               schema: { $ref: '#/components/schemas/Problem' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '503': { $ref: '#/components/responses/Unavailable' }
+  /v1/model-catalog:
+    get:
+      operationId: searchModelCatalog
+      parameters:
+        - name: query
+          in: query
+          required: true
+          schema: { type: string, maxLength: 240 }
+        - name: kind
+          in: query
+          schema: { $ref: '#/components/schemas/HubModelKind' }
+      responses:
+        '200':
+          description: Public Hugging Face repositories with compatible models for the requested use
+          content:
+            application/json:
+              schema:
+                type: array
+                maxItems: 20
+                items: { $ref: '#/components/schemas/HubModelRepository' }
+        '400': { $ref: '#/components/responses/InvalidModelDiscovery' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/UnknownModelArtifact' }
+        '429': { $ref: '#/components/responses/ModelCatalogThrottled' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /v1/model-catalog/variants:
+    get:
+      operationId: readModelCatalogVariants
+      parameters:
+        - name: repository
+          in: query
+          required: true
+          schema: { $ref: '#/components/schemas/HubModelRepositoryId' }
+        - name: revision
+          in: query
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{40}$' }
+        - name: kind
+          in: query
+          schema: { $ref: '#/components/schemas/HubModelKind' }
+      responses:
+        '200':
+          description: Compatible, checksum-pinned single-file GGUF variants
+          content:
+            application/json:
+              schema:
+                type: array
+                maxItems: 12
+                items: { $ref: '#/components/schemas/HubModelVariant' }
+        '400': { $ref: '#/components/responses/InvalidModelDiscovery' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/UnknownModelArtifact' }
+        '429': { $ref: '#/components/responses/ModelCatalogThrottled' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /v1/model-catalog/downloads:
+    post:
+      operationId: requestHubModelDownload
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/HubModelDownloadRequest' }
+      responses:
+        '202':
+          description: Pinned variant added to the local model library and accepted for download
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ModelDownloadRequest' }
+        '400': { $ref: '#/components/responses/InvalidModelDiscovery' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/UnknownModelArtifact' }
+        '409': { $ref: '#/components/responses/ModelCatalogPinChanged' }
+        '429': { $ref: '#/components/responses/ModelCatalogThrottled' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /v1/inference/storage:
+    get:
+      operationId: getInferenceStorage
+      responses:
+        '200':
+          description: Current inference capacity and peak additional bytes for each install
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/InferenceStoragePlan' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /v1/runtime:
+    get:
+      operationId: readRuntimeStatus
+      responses:
+        '200':
+          description: Local inference runtime setup status
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RuntimeStatus' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /v1/runtime/install:
+    post:
+      operationId: installRuntime
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [archivePath]
+              properties:
+                archivePath:
+                  type: string
+                  minLength: 1
+                  maxLength: 2048
+                  description: Absolute local filesystem path without NUL characters.
+      responses:
+        '200':
+          description: Status after verifying the selected local release archive
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RuntimeStatus' }
+        '400':
+          description: Invalid archive path
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /v1/runtime/download:
+    post:
+      operationId: downloadRuntime
+      responses:
+        '200':
+          description: Current status after requesting the release-pinned runtime download
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RuntimeStatus' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /v1/inference/setup/archive:
+    post:
+      operationId: startInferenceSetupArchive
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/InferenceSetupArchive' }
+      responses:
+        '202':
+          description: Continued installation of the already confirmed local ZIP
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/InferenceSetupStatus' }
+        '400':
+          description: Invalid setup operation or archive path
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '409':
+          description: The operation is no longer waiting for a local ZIP
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /v1/inference/setup/archive/{operationId}:
+    delete:
+      operationId: cancelInferenceSetupArchive
+      parameters:
+        - name: operationId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: The operation waiting for its local ZIP was cancelled
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/InferenceSetupStatus' }
+        '400':
+          description: Invalid setup operation or archive path
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '409':
+          description: The operation is no longer waiting for a local ZIP
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /v1/inference/setup/plan:
+    post:
+      operationId: getInferenceSetupPlan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/InferenceSetupSelection' }
+      responses:
+        '200':
+          description: Read-only setup estimate and confirmation fingerprint.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/InferenceSetupPlan' }
+        '400':
+          description: Invalid setup selection
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /v1/inference/setup:
+    post:
+      operationId: startInferenceSetup
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/InferenceSetupConfirmation' }
+      responses:
+        '202':
+          description: Setup accepted.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/InferenceSetupStatus' }
+        '400':
+          description: Invalid confirmation
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '409':
+          description: Stale plan or conflicting operation
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+    get:
+      operationId: getInferenceSetupStatus
+      responses:
+        '200':
+          description: Current or last setup status.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/InferenceSetupStatus' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404':
+          description: No setup operation exists
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '503': { $ref: '#/components/responses/Unavailable' }
   /v1/model-downloads:
     get:
       operationId: readModelDownloads
@@ -185,6 +449,105 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Problem' }
+        '409':
+          description: The model is busy finishing another operation
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /v1/model-downloads/{profile}:
+    delete:
+      operationId: deleteModelDownload
+      parameters:
+        - name: profile
+          in: path
+          required: true
+          schema: { type: string, minLength: 1, maxLength: 128 }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ModelRemovalRequest' }
+      responses:
+        '204': { description: Local model weights removed or already absent }
+        '400':
+          description: Invalid removal confirmation
+          content: { application/json: { schema: { $ref: '#/components/schemas/Problem' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404':
+          description: Profile is outside the pinned catalog
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '409':
+          description: The model is in use or still installing
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /v1/model-downloads/{profile}/removal-plan:
+    get:
+      operationId: readModelRemovalPlan
+      parameters:
+        - name: profile
+          in: path
+          required: true
+          schema: { type: string, minLength: 1, maxLength: 128 }
+      responses:
+        '200':
+          description: Current file identity and logical size for explicit confirmation.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ModelRemovalPlan' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404':
+          description: Unknown profile
+          content: { application/json: { schema: { $ref: '#/components/schemas/Problem' } } }
+        '409':
+          description: Model is busy or the file is absent
+          content: { application/json: { schema: { $ref: '#/components/schemas/Problem' } } }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /v1/model-downloads/{profile}/partial:
+    parameters:
+      - name: profile
+        in: path
+        required: true
+        schema: { type: string, minLength: 1, maxLength: 128 }
+    delete:
+      operationId: discardModelPartial
+      responses:
+        '204': { description: Stopped operation's partial bytes discarded; installed weights are retained }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/UnknownModelArtifact' }
+        '409': { description: The operation is not stopped, content: { application/json: { schema: { $ref: '#/components/schemas/Problem' } } } }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /v1/model-downloads/{profile}/pause:
+    parameters:
+      - name: profile
+        in: path
+        required: true
+        schema: { type: string, minLength: 1, maxLength: 128 }
+    post:
+      operationId: pauseModelDownload
+      responses:
+        '202': { description: Pause requested; poll until the operation is paused or has completed }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/UnknownModelArtifact' }
+        '409': { description: The operation cannot be paused, content: { application/json: { schema: { $ref: '#/components/schemas/Problem' } } } }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /v1/model-downloads/{profile}/resume:
+    parameters:
+      - name: profile
+        in: path
+        required: true
+        schema: { type: string, minLength: 1, maxLength: 128 }
+    post:
+      operationId: resumeModelDownload
+      responses:
+        '202': { description: Explicit resume accepted }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/UnknownModelArtifact' }
+        '409': { description: 'The operation is not paused, interrupted, or failed', content: { application/json: { schema: { $ref: '#/components/schemas/Problem' } } } }
         '503': { $ref: '#/components/responses/Unavailable' }
   /v1/retrieval:
     get:
@@ -196,6 +559,68 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/RetrievalProgress' }
         '401': { $ref: '#/components/responses/Unauthorized' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /v1/retrieval/index:
+    get:
+      operationId: readEmbeddingIndex
+      responses:
+        '200':
+          description: Persisted embedding index state
+          content: { application/json: { schema: { $ref: '#/components/schemas/EmbeddingIndexState' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+    put:
+      operationId: setEmbeddingIndexEnabled
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/EmbeddingIndexUpdate' } } }
+      responses:
+        '200':
+          description: Persisted embedding index state
+          content: { application/json: { schema: { $ref: '#/components/schemas/EmbeddingIndexState' } } }
+        '400': { description: Invalid state update }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+    delete:
+      operationId: deleteEmbeddingIndex
+      responses:
+        '200':
+          description: Index disabled and vectors removed; bytes count vector payload, not physical database reclamation.
+          content: { application/json: { schema: { $ref: '#/components/schemas/EmbeddingIndexDeletion' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /v1/retrieval/models:
+    get:
+      operationId: listEmbeddingModels
+      responses:
+        '200':
+          description: Installed embedding profiles and the selected profile
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/EmbeddingModelSelection' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+    put:
+      operationId: selectEmbeddingModel
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EmbeddingModelUpdate' }
+      responses:
+        '200':
+          description: Installed profiles and the confirmed embedding selection
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/EmbeddingModelSelection' }
+        '400':
+          description: Invalid embedding profile selection
+          content: { application/json: { schema: { $ref: '#/components/schemas/Problem' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/UnknownModelArtifact' }
+        '409':
+          description: Another operation is changing model selection or storage
+          content: { application/json: { schema: { $ref: '#/components/schemas/Problem' } } }
         '503': { $ref: '#/components/responses/Unavailable' }
   /v1/retrieval/rebuild:
     post:
@@ -289,6 +714,174 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Problem' }
+  /v1/benchmarks/corpus:
+    get:
+      operationId: listBenchmarkCorpora
+      responses:
+        '200':
+          description: Saved benchmark corpora and their activation state
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/BenchmarkCorpus' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+    delete:
+      operationId: unloadBenchmarkCorpus
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/BenchmarkReference' }
+      responses:
+        '204': { description: The isolated benchmark corpus has been deactivated }
+        '400':
+          description: Invalid repository or revision
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+    post:
+      operationId: loadBenchmarkCorpus
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/BenchmarkReference' }
+      responses:
+        '200':
+          description: Indexed public Git snapshot
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BenchmarkCorpus' }
+        '400':
+          description: Invalid repository or revision
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '409':
+          description: Active corpus capacity reached
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '503':
+          description: Public source unavailable or indexing failed
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Problem' }
+  /v1/benchmarks/corpus/embeddings:
+    post:
+      operationId: embedBenchmarkCorpusBatch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/BenchmarkReference' }
+      responses:
+        '200':
+          description: Isolated index progress after at most eight passages
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RetrievalProgress' }
+        '400':
+          description: Invalid repository or revision
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '409':
+          description: Reference corpus not loaded
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /v1/benchmarks/actions:
+    get:
+      operationId: listRecordedBenchmarkActions
+      responses:
+        '200':
+          description: Pinned public workflow attempts recorded for the benchmark suites
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/GitHubActions' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /v1/benchmarks/actions/downloads:
+    get:
+      operationId: listBenchmarkActionDownloads
+      responses:
+        '200':
+          description: Public Actions metadata already downloaded for benchmark commits
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/BenchmarkActionDownload' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+    post:
+      operationId: downloadBenchmarkActions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/BenchmarkReference' }
+      responses:
+        '200':
+          description: Downloaded public workflow observations for the exact commit, or an empty collection
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BenchmarkActionDownload' }
+        '400':
+          description: Invalid repository or commit
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /v1/benchmarks/answers:
+    post:
+      operationId: askBenchmarkQuestion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/BenchmarkQuestion' }
+      responses:
+        '200':
+          description: Grounded answer or insufficient evidence
+          headers:
+            X-Context-Trace-Id: { $ref: '#/components/headers/TraceId' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LocalAnswer' }
+        '400':
+          description: Invalid question or temporary corpus
+          headers:
+            X-Context-Trace-Id: { $ref: '#/components/headers/TraceId' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '409':
+          description: Answer request cancelled or reference corpus not loaded
+          headers:
+            X-Context-Trace-Id: { $ref: '#/components/headers/TraceId' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '503':
+          description: Local generation or evidence retrieval is unavailable
+          headers:
+            X-Context-Trace-Id: { $ref: '#/components/headers/TraceId' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Problem' }
   /v1/answers/{requestId}:
     delete:
       operationId: cancelAnswer
@@ -306,6 +899,101 @@ paths:
         '400': { $ref: '#/components/responses/InvalidInferenceControl' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '404': { $ref: '#/components/responses/InferenceTargetNotFound' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /v1/answer-history:
+    get:
+      operationId: listAnswerHistory
+      summary: List retained local answers with the newest entry first
+      parameters:
+        - in: query
+          name: beforeId
+          schema: { type: integer, format: int64, minimum: 1 }
+      responses:
+        '200':
+          description: One page of unexpired history
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AnswerHistoryPage' }
+        '400': { $ref: '#/components/responses/InvalidAnswerHistoryInput' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+    delete:
+      operationId: clearAnswerHistory
+      responses:
+        '204': { description: All retained entries cleared and active captures invalidated }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /v1/answer-history/{id}:
+    get:
+      operationId: getAnswerHistoryEntry
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, format: int64, minimum: 1 }
+      responses:
+        '200':
+          description: The saved question and its final validated answer
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AnswerHistoryEntry' }
+        '400': { $ref: '#/components/responses/InvalidAnswerHistoryInput' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404':
+          description: The entry has expired or is otherwise unavailable
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /v1/answer-history/by-trace/{traceId}:
+    get:
+      operationId: getAnswerHistoryEntryByTrace
+      summary: Find the saved answer for one local execution trace
+      parameters:
+        - in: path
+          name: traceId
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{32}$' }
+      responses:
+        '200':
+          description: The retained question and final answer for the trace
+          headers:
+            Cache-Control:
+              schema: { type: string, enum: [no-store] }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AnswerHistoryEntry' }
+        '400': { $ref: '#/components/responses/InvalidAnswerHistoryInput' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404':
+          description: No saved entry is available for the trace
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /v1/answer-history/settings:
+    get:
+      operationId: getAnswerHistorySettings
+      responses:
+        '200': { $ref: '#/components/responses/AnswerHistorySettings' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+    put:
+      operationId: updateAnswerHistorySettings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AnswerHistorySettings' }
+      responses:
+        '200': { $ref: '#/components/responses/AnswerHistorySettings' }
+        '400': { $ref: '#/components/responses/InvalidAnswerHistoryInput' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '409':
+          description: Settings have changed since the supplied revision
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Problem' }
         '503': { $ref: '#/components/responses/Unavailable' }
   /v1/generation/models:
     get:
@@ -340,6 +1028,38 @@ paths:
       operationId: readGitHubState
       responses:
         '200': { $ref: '#/components/responses/GitHubState' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        default: { $ref: '#/components/responses/GitHubProblem' }
+  /v1/github/storage:
+    get:
+      operationId: readGitHubStorage
+      responses:
+        '200':
+          description: GitHub logical retained payload bytes, excluding SQLite indexes, free pages, WAL and filesystem overhead
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GitHubStorageBudget' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        default: { $ref: '#/components/responses/GitHubProblem' }
+    put:
+      operationId: setGitHubStorage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [revision, limitGb]
+              properties:
+                revision: { type: integer, minimum: 0, maximum: 4294967295 }
+                limitGb: { type: integer, minimum: 1, maximum: 1000 }
+      responses:
+        '200':
+          description: Updated logical payload budget
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GitHubStorageBudget' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         default: { $ref: '#/components/responses/GitHubProblem' }
   /v1/github/rate-limit:
@@ -413,6 +1133,76 @@ paths:
         '200': { $ref: '#/components/responses/GitHubState' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         default: { $ref: '#/components/responses/GitHubProblem' }
+  /v1/github/repositories/{id}/access:
+    post:
+      operationId: checkGitHubRepositoryAccess
+      description: >-
+        Revalidate permissions for the saved repository, branch and features.
+        Repository settings and collection schedules for unchanged permissions are preserved.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer, format: int64, minimum: 1 }
+        - $ref: '#/components/parameters/GitHubRevision'
+      responses:
+        '200': { $ref: '#/components/responses/GitHubState' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        default: { $ref: '#/components/responses/GitHubProblem' }
+  /v1/github/repositories/{id}/branches:
+    get:
+      operationId: listGitHubRepositoryBranches
+      description: List one page of branch names for a configured repository.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer, format: int64, minimum: 1 }
+        - $ref: '#/components/parameters/GitHubRevision'
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 1000, default: 1 }
+      responses:
+        '200':
+          description: Branch names and the next page when available
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GitHubBranchPage' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        default: { $ref: '#/components/responses/GitHubProblem' }
+  /v1/github/repositories/{id}/data:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: integer, format: int64, minimum: 1 }
+    get:
+      operationId: readGitHubRepositoryDataState
+      responses:
+        '200':
+          description: Whether collection is paused after explicit deletion
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [paused]
+                properties:
+                  paused: { type: boolean }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        default: { $ref: '#/components/responses/GitHubProblem' }
+    delete:
+      operationId: purgeGitHubRepositoryData
+      description: >-
+        Delete retained GitHub data for this repository while preserving its settings.
+        Collection is paused until an explicit current-code, history or Actions refresh.
+      responses:
+        '200':
+          description: Data removed and collection paused; returns the global logical storage budget
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GitHubStorageBudget' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        default: { $ref: '#/components/responses/GitHubProblem' }
   /v1/github/repositories/{id}/refresh:
     post:
       operationId: refreshGitHubCurrentCode
@@ -430,6 +1220,7 @@ paths:
           description: Current-code snapshot published or already up to date
           headers:
             X-Context-Trace-Id: { $ref: '#/components/headers/TraceId' }
+            X-Context-Work-Trace-Id: { $ref: '#/components/headers/CollectionTraceId' }
           content:
             application/json:
               schema:
@@ -438,9 +1229,158 @@ paths:
                 properties:
                   commit: { type: string, pattern: '^[a-f0-9]{40}$' }
                   changed: { type: boolean }
-        '202': { $ref: '#/components/responses/GitHubState' }
+        '202':
+          description: Current-code refresh queued or coalesced with active work
+          headers:
+            X-Context-Trace-Id: { $ref: '#/components/headers/TraceId' }
+            X-Context-Work-Trace-Id: { $ref: '#/components/headers/CollectionTraceId' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GitHubState' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         default: { $ref: '#/components/responses/GitHubProblem' }
+  /v1/github/repositories/{id}/actions:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: integer, format: int64, minimum: 1 }
+    get:
+      operationId: readGitHubActions
+      responses:
+        '200':
+          description: Last collected workflow and run observations for the configured branch
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GitHubActionsState' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        default: { $ref: '#/components/responses/GitHubProblem' }
+    post:
+      operationId: refreshGitHubActions
+      responses:
+        '200':
+          description: Published bounded Actions observations and pinned workflow definitions
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GitHubActions' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        default: { $ref: '#/components/responses/GitHubProblem' }
+  /v1/github/repositories/{id}/graph:
+    get:
+      operationId: readGitHubGraph
+      description: Read the last local graph publication for the selected branch. Conventional Rust source roots are resolved independently. Supply root and symbol together to return up to 50 matching definition, import and call occurrences.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer, format: int64, minimum: 1 } }
+        - { name: branch, in: query, required: true, schema: { type: string, minLength: 1, maxLength: 250 } }
+        - { name: root, in: query, schema: { type: string, minLength: 1, maxLength: 1024 } }
+        - { name: symbol, in: query, schema: { type: string, minLength: 1, maxLength: 256 } }
+      responses:
+        '200':
+          description: Source coverage and immutable graph locations under the requested branch.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GitHubGraph' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        default: { $ref: '#/components/responses/GitHubProblem' }
+  /v1/github/repositories/{id}/history:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: integer, format: int64, minimum: 1 }
+    get:
+      operationId: readGitHubHistory
+      responses:
+        '200':
+          description: Last published first-parent lineage for the configured branch, if collected
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  schedule:
+                    type: object
+                    required: [nextAtMs, lastCheckedAtMs]
+                    properties:
+                      nextAtMs: { type: integer, format: int64, minimum: 0 }
+                      lastCheckedAtMs: { type: integer, format: int64, minimum: 0 }
+                      lastError: { type: string, enum: [throttled, credentials, access, staleScope, collectionLimit, storageLimit, unavailable] }
+                  snapshot: { $ref: '#/components/schemas/GitHubHistory' }
+                  publishedTrace: { $ref: '#/components/schemas/GitHubCollectionTrace' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        default: { $ref: '#/components/responses/GitHubProblem' }
+    post:
+      operationId: refreshGitHubHistory
+      responses:
+        '200':
+          description: Published commit lineage, pinned to the observed branch tip
+          headers:
+            X-Context-Trace-Id: { $ref: '#/components/headers/TraceId' }
+            X-Context-Work-Trace-Id: { $ref: '#/components/headers/CollectionTraceId' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GitHubHistory' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        default: { $ref: '#/components/responses/GitHubProblem' }
+  /v1/github/repositories/{id}/history/comparisons/{child}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: integer, format: int64, minimum: 1 }
+      - name: child
+        in: path
+        required: true
+        schema: { type: string, pattern: '^[a-f0-9]{40}$' }
+    get:
+      operationId: readGitHubHistoryComparison
+      description: >-
+        Read a bounded comparison for a child in the active published lineage against
+        its first parent or the empty tree. Complete tree metadata determines changes;
+        supported text sides are full Git blob bytes verified against their tree identity.
+        The result is transient and does not publish searchable history evidence.
+      responses:
+        '200':
+          description: Comparison under the active lineage and access scope
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GitHubHistoryComparison' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        default: { $ref: '#/components/responses/GitHubProblem' }
+
+    post:
+      operationId: materializeGitHubHistoryComparison
+      description: Verify and atomically store a versioned comparison and its paired change hunks.
+      responses:
+        '200':
+          description: Immutable materialized evidence
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GitHubHistoryEvidence' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        default: { $ref: '#/components/responses/GitHubProblem' }
+  /v1/github/repositories/{id}/history/evidence/{child}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: integer, format: int64, minimum: 1 }
+      - name: child
+        in: path
+        required: true
+        schema: { type: string, pattern: '^[a-f0-9]{40}$' }
+    get:
+      operationId: readGitHubHistoryEvidence
+      description: Read evidence only while its exact child and first parent remain in the active eligible lineage.
+      responses:
+        '200':
+          description: Materialized evidence, or null when none is active
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GitHubHistoryEvidence' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        default: { $ref: '#/components/responses/GitHubProblem' }
+
 components:
   securitySchemes:
     LocalSession:
@@ -456,7 +1396,30 @@ components:
     TraceId:
       description: Correlation ID for retained diagnostics when telemetry is available.
       schema: { type: string, pattern: '^[a-f0-9]{32}$' }
+    CollectionTraceId:
+      description: Trace ID of the durable collection. It may differ from the HTTP trace when this request joins an existing job.
+      schema: { type: string, pattern: '^[0-9a-f]{32}$' }
   responses:
+    InvalidModelDiscovery:
+      description: Invalid catalog search or model selection
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    UnknownModelArtifact:
+      description: Unsupported or unavailable Hub repository or file
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    ModelCatalogThrottled:
+      description: Hugging Face throttled the catalog request
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    ModelCatalogPinChanged:
+      description: The available file digest differs from the digest confirmed by the client
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Problem' }
     GitHubState:
       description: Effective local GitHub configuration
       content:
@@ -464,6 +1427,16 @@ components:
           schema: { $ref: '#/components/schemas/GitHubState' }
     GitHubProblem:
       description: GitHub settings, authentication, access, pacing or storage failure
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    AnswerHistorySettings:
+      description: Effective local answer history settings
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/AnswerHistorySettings' }
+    InvalidAnswerHistoryInput:
+      description: Invalid history query, identifier or settings
       content:
         application/json:
           schema: { $ref: '#/components/schemas/Problem' }
@@ -494,7 +1467,12 @@ components:
       required: [revision, token]
       properties:
         revision: { type: integer, minimum: 0, maximum: 4294967295 }
-        token: { type: string, maxLength: 512, writeOnly: true }
+        token:
+          type: string
+          minLength: 12
+          maxLength: 512
+          writeOnly: true
+          description: Fine-grained token with a github_pat_ prefix followed by ASCII letters, digits or underscores. Surrounding whitespace is trimmed. The input limit is 512 bytes.
     GitHubState:
       type: object
       required: [revision, credential, authorizationUrl, actionsAuthorizationUrl, defaults, repositories]
@@ -536,6 +1514,13 @@ components:
       properties:
         intervalMinutes: { type: integer, minimum: 15, maximum: 1440 }
         features: { $ref: '#/components/schemas/GitHubFeatures' }
+        refreshInterval:
+          type: object
+          description: Inclusive bounds for a repository's refresh interval, in minutes.
+          required: [minimumMinutes, maximumMinutes]
+          properties:
+            minimumMinutes: { type: integer, minimum: 1 }
+            maximumMinutes: { type: integer, minimum: 1 }
     GitHubRepository:
       type: object
       required: [id, fullName, defaultBranch, private]
@@ -553,6 +1538,15 @@ components:
           items: { $ref: '#/components/schemas/GitHubRepository' }
         nextPage: { type: integer, minimum: 2, maximum: 1000 }
         traffic: { $ref: '#/components/schemas/GitHubTraffic' }
+    GitHubBranchPage:
+      type: object
+      required: [branches]
+      properties:
+        branches:
+          type: array
+          maxItems: 100
+          items: { type: string }
+        nextPage: { type: integer, minimum: 2, maximum: 1000 }
     GitHubFeatures:
       type: object
       additionalProperties: false
@@ -577,8 +1571,23 @@ components:
         actions: { $ref: '#/components/schemas/GitHubAccess' }
         verified: { type: boolean }
         codeCollection: { $ref: '#/components/schemas/GitHubCodeCollection' }
+        historyActivity: { $ref: '#/components/schemas/GitHubCollectionActivity' }
+        actionsActivity: { $ref: '#/components/schemas/GitHubCollectionActivity' }
+    GitHubCollectionActivity:
+      type: object
+      description: Last claimed attempt in the active generation and trace of the retained publication for the tracked branch. Links refer to records subject to Diagnostics retention.
+      properties:
+        latestAttempt: { $ref: '#/components/schemas/GitHubCollectionTrace' }
+        publishedSnapshot: { $ref: '#/components/schemas/GitHubCollectionTrace' }
+    GitHubCollectionTrace:
+      type: object
+      required: [traceId, spanId]
+      properties:
+        traceId: { type: string, pattern: '^[0-9a-f]{32}$' }
+        spanId: { type: string, pattern: '^[0-9a-f]{16}$' }
     GitHubCodeCollection:
       type: object
+      description: State of the shared source refresh for current code, the Rust graph, or both. A graph-only repository reports the graph source scope.
       required: [phase, canRefresh]
       properties:
         phase:
@@ -590,23 +1599,483 @@ components:
         publishedAtMs: { type: integer, format: int64, minimum: 0 }
         commit: { type: string, pattern: '^[a-f0-9]{40}$' }
         error: { type: string }
+        publishedFiles:
+          type: integer
+          minimum: 0
+          maximum: 4096
+          description: Files in the retained published source manifest for this branch.
+        pending: { $ref: '#/components/schemas/GitHubSourceProgress' }
+    GitHubSourceProgress:
+      type: object
+      description: Observed progress for the active repository scope and pinned candidate commit. A complete manifest may still await validation and publication.
+      required: [commit, stagedFiles, phase]
+      properties:
+        commit: { type: string, pattern: '^[0-9a-f]{40}$' }
+        stagedFiles:
+          type: integer
+          minimum: 0
+          maximum: 4096
+          description: Files durably staged for the candidate, including unchanged content reused from local storage.
+        phase: { type: string, enum: [collecting, manifestComplete] }
     GitHubSelection:
       type: object
       additionalProperties: false
       required: [revision, repository, intervalMinutes, features]
       properties:
         revision: { type: integer, minimum: 0, maximum: 4294967295 }
-        repository: { type: string, maxLength: 240 }
+        repository:
+          type: string
+          minLength: 3
+          maxLength: 240
+          description: Owner and repository separated by a slash, or an HTTPS github.com repository URL. Surrounding whitespace and a trailing slash or .git suffix are accepted. The input limit is 240 bytes.
         expectedId: { type: integer, format: int64, minimum: 1 }
-        branch: { type: string, maxLength: 250 }
+        branch:
+          type: string
+          minLength: 1
+          maxLength: 250
+          description: Branch name without whitespace or control characters, up to 250 UTF-8 bytes. Omit to use the default branch.
         intervalMinutes: { type: integer, minimum: 15, maximum: 1440 }
         features: { $ref: '#/components/schemas/GitHubFeatures' }
+    GitHubActionsState:
+      type: object
+      required: [availability]
+      properties:
+        availability: { type: string, enum: [ready, disabled, reconnectRequired, accessRequired] }
+        snapshot: { $ref: '#/components/schemas/GitHubActions' }
+        schedule:
+          type: object
+          required: [nextAtMs, lastCheckedAtMs]
+          properties:
+            nextAtMs: { type: integer, format: int64, minimum: 0 }
+            lastCheckedAtMs: { type: integer, format: int64, minimum: 0 }
+            lastError: { type: string, enum: [throttled, credentials, access, staleScope, collectionLimit, storageLimit, unavailable] }
+    GitHubActions:
+      type: object
+      required: [repositoryId, repository, branch, definitionCommit, workflows, workflowCoverage, executedDefinition, runs, runCoverage, attemptCoverage]
+      properties:
+        repositoryId: { type: integer, format: int64, minimum: 1 }
+        repository: { type: string }
+        branch: { type: string, maxLength: 250 }
+        definitionCommit: { type: string, pattern: '^[a-f0-9]{40}$' }
+        workflowCoverage: { type: string, enum: [providerDefaultBranchList, observedRunMetadata] }
+        executedDefinition: { type: string, enum: [unknown] }
+        runCoverage: { type: string, enum: [latest100, returnedBranchRuns, returnedCommitRuns] }
+        attemptCoverage: { type: string, enum: [observedLatestAttemptsOnly] }
+        workflows:
+          type: array
+          maxItems: 100
+          items: { $ref: '#/components/schemas/GitHubActionWorkflow' }
+        runs:
+          type: array
+          maxItems: 500
+          items: { $ref: '#/components/schemas/GitHubActionRun' }
+    GitHubActionWorkflow:
+      type: object
+      required: [id, name, path, state, definitionBlob, definition]
+      properties:
+        id: { type: integer, format: int64, minimum: 1 }
+        name: { type: string }
+        path: { type: string }
+        state: { type: string }
+        definitionBlob: { type: string, nullable: true, pattern: '^[a-f0-9]{40}$' }
+        definition: { type: string, nullable: true }
+    GitHubActionRun:
+      type: object
+      required: [id, attempt, workflowId, event, headSha, headBranch, headRepositoryId, commitProvenance, createdAt, updatedAt, status, conclusion]
+      properties:
+        id: { type: integer, format: int64, minimum: 1 }
+        attempt: { type: integer, minimum: 1 }
+        workflowId: { type: integer, format: int64, minimum: 1 }
+        event: { type: string }
+        headSha: { type: string, pattern: '^[a-f0-9]{40}$' }
+        headBranch: { type: string, nullable: true }
+        headRepositoryId: { type: integer, format: int64, nullable: true }
+        commitProvenance: { type: string, enum: [verifiedRepositoryCommit, forkOrUnknownReportedHead, verificationLimit, commitUnavailable, reportedOnly] }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        status: { type: string }
+        conclusion: { type: string, nullable: true }
+    GitHubStorageBudget:
+      type: object
+      required: [revision, limitGb, bytes]
+      properties:
+        revision: { type: integer, minimum: 0, maximum: 4294967295 }
+        limitGb: { type: integer, minimum: 1, maximum: 1000 }
+        bytes: { type: integer, format: int64, minimum: 0 }
+    GitHubHistory:
+      type: object
+      required: [branch, tip, boundary, commits]
+      properties:
+        branch: { type: string, maxLength: 250 }
+        tip: { type: string, pattern: '^[a-f0-9]{40}$' }
+        boundary:
+          description: Whether the walk reached the root or exhausted its commit count
+          type: string
+          enum: [root, commitLimit]
+        commits:
+          type: array
+          minItems: 1
+          maxItems: 16
+          items: { $ref: '#/components/schemas/GitHubHistoryCommit' }
+    GitHubHistoryCommit:
+      type: object
+      required: [id, parents, tree, summary]
+      properties:
+        id: { type: string, pattern: '^[a-f0-9]{40}$' }
+        parents:
+          description: Ordered parent IDs, with the comparison parent first
+          type: array
+          maxItems: 32
+          items: { type: string, pattern: '^[a-f0-9]{40}$' }
+        tree: { type: string, pattern: '^[a-f0-9]{40}$' }
+        summary: { type: string, maxLength: 240 }
+    GitHubGraph:
+      type: object
+      required: [repositoryId, branch, access, snapshot]
+      properties:
+        repositoryId: { type: integer, format: int64, minimum: 1 }
+        branch: { type: string }
+        access: { type: string, enum: [available, retained, unavailable] }
+        snapshot: { $ref: '#/components/schemas/GitHubGraphSnapshot' }
+    GitHubGraphSnapshot:
+      type: object
+      nullable: true
+      required: [revision, profile, coverage, roots, hits, truncated]
+      properties:
+        revision: { type: string, pattern: '^[a-f0-9]{40}$' }
+        profile: { type: string }
+        coverage: { type: string, enum: [published, noConventionalRustRoots, limit] }
+        roots:
+          type: array
+          maxItems: 8
+          items: { $ref: '#/components/schemas/GitHubGraphRoot' }
+        hits:
+          type: array
+          maxItems: 50
+          items: { $ref: '#/components/schemas/GitHubGraphHit' }
+        truncated: { type: boolean }
+    GitHubGraphRoot:
+      type: object
+      required: [path, parsedFiles, reachableFiles, unsupportedFiles, parseErrors, limitedFiles]
+      properties:
+        path: { type: string }
+        parsedFiles: { type: integer, minimum: 0 }
+        reachableFiles: { type: integer, minimum: 0 }
+        unsupportedFiles: { type: integer, minimum: 0, description: Unsupported languages among the manifest's retained UTF-8 files. }
+        parseErrors: { type: integer, minimum: 0 }
+        limitedFiles: { type: integer, minimum: 0 }
+    GitHubGraphHit:
+      type: object
+      required: [name, role, resolution, site]
+      properties:
+        name: { type: string }
+        qualifiedName: { type: string }
+        role: { type: string, enum: [definition, import, call] }
+        resolution: { type: string, enum: [definition, resolved, unresolved, ambiguous] }
+        site: { $ref: '#/components/schemas/SourceLocation' }
+        target: { $ref: '#/components/schemas/SourceLocation' }
+    GitHubHistoryComparison:
+      type: object
+      required: [repositoryId, repository, branch, lineageTip, child, parent, baseline, coverage, changes]
+      properties:
+        repositoryId: { type: integer, format: int64 }
+        repository: { type: string }
+        branch: { type: string }
+        lineageTip: { type: string, pattern: '^[a-f0-9]{40}$' }
+        child: { type: string, pattern: '^[a-f0-9]{40}$' }
+        parent: { type: string, nullable: true, pattern: '^[a-f0-9]{40}$' }
+        baseline: { type: string, enum: [firstParent, emptyTree] }
+        coverage: { type: string, enum: [completeTreesFullBlobs, partialContent] }
+        changes:
+          type: array
+          maxItems: 64
+          items:
+            type: object
+            required: [kind, before, after]
+            properties:
+              kind: { type: string, enum: [added, deleted, modified, renamed] }
+              before: { $ref: '#/components/schemas/GitHubHistorySide' }
+              after: { $ref: '#/components/schemas/GitHubHistorySide' }
+    GitHubHistorySide:
+      type: object
+      nullable: true
+      required: [path, blob, bytes, mode, text, coverage]
+      properties:
+        path: { type: string, maxLength: 1024 }
+        blob: { type: string, pattern: '^[a-f0-9]{40}$' }
+        bytes: { type: integer, nullable: true, minimum: 0 }
+        mode: { type: string, enum: ['100644', '100755', '120000', '160000'] }
+        text: { type: string, nullable: true }
+        coverage: { type: string, enum: [fullBlob, binaryOrUnsupported, tooLarge, unsupportedMode] }
+    GitHubHistoryEvidence:
+      type: object
+      nullable: true
+      required: [repositoryId, repository, branch, child, parent, baseline, coverage, projectionVersion, changes]
+      properties:
+        repositoryId: { type: integer, format: int64 }
+        repository: { type: string }
+        branch: { type: string }
+        child: { type: string, pattern: '^[a-f0-9]{40}$' }
+        parent: { type: string, nullable: true, pattern: '^[a-f0-9]{40}$' }
+        baseline: { type: string, enum: [firstParent, emptyTree] }
+        coverage: { type: string, enum: [completeTreesFullBlobs, partialContent] }
+        projectionVersion: { type: integer, enum: [1] }
+        changes:
+          type: array
+          maxItems: 64
+          items:
+            type: object
+            required: [change, projection]
+            properties:
+              change: { $ref: '#/components/schemas/GitHubHistoryChange' }
+              projection: { $ref: '#/components/schemas/GitHubHistoryProjection' }
+    GitHubHistoryChange:
+      type: object
+      required: [kind, before, after]
+      properties:
+        kind: { type: string, enum: [added, deleted, modified, renamed] }
+        before: { $ref: '#/components/schemas/GitHubHistorySide' }
+        after: { $ref: '#/components/schemas/GitHubHistorySide' }
+    GitHubHistoryProjection:
+      type: object
+      required: [coverage, hunks]
+      properties:
+        coverage: { type: string, enum: [complete, pathOnly, limit, contentUnavailable] }
+        hunks:
+          type: array
+          maxItems: 64
+          items:
+            type: object
+            required: [before, after]
+            properties:
+              before: { $ref: '#/components/schemas/GitHubHistoryAnchor' }
+              after: { $ref: '#/components/schemas/GitHubHistoryAnchor' }
+    GitHubHistoryAnchor:
+      type: object
+      nullable: true
+      required: [path, blob, startByte, endByte, startLine, endLine, text]
+      properties:
+        path: { type: string }
+        blob: { type: string, pattern: '^[a-f0-9]{40}$' }
+        startByte: { type: integer, minimum: 0 }
+        endByte: { type: integer, minimum: 0 }
+        startLine: { type: integer, minimum: 1 }
+        endLine: { type: integer, minimum: 1 }
+        text: { type: string }
+    EmbeddingModelSelection:
+      type: object
+      additionalProperties: false
+      required: [profiles]
+      properties:
+        activeProfile: { type: string, minLength: 1, maxLength: 128 }
+        profiles:
+          type: array
+          items: { $ref: '#/components/schemas/EmbeddingModelProfile' }
+    EmbeddingModelProfile:
+      type: object
+      additionalProperties: false
+      required: [profile, label]
+      properties:
+        profile: { type: string, minLength: 1, maxLength: 128 }
+        label: { type: string }
+    EmbeddingModelUpdate:
+      type: object
+      additionalProperties: false
+      required: [profile]
+      properties:
+        profile: { type: string, minLength: 1, maxLength: 128 }
+    HubModelRepositoryId:
+      type: string
+      maxLength: 193
+      pattern: '^(?!.*\.\.)[A-Za-z0-9](?:[A-Za-z0-9._-]{0,94}[A-Za-z0-9])?/[A-Za-z0-9](?:[A-Za-z0-9._-]{0,94}[A-Za-z0-9])?$'
+      description: Case-sensitive Hugging Face owner and model name, pinned separately by revision.
+    HubModelKind:
+      type: string
+      enum: [generation, embedding]
+      description: Model purpose. Omitting the value selects generation for compatibility with existing clients.
+    HubModelRepository:
+      type: object
+      additionalProperties: false
+      required: [repository, revision, url]
+      properties:
+        repository: { $ref: '#/components/schemas/HubModelRepositoryId' }
+        revision: { type: string, pattern: '^[0-9a-f]{40}$' }
+        url: { type: string, format: uri }
+        kind: { $ref: '#/components/schemas/HubModelKind' }
+        license: { type: string }
+    HubModelVariant:
+      type: object
+      additionalProperties: false
+      required: [file, quantization, bytes]
+      properties:
+        file: { type: string, maxLength: 180 }
+        quantization: { type: string, enum: [Q4_K_M, Q5_K_M, Q8_0] }
+        bytes: { type: integer, format: int64, minimum: 1, maximum: 5000000000 }
+        sha256: { type: string, pattern: '^[0-9a-f]{64}$' }
+    InferenceSetupRuntimeSource:
+      type: string
+      enum: [hosted, localArchive]
+    InferenceSetupSelection:
+      type: object
+      additionalProperties: false
+      required: [embedding, runtimeSource]
+      properties:
+        answerProfile:
+          type: string
+          description: Compatible pinned answer model profile registered in the local catalog. Omit to select the default Q4_K_M profile.
+        embedding: { type: boolean }
+        embeddingProfile:
+          type: string
+          description: Select a compatible embedding profile when embedding is enabled. Omit to select the recommended Q8_0 profile.
+        runtimeSource: { $ref: '#/components/schemas/InferenceSetupRuntimeSource' }
+    InferenceSetupPlan:
+      type: object
+      description: Setup plan with the answer profile and any enabled embedding profile resolved by the backend.
+      required: [selection, fingerprint, peakAdditionalBytes, maximumTransferBytes, availableBytes, canStart, runtimeRequired, answerInstalled]
+      properties:
+        selection: { $ref: '#/components/schemas/InferenceSetupSelection' }
+        fingerprint: { type: string, pattern: '^[0-9a-f]{64}$' }
+        peakAdditionalBytes: { type: integer, format: int64, minimum: 0 }
+        maximumTransferBytes:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Maximum artifact payload for one successful download per asset. Retries and restarted bodies may add network traffic.
+        availableBytes: { type: integer, format: int64, minimum: 0 }
+        canStart: { type: boolean }
+        runtimeRequired: { type: boolean }
+        answerInstalled: { type: boolean }
+        embeddingInstalled: { type: boolean }
+        blocker: { type: string }
+    InferenceSetupConfirmation:
+      type: object
+      additionalProperties: false
+      required: [selection, fingerprint, operationId]
+      properties:
+        selection: { $ref: '#/components/schemas/InferenceSetupSelection' }
+        fingerprint: { type: string, pattern: '^[0-9a-f]{64}$' }
+        operationId: { type: string, format: uuid }
+        archivePath:
+          type: string
+          minLength: 1
+          maxLength: 2048
+          description: Absolute local filesystem path without NUL characters, up to 2048 UTF-8 bytes. Use when a local runtime archive is required.
+    InferenceSetupArchive:
+      type: object
+      additionalProperties: false
+      required: [operationId, archivePath]
+      properties:
+        operationId: { type: string, format: uuid }
+        archivePath:
+          type: string
+          minLength: 1
+          maxLength: 2048
+          description: Absolute local filesystem path without NUL characters, up to 2048 UTF-8 bytes.
+    InferenceSetupPhase:
+      type: string
+      enum: [runtime, waitingForArchive, answerWeights, activatingAnswer, embeddingWeights, completed, failed, interrupted]
+    InferenceSetupStatus:
+      type: object
+      required: [operationId, phase, answerReady]
+      properties:
+        operationId: { type: string, format: uuid }
+        phase: { $ref: '#/components/schemas/InferenceSetupPhase' }
+        answerReady: { type: boolean }
+        selection: { $ref: '#/components/schemas/InferenceSetupSelection' }
+        error: { type: string }
+    ModelRemovalPlan:
+      type: object
+      required: [profile, bytes, identity]
+      properties:
+        profile: { type: string }
+        bytes: { type: integer, format: int64, minimum: 0 }
+        identity: { type: string, description: Opaque identity to submit with the removal request. }
+    ModelRemovalRequest:
+      type: object
+      additionalProperties: false
+      required: [identity]
+      properties:
+        identity: { type: string, minLength: 1, maxLength: 2048 }
+    HubModelDownloadRequest:
+      type: object
+      additionalProperties: false
+      required: [repository, revision, file]
+      properties:
+        repository: { $ref: '#/components/schemas/HubModelRepositoryId' }
+        revision: { type: string, pattern: '^[0-9a-f]{40}$' }
+        kind: { $ref: '#/components/schemas/HubModelKind' }
+        sha256:
+          type: string
+          pattern: '^[0-9a-f]{64}$'
+          description: File digest shown in the pinned variants response. Required for embedding imports.
+        file:
+          type: string
+          maxLength: 180
+          pattern: '^(?!.*\.\.)[A-Za-z0-9][A-Za-z0-9._-]*[-_](?:Q4_K_M|Q5_K_M|Q8_0)\.gguf$'
+          description: Single-file GGUF variant listed for this repository and revision.
     ModelDownloadRequest:
       type: object
       additionalProperties: false
       required: [profile]
       properties:
         profile: { type: string, minLength: 1, maxLength: 128 }
+    InferenceStoragePlan:
+      type: object
+      required: [models]
+      properties:
+        capacity: { $ref: '#/components/schemas/InferenceStorageCapacity' }
+        runtime: { $ref: '#/components/schemas/RuntimeStoragePlan' }
+        models:
+          type: array
+          items: { $ref: '#/components/schemas/ModelStoragePlan' }
+    InferenceStorageCapacity:
+      type: object
+      required: [limitBytes, usedBytes, reservedBytes, availableBytes, volumeFreeBytes, systemReserveBytes]
+      properties:
+        limitBytes: { type: integer, format: int64, minimum: 0 }
+        usedBytes: { type: integer, format: int64, minimum: 0 }
+        reservedBytes: { type: integer, format: int64, minimum: 0 }
+        availableBytes: { type: integer, format: int64, minimum: 0 }
+        volumeFreeBytes: { type: integer, format: int64, minimum: 0 }
+        systemReserveBytes: { type: integer, format: int64, minimum: 0 }
+    RuntimeStoragePlan:
+      type: object
+      required: [localImport]
+      properties:
+        localImport: { $ref: '#/components/schemas/InstallStoragePlan' }
+        hostedDownload: { $ref: '#/components/schemas/InstallStoragePlan' }
+    InstallStoragePlan:
+      type: object
+      required: [peakBytes, fits]
+      properties:
+        peakBytes: { type: integer, format: int64, minimum: 0 }
+        fits: { type: boolean }
+    ModelStoragePlan:
+      type: object
+      required: [profile, peakBytes, fits]
+      properties:
+        profile: { type: string }
+        peakBytes:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Peak additional managed bytes after reusing space occupied by a partial file. A retained unverified file may be adopted locally after successful verification.
+        fits: { type: boolean }
+    RuntimeStatus:
+      type: object
+      required: [state]
+      properties:
+        state: { type: string, enum: [unavailable, availableForInstall, installing, ready, failed] }
+        engine: { $ref: '#/components/schemas/RuntimeEngine' }
+        archiveBytes: { type: integer, format: int64, minimum: 1 }
+        canDownload: { type: boolean }
+        error: { type: string }
+    RuntimeEngine:
+      type: object
+      required: [name, build]
+      properties:
+        name: { type: string }
+        build: { type: string, description: Build version from the verified runtime package. }
     ModelDownload:
       type: object
       additionalProperties: false
@@ -615,10 +2084,37 @@ components:
         profile: { type: string }
         label: { type: string }
         kind: { type: string, enum: [generation, embedding] }
-        state: { type: string, enum: [notInstalled, installing, installed, failed] }
-        downloadedBytes: { type: integer, format: int64, minimum: 0 }
+        source: { $ref: '#/components/schemas/ModelSource' }
+        setupRole:
+          type: string
+          enum: [recommendedAnswer, alternativeAnswer, optionalEmbedding]
+          description: Eligibility and default role in the guided local inference setup.
+        deletionBlock: { type: string }
+        state: { type: string, enum: [notInstalled, installing, pausing, paused, interrupted, installed, failed] }
+        installationStage:
+          type: string
+          enum: [preparing, transferring, verifying]
+          description: Current work for an active installation. Verification can adopt a retained local file without a transfer.
+        operationId: { type: string, format: uuid }
+        downloadedBytes:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Bytes staged from transfer, or total bytes once installed.
         totalBytes: { type: integer, format: int64, minimum: 1 }
-        error: { type: string }
+        error:
+          type: string
+          enum: [model_installation_unavailable, model_transfer_failed, model_integrity_failed, model_storage_limit]
+    ModelSource:
+      type: object
+      additionalProperties: false
+      required: [label, repository, revision, url]
+      properties:
+        label: { type: string }
+        repository: { type: string }
+        revision: { type: string }
+        url: { type: string, format: uri }
+        license: { type: string }
     Status:
       type: object
       required: [status, apiVersion, connectedSources, indexedDocuments, outboundAttempts, inference]
@@ -645,11 +2141,32 @@ components:
           description: Prior reservations reconciled after a session ended without a recorded outcome.
         inference: { type: string, enum: [notConfigured] }
         retrieval: { $ref: '#/components/schemas/RetrievalProgress' }
+    EmbeddingIndexState:
+      type: object
+      required: [profile, enabled, epoch]
+      properties:
+        profile: { type: string }
+        enabled: { type: boolean }
+        epoch: { type: integer, format: int64, minimum: 0 }
+    EmbeddingIndexUpdate:
+      type: object
+      additionalProperties: false
+      required: [enabled]
+      properties:
+        enabled: { type: boolean }
+    EmbeddingIndexDeletion:
+      allOf:
+        - { $ref: '#/components/schemas/EmbeddingIndexState' }
+        - type: object
+          required: [removedVectors, removedBytes]
+          properties:
+            removedVectors: { type: integer, format: int64, minimum: 0 }
+            removedBytes: { type: integer, format: int64, minimum: 0 }
     RetrievalProgress:
       type: object
       required: [state, dimensions, indexed, total]
       properties:
-        state: { type: string, enum: [notConfigured, incomplete, ready] }
+        state: { type: string, enum: [notConfigured, incomplete, ready, disabled] }
         profile: { type: string }
         dimensions: { type: integer, minimum: 0 }
         indexed: { type: integer, format: int64, minimum: 0 }
@@ -660,8 +2177,23 @@ components:
       properties:
         revision: { type: integer, minimum: 0 }
         answerLanguage: { type: string, enum: [auto, en, fr] }
+        answerLocale:
+          type: string
+          description: Selected answer language code from answerLanguageOptions. Set this to change the preference. When omitted by a legacy client, the preference is preserved unless answerLanguage changes.
+        answerLanguageOptions:
+          type: array
+          description: Languages supported by the backend. Returned by the server and ignored on update.
+          items: { $ref: '#/components/schemas/AnswerLanguageOption' }
         diagnosticRetentionHours: { type: integer, minimum: 1, maximum: 168 }
         diagnosticStorageLimitMb: { type: integer, minimum: 2, maximum: 1000, description: Maximum diagnostics storage in decimal megabytes. Omitting the field preserves the existing limit. }
+        inferenceArtifactLimitGb: { type: integer, minimum: 1, maximum: 1000, description: Maximum inference artifact storage in decimal gigabytes. Omitting the field preserves the existing limit. }
+    AnswerLanguageOption:
+      type: object
+      required: [code, name, nativeName]
+      properties:
+        code: { type: string }
+        name: { type: string }
+        nativeName: { type: string }
     Diagnostic:
       type: object
       required: [id, timestamp, code, message]
@@ -676,6 +2208,34 @@ components:
       additionalProperties: false
       properties:
         command: { type: string, enum: [enableDebug, disableDebug, purgeExpired] }
+    ClientKind:
+      type: string
+      enum: [desktop, cli, other]
+      description: Declared client family recognized by the local server. Untagged clients count as other.
+    AnswerUsage:
+      type: object
+      required: [groups]
+      properties:
+        firstAt: { type: integer, format: int64, minimum: 0, description: Oldest included trace completion in Unix seconds. }
+        lastAt: { type: integer, format: int64, minimum: 0, description: Newest included trace completion in Unix seconds. }
+        groups:
+          type: array
+          maxItems: 500
+          items: { $ref: '#/components/schemas/AnswerUsageGroup' }
+    AnswerUsageGroup:
+      type: object
+      required: [client, published, abstained, cancelled, failed, unknown]
+      properties:
+        client: { $ref: '#/components/schemas/ClientKind' }
+        modelProfile: { type: string, maxLength: 67, description: Generation profile assigned to this request when known. }
+        published: { type: integer, minimum: 0 }
+        abstained: { type: integer, minimum: 0 }
+        cancelled: { type: integer, minimum: 0 }
+        failed: { type: integer, minimum: 0 }
+        unknown: { type: integer, minimum: 0, description: Retained requests without a classified final outcome. }
+        p50Micros: { type: integer, format: int64, minimum: 0, description: Nearest-rank median of server request duration for published answers. }
+        p95Micros: { type: integer, format: int64, minimum: 0, description: Nearest-rank P95 of server request duration for published answers. }
+        latestTraceId: { type: string, pattern: '^[0-9a-f]{32}$' }
     TelemetrySnapshot:
       type: object
       required: [logs, metrics, traces, health]
@@ -687,6 +2247,7 @@ components:
         metrics:
           type: array
           maxItems: 60
+          description: Latest retained cumulative count per operation. An observation can predate the latest backend restart.
           items: { $ref: '#/components/schemas/SignalSample' }
         traces:
           type: array
@@ -733,22 +2294,116 @@ components:
           type: integer
           format: int64
           minimum: 0
-          description: Cumulative operation count for a metric or elapsed microseconds for a trace.
+          description: Cumulative operation count for a metric or elapsed microseconds for a span or its correlated log.
         level:
           type: string
           enum: [ok, info, error, debug]
           description: Missing on spans whose outcome is unknown, including interrupted operations.
+        spanOutcome:
+          $ref: '#/components/schemas/DiagnosticSpanOutcome'
+        traceRequestKind:
+          $ref: '#/components/schemas/DiagnosticRequestKind'
         traceId: { type: string, pattern: '^[a-f0-9]{32}$' }
         spanId: { type: string, pattern: '^[a-f0-9]{16}$' }
         parentSpanId: { type: string, pattern: '^[a-f0-9]{16}$' }
-        displayName: { type: string, maxLength: 80, description: Human-readable name of a span in an exact trace view. }
-        operation: { type: string, maxLength: 80, description: Stable operation identifier or HTTP method and route template for a span. }
+        displayName: { type: string, maxLength: 80, description: Human-readable name of the operation when available. }
+        operation: { type: string, maxLength: 80, description: Stable operation identifier or HTTP method and route template. }
         startedAtUnixMicros: { type: integer, format: int64, minimum: 0, description: Timestamp in microseconds since the Unix epoch. Present on spans recorded with high-resolution timing. }
         events:
           type: array
           maxItems: 8
           description: Allowlisted events recorded within this span. May be absent on earlier spans.
           items: { $ref: '#/components/schemas/SpanEvent' }
+        inferenceTiming:
+          $ref: '#/components/schemas/InferenceTiming'
+        contextBudget:
+          $ref: '#/components/schemas/GenerationContext'
+        fusionRanking:
+          $ref: '#/components/schemas/FusionRanking'
+        retrievalCounts:
+          $ref: '#/components/schemas/AnswerRetrievalCounts'
+        httpStatus:
+          type: integer
+          minimum: 100
+          maximum: 599
+          description: HTTP response status on instrumented operations when the span is retained.
+        httpMethod: { type: string, maxLength: 7, description: Recognized local API method or OTHER. }
+        httpRoute: { type: string, maxLength: 160, description: 'Configured route template, when matched.' }
+        problemCode: { type: string, maxLength: 80, description: Stable problem code when available. }
+        clientKind: { $ref: '#/components/schemas/ClientKind' }
+        modelProfile: { type: string, maxLength: 67, description: Generation profile assigned to the answer request. }
+        workTraceId:
+          type: string
+          pattern: '^[0-9a-f]{32}$'
+          description: Trace of the collection when this request joined work represented by another trace.
+    DiagnosticSpanOutcome:
+      type: string
+      enum: [succeeded, failed, insufficientEvidence, cancelled, unknown]
+      description: Server classification of a span. An answer can have insufficient evidence with a successful HTTP response.
+    DiagnosticRequestKind:
+      type: string
+      enum: [backgroundCheck]
+      description: Present on successful GET requests to routine local status and settings endpoints.
+    AnswerRetrievalCounts:
+      type: object
+      additionalProperties: false
+      description: Counts from completed answer retrieval. A source count is present only when that source was consulted. Counts cover the returned rankings before passage selection, followed by the number proposed to generation before its input budget.
+      required: [proposedSources]
+      properties:
+        passageCandidates: { type: integer, minimum: 0, maximum: 65535 }
+        historyPairs: { type: integer, minimum: 0, maximum: 65535 }
+        workflowAttempts: { type: integer, minimum: 0, maximum: 65535 }
+        proposedSources: { type: integer, minimum: 0, maximum: 65535 }
+    GenerationContext:
+      type: object
+      additionalProperties: false
+      description: Token budgeting for the actual completion attempt. Present after the budget is decided, including when the model subsequently fails.
+      required: [kind, proposed, admitted, inputTokenLimit, measurements]
+      properties:
+        kind:
+          type: string
+          enum: [passages, linkedPassages, historyPairs, workflowAttempt]
+        proposed: { type: integer, minimum: 0, description: Number of evidence units available to this attempt. }
+        admitted: { type: integer, minimum: 0, description: Number of units in the selected completion prefix. Zero means no context fit. }
+        inputTokens: { type: integer, minimum: 1, description: Measured token count for the selected completion payload. Absent when no context fit. }
+        inputTokenLimit: { type: integer, minimum: 0, description: Effective input token limit after reserving capacity for output. }
+        measurements: { type: integer, minimum: 0, description: Number of candidate prefixes tokenized to choose the completion context. }
+    FusionRanking:
+      type: object
+      additionalProperties: false
+      description: Anonymous candidate ranks and scores from one hybrid lookup in Search or Answers.
+      required: [rankOffset, denseWeight, lexicalCandidates, denseCandidates, candidates]
+      properties:
+        rankOffset: { type: integer, minimum: 1 }
+        denseWeight: { type: number, format: double, minimum: 0, exclusiveMinimum: true }
+        lexicalCandidates: { type: integer, minimum: 0, maximum: 20 }
+        denseCandidates: { type: integer, minimum: 0, maximum: 20 }
+        candidates:
+          type: array
+          maxItems: 40
+          items: { $ref: '#/components/schemas/FusionCandidate' }
+    FusionCandidate:
+      type: object
+      additionalProperties: false
+      required: [score, scoreRank, lexicalPromoted]
+      properties:
+        lexicalRank: { type: integer, minimum: 1, maximum: 20 }
+        denseRank: { type: integer, minimum: 1, maximum: 20 }
+        score: { type: number, format: double, minimum: 0, description: Sum of reciprocal-rank contributions. }
+        scoreRank: { type: integer, minimum: 1, maximum: 40, description: Rank after sorting by score and before lexical promotion. }
+        finalRank: { type: integer, minimum: 1, maximum: 20, description: Rank in the fusion output. Absent when excluded by the top-20 cutoff. }
+        lexicalPromoted: { type: boolean }
+    InferenceTiming:
+      type: object
+      description: Runtime measurements available on completed answer generation spans in exact trace views.
+      additionalProperties: false
+      required: [cachedPromptTokens, processedPromptTokens, generatedTokens, promptMicros, generationMicros]
+      properties:
+        cachedPromptTokens: { type: integer, format: int64, minimum: 0, description: Prompt tokens reused from the inference cache. }
+        processedPromptTokens: { type: integer, format: int64, minimum: 0, description: Fresh prompt tokens processed by the runtime. }
+        generatedTokens: { type: integer, format: int64, minimum: 0, description: Tokens sampled by the runtime. }
+        promptMicros: { type: integer, format: int64, minimum: 0, description: Runtime duration through the first sampled token in microseconds. }
+        generationMicros: { type: integer, format: int64, minimum: 0, description: Runtime duration from the first to the last sampled token in microseconds. }
     SpanEvent:
       type: object
       required: [name, offsetMicros]
@@ -809,16 +2464,99 @@ components:
           type: integer
           format: int64
           minimum: 1
-          description: Numeric GitHub repository ID. Supply together with branch to restrict evidence to its published current code.
+          description: Numeric GitHub repository ID. Supply with branch for current code or materialized history.
         branch:
           type: string
           minLength: 1
           maxLength: 250
           description: Tracked branch name such as main or release/v1. Supply together with repositoryId.
+        historyCommit:
+          type: string
+          pattern: '^[0-9a-f]{40}$'
+          description: Select an explicitly materialized GitHub comparison. Requires repositoryId and branch. Answers compare the commit to its first parent.
+        actionsRunId:
+          type: integer
+          format: int64
+          minimum: 1
+          description: Select a locally recorded workflow run. Requires repositoryId, branch and actionsRunAttempt.
+        actionsRunAttempt:
+          type: integer
+          minimum: 1
+          maximum: 4294967295
+          description: Select a single attempt of actionsRunId.
         requestId:
           type: string
           format: uuid
           description: Fresh client-generated ID allowing a separate call to cancel this active request
+        includeModelContext:
+          type: boolean
+          default: false
+          description: Include transient completion context for a verified answer or a review of the evidence used to decide to withhold an answer.
+        inspectPipeline:
+          type: boolean
+          default: false
+          description: Return a transient pipeline inspection for ordinary Answers. Do not journal the question in Answer History.
+    BenchmarkReference:
+      type: object
+      additionalProperties: false
+      required: [repository, revision]
+      properties:
+        repository: { type: string, description: GitHub owner/repository }
+        revision: { type: string, pattern: '^[a-f0-9]{40}$' }
+    BenchmarkCorpus:
+      type: object
+      required: [repository, revision, files, bytes]
+      properties:
+        repository: { type: string }
+        revision: { type: string }
+        files: { type: integer, minimum: 1 }
+        bytes: { type: integer, minimum: 0 }
+        active: { type: boolean, description: Whether the saved corpus is active in the inspector. Returned when listing corpora. }
+    BenchmarkQuestion:
+      type: object
+      additionalProperties: false
+      required: [query]
+      description: Supply exactly one of documents, reference, and a recorded action.
+      properties:
+        query: { type: string, minLength: 1, maxLength: 512 }
+        requestId: { type: string, format: uuid }
+        reference: { $ref: '#/components/schemas/BenchmarkReference' }
+        action: { $ref: '#/components/schemas/BenchmarkAction' }
+        retrieval:
+          type: string
+          enum: [bm25, hybrid]
+          default: bm25
+          description: Hybrid requires a loaded reference with a complete embedding index for the selected profile.
+        documents:
+          type: array
+          minItems: 1
+          maxItems: 64
+          description: Temporary UTF-8 corpus with up to 256 KiB per file and 512 KiB in total.
+          items: { $ref: '#/components/schemas/BenchmarkDocument' }
+    BenchmarkAction:
+      type: object
+      additionalProperties: false
+      required: [repository, runId, attempt]
+      properties:
+        repository: { type: string }
+        runId: { type: integer, format: int64, minimum: 1 }
+        attempt: { type: integer, minimum: 1 }
+        downloaded: { type: boolean, default: false, description: Resolve the exact attempt from user-downloaded public data. }
+    BenchmarkActionDownload:
+      type: object
+      required: [reference, snapshots]
+      properties:
+        reference: { $ref: '#/components/schemas/BenchmarkReference' }
+        snapshots:
+          type: array
+          items: { $ref: '#/components/schemas/GitHubActions' }
+    BenchmarkDocument:
+      type: object
+      additionalProperties: false
+      required: [path, text]
+      properties:
+        path: { type: string, minLength: 1, maxLength: 1024 }
+        text: { type: string, minLength: 1 }
     AnswerCancellation:
       type: object
       required: [requestId, status]
@@ -851,18 +2589,273 @@ components:
       properties:
         evidence: { $ref: '#/components/schemas/SearchHit' }
         quote: { type: string, minLength: 1 }
+        lineUrl:
+          type: string
+          format: uri
+          description: GitHub permalink to the verified quote at its immutable revision, with a fragment for the inclusive quoted lines. Omitted if the source URL or the quoted occurrence cannot be resolved.
+        comparison: { $ref: '#/components/schemas/HistoryCitation' }
+        workflowRun: { $ref: '#/components/schemas/WorkflowRunCitation' }
+    WorkflowRunCitation:
+      type: object
+      required: [repositoryId, workflowId, runId, attempt, runUrl, reportedHead, commitProvenance]
+      properties:
+        repositoryId: { type: integer, format: int64, minimum: 1 }
+        workflowId: { type: integer, format: int64, minimum: 1 }
+        runId: { type: integer, format: int64, minimum: 1 }
+        attempt: { type: integer, minimum: 1 }
+        runUrl: { type: string, format: uri }
+        reportedHead: { type: string, pattern: '^[0-9a-f]{40}$' }
+        commitProvenance:
+          type: string
+          description: Verification status of the reported head, independent of the run observation.
+    HistoryCitation:
+      type: object
+      required: [side, child, parent, changeIndex, hunkIndex]
+      properties:
+        side: { type: string, enum: [before, after] }
+        child: { type: string, pattern: '^[0-9a-f]{40}$' }
+        parent: { type: string, pattern: '^[0-9a-f]{40}$' }
+        changeIndex: { type: integer, minimum: 0 }
+        hunkIndex: { type: integer, minimum: 0 }
+    AnswerHistorySettings:
+      type: object
+      additionalProperties: false
+      required: [revision, enabled, retentionDays]
+      properties:
+        revision: { type: integer, minimum: 0, maximum: 4294967295 }
+        enabled: { type: boolean, description: Defaults to false. Disabling clears the history. }
+        retentionDays: { type: integer, minimum: 1, maximum: 365, description: Defaults to 30. }
+    AnswerHistoryPage:
+      type: object
+      required: [entries]
+      properties:
+        entries:
+          type: array
+          maxItems: 25
+          items: { $ref: '#/components/schemas/AnswerHistorySummary' }
+        nextBeforeId: { type: integer, format: int64, minimum: 1 }
+    AnswerHistorySummary:
+      type: object
+      required: [id, question, completedAtMs, outcome]
+      properties:
+        id: { type: integer, format: int64, minimum: 1 }
+        question: { type: string, maxLength: 512 }
+        completedAtMs: { type: integer, format: int64, minimum: 0 }
+        outcome: { type: string, enum: [answered, insufficientEvidence] }
+    AnswerHistoryEntry:
+      type: object
+      required: [id, question, completedAtMs, scope, answer]
+      properties:
+        id: { type: integer, format: int64, minimum: 1 }
+        question: { type: string, maxLength: 512 }
+        completedAtMs: { type: integer, format: int64, minimum: 0 }
+        expiresAtMs:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Exclusive expiry in Unix milliseconds under the retention policy used for this read
+        traceId:
+          type: string
+          pattern: '^[0-9a-f]{32}$'
+          description: Trace ID of the original execution when recorded
+        scope: { $ref: '#/components/schemas/AnswerHistoryScope' }
+        answer: { $ref: '#/components/schemas/LocalAnswer' }
+    AnswerHistoryScope:
+      type: object
+      description: Explicit scope supplied with the saved question
+      properties:
+        repositoryId: { type: integer, format: int64, minimum: 1 }
+        branch: { type: string }
+        historyCommit: { type: string, pattern: '^[a-fA-F0-9]{40}$' }
+        actionsRunId: { type: integer, format: int64, minimum: 1 }
+        actionsRunAttempt: { type: integer, minimum: 1, maximum: 4294967295 }
     LocalAnswer:
       type: object
       required: [outcome, model, mode, citations]
       properties:
+        evidenceRepositoryIds:
+          type: array
+          description: GitHub repositories whose evidence was supplied to the model for a verified answer, including uncited passages. Empty when there is no verified answer or no GitHub evidence.
+          uniqueItems: true
+          items: { type: integer, format: int64, minimum: 1 }
         outcome: { type: string, enum: [answered, insufficientEvidence] }
         model: { type: string }
-        mode: { type: string, enum: [bm25, hybrid] }
+        mode: { type: string, enum: [bm25, semantic, hybrid, selected] }
         text: { type: string }
+        modelContext: { $ref: '#/components/schemas/AnswerModelContext' }
+        evidenceReview: { $ref: '#/components/schemas/AnswerEvidenceReview' }
         citations:
           type: array
           maxItems: 5
           items: { $ref: '#/components/schemas/Citation' }
+    AnswerEvidenceReview:
+      type: object
+      additionalProperties: false
+      description: Transient explanation of a withheld answer or an inspected request. Excluded from retained history and telemetry.
+      required: [question, searches, candidates, reason]
+      properties:
+        pipeline: { $ref: '#/components/schemas/AnswerPipeline' }
+        question: { type: string, maxLength: 512 }
+        scope:
+          type: object
+          additionalProperties: false
+          required: [repositoryId, branch]
+          properties:
+            repositoryId: { type: integer, format: int64, minimum: 1 }
+            branch: { type: string }
+        searches:
+          type: array
+          items: { $ref: '#/components/schemas/AnswerEvidenceSearch' }
+        candidates:
+          type: array
+          items: { $ref: '#/components/schemas/AnswerEvidenceCandidate' }
+        reason:
+          type: string
+          enum: [noCandidates, noUsableCandidates, contextLimit, generationDeadline, workerUnavailable, invalidModelOutput, noCitations, citationsUnverified, evidenceChanged, verified]
+    AnswerPipeline:
+      type: object
+      additionalProperties: false
+      properties:
+        fusion: { $ref: '#/components/schemas/FusionRanking' }
+        embedding: { $ref: '#/components/schemas/AnswerQueryEmbedding' }
+        fallback: { type: string }
+        completionInput: { type: string, description: Exact user message of the ordinary completion. }
+        draft: { $ref: '#/components/schemas/AnswerPipelineDraft' }
+    AnswerQueryEmbedding:
+      type: object
+      additionalProperties: false
+      required: [profile, indexed, total, input, vector, nearest]
+      properties:
+        profile: { type: string }
+        indexed: { type: integer, format: int64 }
+        total: { type: integer, format: int64 }
+        input: { type: string }
+        vector:
+          type: array
+          items: { type: number, format: float }
+        nearest:
+          type: array
+          maxItems: 20
+          items: { $ref: '#/components/schemas/AnswerVectorMatch' }
+        reformulation: { $ref: '#/components/schemas/AnswerEmbeddingInput' }
+    AnswerEmbeddingInput:
+      type: object
+      additionalProperties: false
+      required: [input, vector, nearest]
+      properties:
+        input: { type: string }
+        vector:
+          type: array
+          items: { type: number, format: float }
+        nearest:
+          type: array
+          maxItems: 20
+          items: { $ref: '#/components/schemas/AnswerVectorMatch' }
+    AnswerVectorMatch:
+      type: object
+      additionalProperties: false
+      required: [evidence, similarity, text, vector]
+      properties:
+        evidence: { $ref: '#/components/schemas/SearchHit' }
+        similarity: { type: number, format: float, description: Dot product of normalized vectors. }
+        text: { type: string }
+        vector:
+          type: array
+          items: { type: number, format: float }
+    AnswerPipelineDraft:
+      type: object
+      additionalProperties: false
+      required: [answer, citations]
+      properties:
+        answer: { type: string }
+        citations:
+          type: array
+          items: { $ref: '#/components/schemas/AnswerDraftCitation' }
+    AnswerDraftCitation:
+      type: object
+      additionalProperties: false
+      required: [passage, quote]
+      properties:
+        passage: { type: integer }
+        quote: { type: string }
+    AnswerEvidenceSource:
+      type: string
+      enum: [localPassages, githubHistory, githubActions]
+    AnswerEvidenceSearch:
+      type: object
+      additionalProperties: false
+      required: [source, candidateCount]
+      properties:
+        source: { $ref: '#/components/schemas/AnswerEvidenceSource' }
+        candidateCount: { type: integer, minimum: 0 }
+        selection: { type: string }
+    AnswerEvidenceCandidate:
+      type: object
+      additionalProperties: false
+      required: [source, reference, disposition]
+      properties:
+        source: { $ref: '#/components/schemas/AnswerEvidenceSource' }
+        reference: { type: string }
+        revision: { type: string }
+        startLine: { type: integer, minimum: 1 }
+        endLine: { type: integer, minimum: 1 }
+        rank: { type: integer, minimum: 1, description: Rank in the merged candidate list when applicable. }
+        slot: { type: integer, minimum: 1, description: Passage position when available. }
+        preview: { type: string, maxLength: 180 }
+        text: { type: string, description: Source text reopened for pipeline inspection. }
+        location: { $ref: '#/components/schemas/SourceLocation' }
+        fusionRank: { type: integer, minimum: 1, description: Rank before any reformulation merge. }
+        contextAdded: { type: boolean, description: The context builder added this passage after search. }
+        disposition:
+          type: string
+          enum: [candidateLimit, passageUnavailable, fixtureExcluded, contextLimit, noUsableDraft, notCited, citationUnverified, evidenceChanged, citationVerified]
+    AnswerModelContext:
+      type: object
+      additionalProperties: false
+      description: Transient, explicitly requested context of a completion. Sources are in the order supplied to the model, including uncited sources.
+      required: [question, sources]
+      properties:
+        question: { type: string, maxLength: 512 }
+        sources:
+          type: array
+          minItems: 1
+          maxItems: 5
+          items: { $ref: '#/components/schemas/AnswerModelSource' }
+    AnswerModelSource:
+      type: object
+      additionalProperties: false
+      required: [slot, kind, parts]
+      properties:
+        slot: { type: integer, minimum: 1, maximum: 5, description: One-based passage or change pair ID used in the completion prompt. }
+        kind: { type: string, enum: [current, history, workflow] }
+        repository: { type: string, description: Repository name present in the completion context. }
+        branch: { type: string, description: Branch present in the completion context. }
+        change: { $ref: '#/components/schemas/AnswerModelChange' }
+        parts:
+          type: array
+          minItems: 1
+          maxItems: 2
+          items: { $ref: '#/components/schemas/AnswerModelPart' }
+    AnswerModelChange:
+      type: object
+      additionalProperties: false
+      required: [beforePath, afterPath, parent, child]
+      properties:
+        beforePath: { type: string }
+        afterPath: { type: string }
+        parent: { type: string }
+        child: { type: string }
+    AnswerModelPart:
+      type: object
+      additionalProperties: false
+      required: [text]
+      properties:
+        text: { type: string, description: 'Exact excerpt from the completion context, with explicitly numbered history lines rendered as plain text.' }
+        side: { type: string, enum: [before, after] }
+        path: { type: string }
+        revision: { type: string }
+        startLine: { type: integer, minimum: 1 }
+        endLine: { type: integer, minimum: 1 }
     Problem:
       type: object
       required: [code, message]

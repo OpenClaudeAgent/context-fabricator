@@ -1,22 +1,17 @@
 //! Resumable walk over immutable, non-recursive GitHub trees.
 
-use percent_encoding::{AsciiSet, NON_ALPHANUMERIC, utf8_percent_encode};
 use serde::{Deserialize, Serialize};
 
-use super::{Collector, snapshot_error};
+use super::{Collector, Objects, SourceRequest, snapshot_error};
 use crate::domain::corpus::snapshot::{File, Snapshot};
 use crate::domain::github::{
     Error,
-    current::{Entry, Scope, SourceFile},
+    current::{Entry, SourceFile},
+    source::pinned_file_url,
 };
 
 const MAX_DEPTH: usize = 24;
 const MAX_VISITED: u32 = 20_000;
-const PATH_COMPONENT: &AsciiSet = &NON_ALPHANUMERIC
-    .remove(b'.')
-    .remove(b'-')
-    .remove(b'_')
-    .remove(b'~');
 
 #[derive(Serialize, Deserialize)]
 struct Cursor {
@@ -33,22 +28,27 @@ struct Frame {
 
 pub(super) async fn stage_files(
     worker: &Collector,
-    scope: &Scope,
-    secret: &[u8],
+    request: SourceRequest<'_>,
     stage: &mut Snapshot,
     root: Option<String>,
 ) -> Result<(), Error> {
+    let scope = request.scope;
+    let objects = worker.source.prepare(request, &stage.revision).await?;
+    let objects = objects.as_deref();
+    worker.store.check_scope(scope)?;
     let mut cursor = if let Some(raw) = &stage.cursor {
         serde_json::from_str(raw).map_err(|_| Error::Storage)?
     } else {
-        let root = if let Some(root) = root {
-            root
-        } else {
-            worker.store.check_scope(scope)?;
-            worker
-                .source
-                .commit_tree(secret, scope, &stage.revision)
-                .await?
+        let root = match (objects, root) {
+            (Some(objects), Some(expected)) => {
+                if objects.root(&stage.revision)? != expected {
+                    return Err(Error::Upstream);
+                }
+                expected
+            }
+            (Some(objects), None) => objects.root(&stage.revision)?,
+            (None, Some(root)) => root,
+            (None, None) => worker.source.commit_tree(request, &stage.revision).await?,
         };
         let cursor = Cursor::new(root);
         checkpoint(worker, stage, &cursor, &[])?;
@@ -62,7 +62,11 @@ pub(super) async fn stage_files(
         let level = cursor.frames.len() - 1;
         if fetched[level].is_none() {
             worker.store.check_scope(scope)?;
-            fetched[level] = Some(worker.source.tree(secret, scope, &frame.tree).await?);
+            fetched[level] = Some(if let Some(objects) = objects {
+                objects.tree(&frame.tree)?
+            } else {
+                worker.source.tree(request, &frame.tree).await?
+            });
         }
         let entries = fetched[level].as_deref().ok_or(Error::Storage)?;
         if frame.offset > entries.len() {
@@ -85,7 +89,7 @@ pub(super) async fn stage_files(
                     continue 'walk;
                 }
                 Entry::File(file) => {
-                    stage_file(worker, scope, secret, stage, &cursor, file).await?;
+                    stage_file(worker, request, stage, &cursor, file, objects).await?;
                 }
                 Entry::Skipped => {}
             }
@@ -99,12 +103,13 @@ pub(super) async fn stage_files(
 
 async fn stage_file(
     worker: &Collector,
-    scope: &Scope,
-    secret: &[u8],
+    request: SourceRequest<'_>,
     stage: &mut Snapshot,
     cursor: &Cursor,
     file: &SourceFile,
+    objects: Option<&dyn Objects>,
 ) -> Result<(), Error> {
+    let scope = request.scope;
     worker.store.check_scope(scope)?;
     let path = cursor.full_path(&file.path)?;
     let text = if worker
@@ -113,24 +118,18 @@ async fn stage_file(
         .map_err(snapshot_error)?
     {
         None
-    } else if let Some(text) = worker
-        .source
-        .blob(secret, scope, &file.oid, file.bytes)
-        .await?
-    {
-        Some(text)
     } else {
-        return Ok(());
+        let text = if let Some(objects) = objects {
+            objects.blob(&file.oid, file.bytes)?
+        } else {
+            worker.source.blob(request, &file.oid, file.bytes).await?
+        };
+        let Some(text) = text else {
+            return Ok(());
+        };
+        Some(text)
     };
-    let file_url = format!(
-        "https://github.com/{}/blob/{}/{}",
-        scope.full_name,
-        stage.revision,
-        path.split('/')
-            .map(|part| utf8_percent_encode(part, PATH_COMPONENT).to_string())
-            .collect::<Vec<_>>()
-            .join("/")
-    );
+    let file_url = pinned_file_url(&scope.full_name, &stage.revision, &path);
     checkpoint(
         worker,
         stage,

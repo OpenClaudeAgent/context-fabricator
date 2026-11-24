@@ -16,8 +16,16 @@ use crate::application::telemetry::{Command, LogFilter};
 pub(super) fn routes() -> Router<Api> {
     Router::new()
         .route("/v1/telemetry", get(snapshot).put(command))
+        .route("/v1/telemetry/answer-usage", get(answer_usage))
         .route("/v1/telemetry/logs", get(logs))
         .route("/v1/telemetry/traces/{traceId}", get(trace))
+}
+
+async fn answer_usage(State(api): State<Api>) -> Response {
+    let Some(telemetry) = api.telemetry else {
+        return failure(Failure::Storage);
+    };
+    respond(move || telemetry.answer_usage()).await
 }
 
 #[derive(Deserialize)]
@@ -92,11 +100,7 @@ async fn trace(
     let Ok(Path(trace_id)) = path else {
         return invalid_trace_id();
     };
-    if trace_id.len() != 32
-        || !trace_id
-            .bytes()
-            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
-    {
+    if parse_trace_id(&trace_id).is_none() {
         return invalid_trace_id();
     }
     let before_id = match query {
@@ -114,6 +118,17 @@ async fn trace(
         return failure(Failure::Storage);
     };
     respond(move || telemetry.trace(&trace_id, before_id)).await
+}
+
+pub(super) fn parse_trace_id(value: &str) -> Option<uuid::Uuid> {
+    if value.len() != 32
+        || !value
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+    {
+        return None;
+    }
+    uuid::Uuid::parse_str(value).ok()
 }
 
 fn invalid_trace_id() -> Response {

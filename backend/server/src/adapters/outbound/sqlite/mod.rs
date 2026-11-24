@@ -2,20 +2,27 @@ use std::path::Path;
 use std::sync::{Mutex, MutexGuard};
 use std::time::Duration;
 
-use rusqlite::{Connection, OpenFlags, TransactionBehavior, named_params, params};
+use rusqlite::{Connection, OpenFlags, TransactionBehavior, params};
 
 use crate::application::{
     AnswerLanguage, CodeScope, Diagnostic, Failure, SearchHit, SearchQuery, Settings, Status,
     ports::Repository,
 };
-use retrieval::{CANDIDATE_COLUMNS, hit};
 
+mod action_evidence;
+mod answer_history;
 mod corpus;
 mod evidence;
 mod github;
+mod history_search;
+mod inference_setup;
+mod model_jobs;
+mod models;
 mod retrieval;
+mod search;
 mod snapshot;
 mod sync;
+pub mod verified_weights;
 
 const CODE_COLLECTION: &str = "(SELECT collection FROM github_code_scopes
     WHERE repository_id = :repository_id AND branch = :branch)";
@@ -26,7 +33,7 @@ fn scope_parameters(scope: Option<&CodeScope>) -> (Option<i64>, Option<&str>) {
     })
 }
 
-const MIGRATIONS: [&str; 13] = [
+const MIGRATIONS: &[&str] = &[
     include_str!("migrations/0001_foundation.sql"),
     include_str!("migrations/0002_corpus.sql"),
     include_str!("migrations/0003_sync.sql"),
@@ -40,6 +47,31 @@ const MIGRATIONS: [&str; 13] = [
     include_str!("migrations/0011_source_snapshots.sql"),
     include_str!("migrations/0012_github_code_scopes.sql"),
     include_str!("migrations/0013_github_collection_jobs.sql"),
+    include_str!("migrations/0014_model_inventory.sql"),
+    include_str!("migrations/0015_github_history_lineage.sql"),
+    include_str!("migrations/0016_github_history_evidence.sql"),
+    include_str!("migrations/0017_github_actions.sql"),
+    include_str!("migrations/0018_github_history_search.sql"),
+    include_str!("migrations/0019_github_graph.sql"),
+    include_str!("migrations/0020_github_storage.sql"),
+    include_str!("migrations/0021_generation_selection.sql"),
+    include_str!("migrations/0022_github_history_schedule.sql"),
+    include_str!("migrations/0023_model_download_jobs.sql"),
+    include_str!("migrations/0024_inference_artifact_limit.sql"),
+    include_str!("migrations/0025_verified_weights.sql"),
+    include_str!("migrations/0026_embedding_index_state.sql"),
+    include_str!("migrations/0027_model_removals.sql"),
+    include_str!("migrations/0028_inference_setup.sql"),
+    include_str!("migrations/0029_inference_setup_resume.sql"),
+    include_str!("migrations/0030_history_preparation.sql"),
+    include_str!("migrations/0031_github_credential_cleanup.sql"),
+    include_str!("migrations/0032_answer_history.sql"),
+    include_str!("migrations/0033_answer_history_trace.sql"),
+    include_str!("migrations/0034_github_job_traces.sql"),
+    include_str!("migrations/0035_github_metadata_traces.sql"),
+    include_str!("migrations/0036_answer_locale.sql"),
+    include_str!("migrations/0037_document_vector_profiles.sql"),
+    include_str!("migrations/0038_embedding_selection.sql"),
 ];
 const MAX_DIAGNOSTICS: u16 = 500;
 
@@ -162,21 +194,26 @@ impl Repository for SqliteStore {
         settings.validate()?;
         let mut database = self.write()?;
         let transaction = database.transaction().map_err(storage_failure)?;
-        let language = match settings.answer_language {
-            AnswerLanguage::Auto => "auto",
-            AnswerLanguage::En => "en",
-            AnswerLanguage::Fr => "fr",
-        };
+        let locale = settings.answer_locale;
+        let language = locale.unwrap_or(settings.answer_language).legacy().code();
         let changed = transaction
             .execute(
                 "UPDATE settings SET revision = revision + 1, answer_language = ?1,
                   diagnostic_retention_hours = ?2,
-                  diagnostic_storage_limit_mb = coalesce(?3, diagnostic_storage_limit_mb)
-                 WHERE revision = ?4",
+                  diagnostic_storage_limit_mb = coalesce(?3, diagnostic_storage_limit_mb),
+                  inference_artifact_limit_gb = coalesce(?4, inference_artifact_limit_gb),
+                  answer_locale = CASE
+                      WHEN ?5 IS NOT NULL THEN ?5
+                      WHEN answer_language != ?1 THEN NULL
+                      ELSE answer_locale
+                  END
+                 WHERE revision = ?6",
                 params![
                     language,
                     settings.diagnostic_retention_hours,
                     settings.diagnostic_storage_limit_mb,
+                    settings.inference_artifact_limit_gb,
+                    locale.map(AnswerLanguage::code),
                     settings.revision
                 ],
             )
@@ -219,57 +256,28 @@ impl Repository for SqliteStore {
     }
 
     fn search(&self, query: &SearchQuery) -> Result<Vec<SearchHit>, Failure> {
-        let expression = query
-            .terms()
-            .iter()
-            .map(|term| format!("\"{term}\""))
-            .collect::<Vec<_>>()
-            .join(" OR ");
-        let database = self.read()?;
-        let (repository_id, branch) = scope_parameters(query.scope());
-        // Each FTS row represents one immutable passage. Return the requested
-        // owner's projection even if a different owner supplied that FTS row.
-        let sql = format!(
-                "SELECT {CANDIDATE_COLUMNS}
-                 FROM documents_fts f
-                 JOIN documents canonical ON canonical.id = f.rowid
-                 JOIN documents d ON d.id = CASE WHEN :repository_id IS NULL THEN canonical.id
-                     ELSE (SELECT owned.id FROM documents owned
-                           WHERE owned.collection = {CODE_COLLECTION}
-                             AND owned.publication_id IS NOT NULL
-                             AND (owned.source, owned.kind, owned.tracked_ref, owned.revision, owned.passage_start)
-                               = (canonical.source, canonical.kind, canonical.tracked_ref, canonical.revision, canonical.passage_start))
-                     END
-                 JOIN collections c ON c.name = d.collection
-                 WHERE documents_fts MATCH :expression
-                 ORDER BY bm25(documents_fts), d.source, d.revision, d.kind, d.tracked_ref, d.passage_start LIMIT 20"
-        );
-        let mut statement = database.prepare(&sql).map_err(storage_failure)?;
-        let rows = statement
-            .query_map(named_params! {":expression": expression, ":repository_id": repository_id, ":branch": branch}, hit)
-            .map_err(storage_failure)?;
-        rows.collect::<rusqlite::Result<Vec<_>>>()
-            .map_err(storage_failure)
+        search::rank(self, query)
     }
 }
 
 fn read_settings(database: &Connection) -> rusqlite::Result<Settings> {
     database.query_row(
-        "SELECT revision, answer_language, diagnostic_retention_hours, diagnostic_storage_limit_mb
+        "SELECT revision, answer_language, diagnostic_retention_hours, diagnostic_storage_limit_mb, inference_artifact_limit_gb, answer_locale
          FROM settings",
         [],
         |row| {
-            let answer_language = match row.get::<_, String>(1)?.as_str() {
-                "auto" => AnswerLanguage::Auto,
-                "en" => AnswerLanguage::En,
-                "fr" => AnswerLanguage::Fr,
-                _ => return Err(rusqlite::Error::InvalidQuery),
+            let decode = |code: &str| {
+                AnswerLanguage::from_code(code).ok_or(rusqlite::Error::InvalidQuery)
             };
+            let answer_language = decode(&row.get::<_, String>(1)?)?;
             Ok(Settings {
                 revision: row.get(0)?,
                 answer_language,
+                answer_locale: row.get::<_, Option<String>>(5)?.as_deref().map(decode).transpose()?,
+                answer_language_options: None,
                 diagnostic_retention_hours: row.get(2)?,
                 diagnostic_storage_limit_mb: row.get(3)?,
+                inference_artifact_limit_gb: row.get(4)?,
             })
         },
     )

@@ -1,47 +1,87 @@
+import AppKit
 import ComposableArchitecture
 import DesktopFeature
 import LocalAPI
 import SwiftUI
 
 struct OverviewView: View {
+  @Environment(\.locale) private var locale
   let store: StoreOf<Dashboard>
 
   var body: some View {
-    WorkspacePage {
-      HStack(alignment: .firstTextBaseline, spacing: 16) {
-        WorkspaceHeading(title: "Overview")
-        Button("Ask a question", systemImage: "bubble.left") {
-          store.send(.destinationChanged(.answers))
+    Group {
+      if store.connection == .connecting {
+        VStack(spacing: 20) {
+          WorkspaceColumn { header }
+          LoadingStateView("Connecting to the local backend")
         }
-        .buttonStyle(.borderedProminent)
-        .disabled(store.connection != .ready)
+      } else {
+        overview
       }
+    }
+    .labeledContentStyle(WorkspaceRowStyle())
+    .task(id: store.connection == .ready) {
+      if store.connection == .ready { await store.send(.observeOverview).finish() }
+    }
+  }
 
+  private var header: some View {
+    HStack(alignment: .firstTextBaseline, spacing: 16) {
+      WorkspaceHeading(title: "Overview")
+      Button("Ask a question", systemImage: "bubble.left") {
+        store.send(.destinationChanged(.answers))
+      }
+      .buttonStyle(.borderedProminent)
+      .disabled(store.connection != .ready)
+    }
+  }
+
+  private var overview: some View {
+    WorkspacePage {
+      header
       switch store.connection {
-      case .connecting:
-        ProgressView("Connecting to the local backend")
+      case .connecting: EmptyView()
       case .ready:
         if let status = store.snapshot?.status {
           corpus(status)
           serviceDetails(status)
         }
-      case .unavailable(let message):
+      case .dataDirectoryInUse, .unavailable:
         WorkspaceGroup(title: "Local service") {
           VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
               Image(systemName: "exclamationmark.circle")
                 .foregroundStyle(.orange)
                 .accessibilityHidden(true)
-              Text("Backend unavailable").accessibilityIdentifier("backend-unavailable")
+              Text(
+                store.connection == .dataDirectoryInUse
+                  ? "Context Fabricator is already open" : "Backend unavailable"
+              ).accessibilityIdentifier("backend-unavailable")
             }
             .font(.headline)
-            Text(message).foregroundStyle(.secondary)
-            restart
+            if let message = store.connection.failureMessage {
+              Text(locale.localizedKey(message)).foregroundStyle(.secondary)
+            }
+            HStack {
+              if store.connection == .dataDirectoryInUse, let app = otherInstance {
+                Button("Show Running App", systemImage: "arrow.up.forward.app") {
+                  _ = app.activate()
+                }
+                .buttonStyle(.borderedProminent)
+              }
+              restart
+            }
           }
         }
       }
     }
-    .labeledContentStyle(WorkspaceRowStyle())
+  }
+
+  private var otherInstance: NSRunningApplication? {
+    guard let id = Bundle.main.bundleIdentifier else { return nil }
+    return NSRunningApplication.runningApplications(withBundleIdentifier: id).first {
+      !$0.isTerminated && $0.processIdentifier != NSRunningApplication.current.processIdentifier
+    }
   }
 
   private func corpus(_ status: Components.Schemas.Status) -> some View {
@@ -92,15 +132,21 @@ struct OverviewView: View {
     WorkspaceGroup(title: "Local service") {
       VStack(spacing: 8) {
         LabeledContent("Backend") {
-          Label(status.status.rawValue.capitalized, systemImage: "checkmark.circle.fill")
+          Label("Ready", systemImage: "checkmark.circle.fill")
             .foregroundStyle(.green)
             .accessibilityIdentifier("backend-ready")
         }
         Divider()
         if let retrieval = status.retrieval {
-          LabeledContent("Embedding index", value: "\(retrieval.indexed) / \(retrieval.total)")
+          LabeledContent(
+            "Embedding index",
+            value: retrieval.state == .notConfigured
+              ? "—" : locale.localized("\(retrieval.indexed) / \(retrieval.total) passages")
+          )
+          .accessibilityIdentifier("embedding-index-progress")
           Divider()
-          LabeledContent("Embedding state", value: retrieval.state.rawValue.capitalized)
+          LabeledContent("Embedding state", value: embeddingState(retrieval.state))
+            .accessibilityIdentifier("embedding-index-state")
         } else {
           LabeledContent("Local inference", value: "Awaiting configuration")
         }
@@ -110,6 +156,16 @@ struct OverviewView: View {
           restart
         }
       }
+    }
+  }
+
+  private func embeddingState(_ state: Components.Schemas.RetrievalProgress.statePayload) -> String
+  {
+    switch state {
+    case .ready: locale.localized("Ready")
+    case .incomplete: locale.localized("Indexing")
+    case .notConfigured: locale.localized("Not configured")
+    case .disabled: locale.localized("Off")
     }
   }
 

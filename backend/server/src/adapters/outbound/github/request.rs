@@ -7,18 +7,27 @@ use hyper::{HeaderMap, Request, Response, StatusCode, Uri, body::Incoming, heade
 use serde::de::DeserializeOwned;
 
 use crate::application::Failure;
+use crate::application::github::{MetadataRequest, current};
+use crate::application::telemetry::{Stage, TraceContext};
 use crate::domain::github::Error;
-use crate::domain::github::current::Scope;
 use crate::domain::sync::{Reply, RequestKind};
 
-use super::super::http::retry_after;
-use super::{GitHubRepository, GitHubRest};
+use super::super::http::{DispatchTrace, retry_after};
+use super::GitHubRest;
 
 const VERSION: &str = "2026-03-10";
 const MAX_REDIRECTS: usize = 3;
 const BODY_LIMIT: usize = 1024 * 1024;
 
 type Parser<'a, T> = Pin<Box<dyn Future<Output = Result<T, Error>> + Send + 'a>>;
+
+struct GetRequest<'a> {
+    secret: &'a [u8],
+    kind: RequestKind,
+    path: &'a str,
+    guarded: bool,
+    trace: Option<DispatchTrace<'a>>,
+}
 
 enum Hop<T> {
     Data(Result<T, Error>),
@@ -33,35 +42,99 @@ impl GitHubRest {
         path: &str,
         read: fn(&mut Response<Incoming>) -> Parser<'_, T>,
     ) -> Result<T, Error> {
-        self.get_guarded(secret, kind, path, read, None).await
+        let request = GetRequest {
+            secret,
+            kind,
+            path,
+            guarded: false,
+            trace: None,
+        };
+        self.get_hops(request, read, || Ok(())).await
     }
 
-    pub(super) async fn get_guarded<T: Send>(
+    pub(super) async fn get_current<T: Send>(
         &self,
-        secret: &[u8],
-        mut kind: RequestKind,
+        source: current::SourceRequest<'_>,
+        kind: RequestKind,
         path: &str,
+        route: &'static str,
         read: fn(&mut Response<Incoming>) -> Parser<'_, T>,
-        scope: Option<&Scope>,
     ) -> Result<T, Error> {
+        let request = GetRequest {
+            secret: source.secret,
+            kind,
+            path,
+            guarded: true,
+            trace: provider_trace(source.trace, route),
+        };
+        self.get_hops(request, read, || {
+            self.scope_authority
+                .as_ref()
+                .ok_or(Failure::Storage)?
+                .check_scope(source.scope)
+                .map_err(authority_error)
+        })
+        .await
+    }
+
+    pub(super) async fn get_metadata<T: Send>(
+        &self,
+        source: MetadataRequest<'_>,
+        kind: RequestKind,
+        path: &str,
+        route: &'static str,
+        read: fn(&mut Response<Incoming>) -> Parser<'_, T>,
+    ) -> Result<T, Error> {
+        let request = GetRequest {
+            secret: source.secret,
+            kind,
+            path,
+            guarded: true,
+            trace: provider_trace(source.trace, route),
+        };
+        self.get_hops(request, read, || (source.guard)().map_err(authority_error))
+            .await
+    }
+
+    async fn get_hops<T: Send>(
+        &self,
+        request: GetRequest<'_>,
+        read: fn(&mut Response<Incoming>) -> Parser<'_, T>,
+        check: impl Fn() -> Result<(), Failure> + Send + Sync,
+    ) -> Result<T, Error> {
+        let GetRequest {
+            secret,
+            mut kind,
+            path,
+            guarded,
+            trace,
+        } = request;
         let mut url = Uri::builder()
             .scheme(self.scheme)
             .authority(self.authority.clone())
             .path_and_query(path)
             .build()
             .map_err(|_| Error::InvalidSelection)?;
-        let mut authorization = header::HeaderValue::from_bytes(&[b"Bearer ", secret].concat())
-            .map_err(|_| Error::InvalidToken)?;
-        authorization.set_sensitive(true);
+        let authorization = if secret.is_empty() {
+            None
+        } else {
+            let mut value = header::HeaderValue::from_bytes(&[b"Bearer ", secret].concat())
+                .map_err(|_| Error::InvalidToken)?;
+            value.set_sensitive(true);
+            Some(value)
+        };
         for _ in 0..=MAX_REDIRECTS {
             if self.transport.cooling_down().map_err(|_| Error::Storage)? {
                 return Err(Error::Throttled);
             }
-            let request = Request::get(url)
-                .header(header::AUTHORIZATION, authorization.clone())
+            let mut request = Request::get(url)
                 .header(header::ACCEPT, "application/vnd.github+json")
                 .header(header::USER_AGENT, "Context-Fabricator")
-                .header("X-GitHub-Api-Version", VERSION)
+                .header("X-GitHub-Api-Version", VERSION);
+            if let Some(value) = &authorization {
+                request = request.header(header::AUTHORIZATION, value);
+            }
+            let request = request
                 .body(Full::default())
                 .map_err(|_| Error::InvalidSelection)?;
             let reply = self
@@ -70,26 +143,24 @@ impl GitHubRest {
                     kind,
                     request,
                     Duration::from_secs(15),
-                    || {
-                        if let Some(scope) = scope {
-                            self.scope_authority
-                                .as_ref()
-                                .ok_or(Failure::Storage)?
-                                .check_scope(scope)
-                                .map_err(|error| match error {
-                                    Error::Conflict => Failure::Conflict,
-                                    _ => Failure::Storage,
-                                })?;
+                    &check,
+                    trace.map(|trace| {
+                        if kind == RequestKind::Redirect {
+                            DispatchTrace {
+                                route: "/{redirect-target}",
+                                ..trace
+                            }
+                        } else {
+                            trace
                         }
-                        Ok(())
-                    },
+                    }),
                     async |response| match response.status() {
                         StatusCode::UNAUTHORIZED => Reply::Credentials,
                         StatusCode::TOO_MANY_REQUESTS => Reply::Throttled(
                             cooldown(response.headers()).unwrap_or(Duration::from_secs(60)),
                         ),
                         StatusCode::FORBIDDEN => forbidden(response).await,
-                        StatusCode::NOT_FOUND if scope.is_some() && path.contains("/git/") => {
+                        StatusCode::NOT_FOUND if guarded && path.contains("/git/") => {
                             Reply::ExpiredCursor
                         }
                         StatusCode::NOT_FOUND | StatusCode::CONFLICT => Reply::Permanent,
@@ -147,8 +218,29 @@ impl GitHubRest {
     }
 }
 
-async fn decode<T: DeserializeOwned>(response: &mut Response<Incoming>) -> Result<T, Error> {
-    let body = Limited::new(response.body_mut(), BODY_LIMIT)
+pub(super) fn provider_trace<'a>(
+    trace: Option<TraceContext<'a>>,
+    route: &'static str,
+) -> Option<DispatchTrace<'a>> {
+    trace.map(|context| DispatchTrace {
+        context,
+        stage: Stage::GitHubProviderRequest,
+        route,
+    })
+}
+
+pub(super) fn authority_error(error: Error) -> Failure {
+    match error {
+        Error::Conflict => Failure::Conflict,
+        _ => Failure::Storage,
+    }
+}
+
+async fn decode<T: DeserializeOwned>(
+    response: &mut Response<Incoming>,
+    limit: usize,
+) -> Result<T, Error> {
+    let body = Limited::new(response.body_mut(), limit)
         .collect()
         .await
         .map_err(|_| Error::Upstream)?;
@@ -158,16 +250,22 @@ async fn decode<T: DeserializeOwned>(response: &mut Response<Incoming>) -> Resul
 pub(super) fn json<T: DeserializeOwned + Send + 'static>(
     response: &mut Response<Incoming>,
 ) -> Parser<'_, T> {
-    Box::pin(decode(response))
+    json_with_limit::<T, BODY_LIMIT>(response)
+}
+
+pub(super) fn json_with_limit<T: DeserializeOwned + Send + 'static, const LIMIT: usize>(
+    response: &mut Response<Incoming>,
+) -> Parser<'_, T> {
+    Box::pin(decode(response, LIMIT))
 }
 
 pub(super) fn skip_body(_: &mut Response<Incoming>) -> Parser<'_, ()> {
     Box::pin(std::future::ready(Ok(())))
 }
 
-pub(super) fn read_page(
+pub(super) fn read_page<T: DeserializeOwned + Send>(
     response: &mut Response<Incoming>,
-) -> Parser<'_, (Vec<GitHubRepository>, bool)> {
+) -> Parser<'_, (Vec<T>, bool)> {
     Box::pin(async move {
         let next = response.headers().get_all("link").iter().any(|value| {
             value.to_str().is_ok_and(|links| {
@@ -178,11 +276,11 @@ pub(super) fn read_page(
                 })
             })
         });
-        Ok((decode(response).await?, next))
+        Ok((decode(response, BODY_LIMIT).await?, next))
     })
 }
 
-async fn forbidden<T>(response: &mut Response<Incoming>) -> Reply<Hop<T>> {
+pub(super) async fn forbidden<T>(response: &mut Response<Incoming>) -> Reply<T> {
     #[derive(serde::Deserialize)]
     struct Problem {
         message: String,
@@ -190,22 +288,25 @@ async fn forbidden<T>(response: &mut Response<Incoming>) -> Reply<Hop<T>> {
     if let Some(delay) = cooldown(response.headers()) {
         return Reply::Throttled(delay);
     }
-    if decode::<Problem>(response).await.is_ok_and(|problem| {
-        problem
-            .message
-            .to_ascii_lowercase()
-            .contains("secondary rate limit")
-    }) {
+    if decode::<Problem>(response, BODY_LIMIT)
+        .await
+        .is_ok_and(|problem| {
+            problem
+                .message
+                .to_ascii_lowercase()
+                .contains("secondary rate limit")
+        })
+    {
         return Reply::Throttled(Duration::from_secs(60));
     }
     Reply::Permanent
 }
 
-fn cooldown(headers: &HeaderMap) -> Option<Duration> {
+pub(super) fn cooldown(headers: &HeaderMap) -> Option<Duration> {
     retry_after(headers).max(remaining_reset(headers))
 }
 
-fn remaining_reset(headers: &HeaderMap) -> Option<Duration> {
+pub(super) fn remaining_reset(headers: &HeaderMap) -> Option<Duration> {
     if headers.get("x-ratelimit-remaining")?.to_str().ok()? != "0" {
         return None;
     }

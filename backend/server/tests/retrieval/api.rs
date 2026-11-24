@@ -459,3 +459,167 @@ async fn rebuild_failures_have_specific_codes_and_leave_progress_pending()
     }
     Ok(())
 }
+
+#[tokio::test]
+async fn index_controls_are_authenticated_and_leave_bm25_available() -> Result<(), Box<dyn Error>> {
+    let store = Arc::new(SqliteStore::open(Path::new(":memory:"))?);
+    add(&store, "search", &DOCUMENTS)?;
+    let service = Arc::new(fixture_service(&store, PROFILE));
+    service.rebuild(32)?;
+    let app = http::router_with_services(
+        store,
+        TOKEN,
+        http::Services {
+            retrieval: Some(service),
+            ..http::Services::default()
+        },
+    );
+    expect(
+        &app,
+        Request::builder()
+            .uri("/v1/retrieval/index")
+            .body(Body::empty())?,
+        401,
+        problem(
+            "unauthorized",
+            "A local session credential is required.",
+            None,
+        ),
+    )
+    .await?;
+    json_request(
+        &app,
+        Method::GET,
+        "/v1/retrieval/index",
+        200,
+        json!({"profile":PROFILE,"enabled":true,"epoch":0}),
+    )
+    .await?;
+    let update = Request::builder()
+        .method(Method::PUT)
+        .uri("/v1/retrieval/index")
+        .header(header::AUTHORIZATION, format!("Bearer {TOKEN}"))
+        .header(header::CONTENT_TYPE, "application/json")
+        .body(Body::from(r#"{"enabled":false}"#))?;
+    expect(
+        &app,
+        update,
+        200,
+        json!({"profile":PROFILE,"enabled":false,"epoch":1}),
+    )
+    .await?;
+    json_request(
+        &app,
+        Method::GET,
+        "/v1/retrieval",
+        200,
+        progress("disabled", 2, 2),
+    )
+    .await?;
+    json_request(
+        &app,
+        Method::GET,
+        "/v1/search?query=burstguard&mode=semantic",
+        503,
+        problem(
+            "embedding_index_disabled",
+            "The local embedding index is disabled.",
+            None,
+        ),
+    )
+    .await?;
+    json_request(
+        &app,
+        Method::GET,
+        "/v1/search?query=burstguard",
+        200,
+        json!([current()]),
+    )
+    .await?;
+    json_request(
+        &app,
+        Method::DELETE,
+        "/v1/retrieval/index",
+        200,
+        json!({"profile":PROFILE,"enabled":false,"epoch":2,"removedVectors":2,"removedBytes":8192}),
+    )
+    .await?;
+    json_request(
+        &app,
+        Method::GET,
+        "/v1/retrieval",
+        200,
+        progress("disabled", 0, 2),
+    )
+    .await?;
+    Ok(())
+}
+
+#[tokio::test]
+async fn index_controls_reject_untyped_input_and_notify_on_committed_state()
+-> Result<(), Box<dyn Error>> {
+    let store = Arc::new(SqliteStore::open(Path::new(":memory:"))?);
+    let changes = Arc::new(std::sync::Mutex::new(Vec::new()));
+    let observed = changes.clone();
+    let service = fixture_service(&store, PROFILE).with_state_listener(move |enabled| {
+        if let Ok(mut events) = observed.lock() {
+            events.push(enabled);
+        }
+    });
+    let app = http::router_with_services(
+        store,
+        TOKEN,
+        http::Services {
+            retrieval: Some(Arc::new(service)),
+            ..http::Services::default()
+        },
+    );
+
+    let update = |payload: Value| {
+        Request::builder()
+            .method(Method::PUT)
+            .uri("/v1/retrieval/index")
+            .header(header::AUTHORIZATION, format!("Bearer {TOKEN}"))
+            .header(header::CONTENT_TYPE, "application/json")
+            .body(Body::from(payload.to_string()))
+    };
+    expect(
+        &app,
+        update(json!({"enabled":"false"}))?,
+        400,
+        problem(
+            "invalid_index_state",
+            "Supply an enabled boolean.",
+            Some("enabled"),
+        ),
+    )
+    .await?;
+    assert!(
+        changes
+            .lock()
+            .map_err(|_| "fixture listener poisoned")?
+            .is_empty()
+    );
+    for (enabled, epoch) in [(false, 1), (false, 1), (true, 2)] {
+        expect(
+            &app,
+            update(json!({"enabled":enabled}))?,
+            200,
+            json!({"profile":PROFILE,"enabled":enabled,"epoch":epoch}),
+        )
+        .await?;
+    }
+    json_request(
+        &app,
+        Method::DELETE,
+        "/v1/retrieval/index",
+        200,
+        json!({"profile":PROFILE,"enabled":false,"epoch":3,"removedVectors":0,"removedBytes":0}),
+    )
+    .await?;
+    assert_eq!(
+        *changes.lock().map_err(|_| "fixture listener poisoned")?,
+        [false, false, true, false]
+    );
+    Ok(())
+}
