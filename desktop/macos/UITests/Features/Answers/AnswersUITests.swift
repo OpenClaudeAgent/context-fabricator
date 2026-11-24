@@ -73,13 +73,7 @@ final class AnswersUITests: XCTestCase {
     app.buttons["open-answer-pipeline"].click()
     XCTAssertTrue(app.buttons["answer-pipeline-stage-index"].exists)
     XCTAssertTrue(app.buttons["answer-pipeline-stage-embedding"].exists)
-    let menu = app.descendants(matching: .any).matching(identifier: "answer-pipeline-scope")
-      .firstMatch
-    XCTAssertTrue(menu.wait(for: \.isHittable, toEqual: true, timeout: 5))
-    menu.click()
-    assertBenchmarkCorpus("FasterXML/jackson-databind", in: app)
-    assertBenchmarkCorpus("tokio-rs/bytes", in: app)
-    app.typeKey(.escape, modifierFlags: [])
+    try checkBenchmarkSources(in: app)
     pasteBenchmarkDocument(in: app)
     let question = app.textFields["answer-pipeline-question"]
     question.click()
@@ -98,14 +92,49 @@ final class AnswersUITests: XCTestCase {
     captureWindow("Native Answers benchmarks - temporary corpus", in: app)
   }
 
-  private func assertBenchmarkCorpus(_ repository: String, in app: XCUIApplication) {
-    let item = app.menuItems.matching(
-      NSPredicate(format: "label BEGINSWITH %@", repository)
-    ).firstMatch
-    XCTAssertTrue(item.waitForExistence(timeout: 4), "Benchmark corpus \(repository) is missing.")
+  private func checkBenchmarkSources(in app: XCUIApplication) throws {
+    openPipelineSources(in: app)
+    let manage = app.buttons["pipeline-manage-sources"]
+    _ = try XCTUnwrap(
+      manage.wait(for: \.isEnabled, toEqual: true, timeout: 5) ? manage : nil)
+    manage.click()
+    for repository in ["FasterXML/jackson-databind", "tokio-rs/bytes"] {
+      let item = app.staticTexts[repository].firstMatch
+      XCTAssertTrue(item.waitForExistence(timeout: 4), "Benchmark corpus \(repository) is missing.")
+    }
+    let done = app.buttons["pipeline-manage-sources-done"]
+    _ = try XCTUnwrap(done.wait(for: \.isHittable, toEqual: true, timeout: 5) ? done : nil)
+    done.click()
+    XCTAssertTrue(done.waitForNonExistence(timeout: 5))
+  }
+
+  private func openPipelineSources(in app: XCUIApplication) {
+    let sources = app.buttons["answer-pipeline-scope"]
+    XCTAssertTrue(sources.wait(for: \.isHittable, toEqual: true, timeout: 5))
+    sources.click()
+    XCTAssertTrue(
+      app.buttons["pipeline-manage-sources"].wait(for: \.isEnabled, toEqual: true, timeout: 5))
+  }
+
+  private func dismissPipelineSources(in app: XCUIApplication) {
+    let manage = app.buttons["pipeline-manage-sources"]
+    if manage.exists {
+      app.typeKey(.escape, modifierFlags: [])
+      XCTAssertTrue(manage.waitForNonExistence(timeout: 5))
+    }
+    XCTAssertTrue(app.textFields["answer-pipeline-question"].exists)
+  }
+
+  private func useBM25(in app: XCUIApplication) {
+    let mode = app.descendants(matching: .any).matching(identifier: "benchmark-retrieval-mode")
+      .firstMatch
+    XCTAssertTrue(mode.wait(for: \.isHittable, toEqual: true, timeout: 5))
+    mode.click()
+    app.menuItems["BM25"].click()
   }
 
   private func pasteBenchmarkDocument(in app: XCUIApplication) {
+    openPipelineSources(in: app)
     let imports = app.descendants(matching: .any).matching(
       identifier: "answer-pipeline-import-corpus"
     )
@@ -138,18 +167,22 @@ final class AnswersUITests: XCTestCase {
     _ = try launchAnswerFixture(in: app, directory: directory)
     app.selectWorkspace("answers")
     app.buttons["open-answer-pipeline"].click()
-    let menu = app.descendants(matching: .any).matching(identifier: "answer-pipeline-scope")
-      .firstMatch
-    XCTAssertTrue(menu.waitForExistence(timeout: 5))
-    menu.click()
-    let jackson = app.menuItems.matching(
-      NSPredicate(format: "label BEGINSWITH %@", "FasterXML/jackson-databind")
-    ).firstMatch
-    XCTAssertTrue(jackson.waitForExistence(timeout: 5))
+    openPipelineSources(in: app)
+    let jackson = app.buttons[
+      "benchmark-corpus-FasterXML/jackson-databind-c92512e95ba389d50a9ff6278906eff24ab3128e"]
+    XCTAssertTrue(jackson.wait(for: \.isHittable, toEqual: true, timeout: 5))
     jackson.click()
+    let download = app.buttons["benchmark-load-reference"]
+    XCTAssertTrue(download.wait(for: \.isHittable, toEqual: true, timeout: 5))
+    download.click()
     let ready = app.descendants(matching: .any).matching(identifier: "benchmark-reference-ready")
       .firstMatch
     XCTAssertTrue(ready.waitForExistence(timeout: 35))
+    useBM25(in: app)
+    dismissPipelineSources(in: app)
+    app.descendants(matching: .any).matching(identifier: "benchmark-questions-for-corpus")
+      .firstMatch.click()
+    app.menuItems["benchmark-case-ArrayNode.remove(-1)"].click()
     let question = app.textFields["answer-pipeline-question"]
     XCTAssertEqual(
       question.value as? String,
@@ -187,28 +220,32 @@ final class AnswersUITests: XCTestCase {
     _ = try launchAnswerFixture(in: app, directory: directory)
     app.selectWorkspace("answers")
     app.buttons["open-answer-pipeline"].click()
-    let menu = app.descendants(matching: .any).matching(identifier: "answer-pipeline-scope")
-      .firstMatch
-    XCTAssertTrue(menu.waitForExistence(timeout: 5))
-    menu.click()
-    app.menuItems["benchmark-corpus-apache/commons-cli-aec9bb2dd90df2d7f775d6da2f026a1c328a03e6"]
+    let editor = app.textFields["answer-pipeline-question"]
+    let run = app.buttons["answer-pipeline-run"]
+    let initialEditorFrame = editor.frame
+    let initialRunFrame = run.frame
+    openPipelineSources(in: app)
+    app.buttons["benchmark-corpus-apache/commons-cli-aec9bb2dd90df2d7f775d6da2f026a1c328a03e6"]
       .click()
     let download = app.buttons["benchmark-load-reference"]
     XCTAssertTrue(download.waitForExistence(timeout: 5))
+    XCTAssertEqual(editor.frame, initialEditorFrame)
+    XCTAssertEqual(run.frame, initialRunFrame)
     download.click()
     let ready = app.descendants(matching: .any).matching(identifier: "benchmark-reference-ready")
       .firstMatch
     XCTAssertTrue(ready.waitForExistence(timeout: 35))
+    XCTAssertEqual(editor.frame, initialEditorFrame)
+    XCTAssertEqual(run.frame, initialRunFrame)
+    useBM25(in: app)
+    dismissPipelineSources(in: app)
+    captureWindow("Commons CLI · corpus ready", in: app)
     let questions = app.descendants(matching: .any)
       .matching(identifier: "benchmark-questions-for-corpus").firstMatch
     questions.click()
     app.menuItems["benchmark-case-Quote cleanup"].click()
     let question = app.textFields["answer-pipeline-question"].value as? String
     XCTAssertTrue(question?.hasPrefix("In Commons CLI, what does quote stripping return") == true)
-    let mode = app.descendants(matching: .any).matching(identifier: "benchmark-retrieval-mode")
-      .firstMatch
-    mode.click()
-    app.menuItems["BM25"].click()
     app.buttons["answer-pipeline-run"].click()
     app.buttons["answer-pipeline-stage-retrieval"].click()
     let candidate = app.buttons.matching(

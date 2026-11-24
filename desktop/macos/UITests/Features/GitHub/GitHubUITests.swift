@@ -254,13 +254,22 @@ final class GitHubUITests: XCTestCase {
   private func purgeAndResumeHistory(
     in app: XCUIApplication, refresh: XCUIElement, refreshed: XCUIElement, paused: XCUIElement
   ) throws {
-    XCTAssertTrue(refresh.waitForExistence(timeout: 5))
-    app.buttons["github-purge-data"].click()
-    app.windows["dashboard"].buttons["Delete Local Data"].click()
+    let form = app.scrollViews["github-settings-status-form"]
+    let purge = app.buttons["github-purge-data"]
+    let compact = !purge.isHittable
+    if compact { form.scroll(byDeltaX: 0, deltaY: -400) }
+    _ = try XCTUnwrap(purge.wait(for: \.isHittable, toEqual: true, timeout: 5) ? purge : nil)
+    XCTAssertTrue(purge.wait(for: \.isEnabled, toEqual: true, timeout: 5))
+    purge.click()
+    let confirm = app.buttons["Delete Local Data"]
+    XCTAssertTrue(confirm.wait(for: \.isHittable, toEqual: true, timeout: 5))
+    confirm.click()
     _ = try XCTUnwrap(
       paused.wait(for: \.label, toEqual: "Automatic collection paused", timeout: 8)
         ? paused : nil)
     capture("History-only repository paused", in: app)
+    if !refresh.isHittable { form.scroll(byDeltaX: 0, deltaY: 400) }
+    XCTAssertTrue(refresh.wait(for: \.isHittable, toEqual: true, timeout: 5))
     XCTAssertTrue(refresh.isEnabled)
     refresh.click()
     XCTAssertTrue(refreshed.waitForExistence(timeout: 8))
@@ -602,7 +611,10 @@ final class GitHubUITests: XCTestCase {
     rate.typeKey("a", modifierFlags: .command)
     rate.typeText("30")
     XCTAssertEqual(rate.value as? String, "30")
-    app.buttons["github-apply-rate"].click()
+    let apply = app.buttons["github-apply-rate"]
+    XCTAssertTrue(apply.wait(for: \.isHittable, toEqual: true, timeout: 5))
+    XCTAssertTrue(apply.wait(for: \.isEnabled, toEqual: true, timeout: 5))
+    apply.click()
     let applied = app.descendants(matching: .any).matching(
       NSPredicate(
         format: "identifier == %@ AND label == %@",

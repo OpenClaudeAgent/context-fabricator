@@ -192,14 +192,15 @@ struct PreferencesView: View {
           .accessibilityLabel("Loading embedding models…")
       }
       if let models = form.embeddingModels, !models.profiles.isEmpty {
+        let activeProfile = models.profiles.first { $0.profile == models.activeProfile }?.profile
         Picker(
           "Embedding model",
           selection: Binding(
-            get: { form.embeddingModels?.activeProfile ?? "" },
+            get: { activeProfile ?? "" },
             set: { form.send(.selectEmbeddingModel($0)) }
           )
         ) {
-          if models.activeProfile == nil {
+          if activeProfile == nil {
             Text("Select an embedding model").tag("")
           }
           ForEach(models.profiles, id: \.profile) { model in

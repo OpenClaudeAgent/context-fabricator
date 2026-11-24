@@ -13,7 +13,7 @@ struct InferenceSetupView: View {
   let catalogFeedback: String?
   let runtime: Components.Schemas.RuntimeStatus?
   let manageDownloads: () -> Void
-  @State private var answerProfile = ""
+  @State private var chosenAnswerProfile: String?
   @State private var confirmedProfile: String?
   @Environment(\.dismiss) private var dismiss
   @State private var embedding = false
@@ -61,9 +61,7 @@ struct InferenceSetupView: View {
     } message: { _ in
       Text("The waiting setup will be cancelled. Already installed components are retained.")
     }
-    .onAppear { selectRecommendedIfNeeded() }
     .onChange(of: profiles) {
-      selectRecommendedIfNeeded()
       if !selectionAvailable { store.send(.cancel) }
     }
     .onChange(of: answerProfile) { store.send(.cancel) }
@@ -179,7 +177,10 @@ struct InferenceSetupView: View {
   private var answerChoices: some View {
     VStack(alignment: .leading, spacing: 7) {
       Text("Answer model").font(.headline).accessibilityAddTraits(.isHeader)
-      Picker("Answer model", selection: $answerProfile) {
+      Picker(
+        "Answer model",
+        selection: Binding(get: { answerProfile }, set: { chosenAnswerProfile = $0 })
+      ) {
         ForEach(answerModels, id: \.profile) { model in
           Text(optionLabel(model)).tag(model.profile)
             .accessibilityIdentifier("setup-choice-\(model.profile)")
@@ -307,7 +308,7 @@ struct InferenceSetupView: View {
 
   private func editSelection() {
     if let selection = store.status?.selection {
-      if let profile = selection.answerProfile { answerProfile = profile }
+      if let profile = selection.answerProfile { chosenAnswerProfile = profile }
       embedding = selection.embedding
       embeddingProfile = selection.embeddingProfile ?? ""
     }
@@ -388,24 +389,18 @@ struct InferenceSetupView: View {
     return store.starting ? "Close" : "Cancel"
   }
 
-  private var recommendedModel: Components.Schemas.ModelDownload? {
-    profiles.first { $0.kind == .generation && $0.setupRole == .recommendedAnswer }
-  }
   private var choices: InferenceSetupChoices { InferenceSetupChoices(profiles: profiles) }
   private var answerModels: [Components.Schemas.ModelDownload] { choices.answers }
   private var embeddingModels: [Components.Schemas.ModelDownload] { choices.embeddings }
   private var setupCatalogReady: Bool { !answerModels.isEmpty }
+  private var answerProfile: String {
+    answerModels.first { $0.profile == chosenAnswerProfile }?.profile ?? choices.defaultAnswer ?? ""
+  }
   private var selectedEmbeddingProfile: String? {
     embedding && !embeddingProfile.isEmpty ? embeddingProfile : nil
   }
   private var selectionAvailable: Bool {
     choices.contains(answer: answerProfile, embedding: selectedEmbeddingProfile)
-  }
-  private func selectRecommendedIfNeeded() {
-    guard !profiles.isEmpty else { return }
-    if answerProfile.isEmpty {
-      answerProfile = recommendedModel?.profile ?? answerModels.first?.profile ?? ""
-    }
   }
   private func optionLabel(_ model: Components.Schemas.ModelDownload) -> String {
     let name = model.label ?? model.profile

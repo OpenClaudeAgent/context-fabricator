@@ -20,7 +20,10 @@ struct GitHubTrafficSheet: View {
   }
 
   var body: some View {
-    GitHubSheet(title: "GitHub Requests & Storage", message: store.feedback, busy: store.busy) {
+    GitHubSheet(
+      title: "GitHub Requests & Storage", message: store.feedback, busy: store.busy,
+      prefersTallContent: true
+    ) {
       Form {
         Section {
           LabeledContent(
@@ -40,6 +43,13 @@ struct GitHubTrafficSheet: View {
                 .frame(width: 64)
                 .accessibilityIdentifier("github-request-rate")
               Text("requests/min").foregroundStyle(.secondary)
+              Button("Apply Limit") {
+                if let requested = Int(rate) { store.send(.setRate(requested)) }
+              }
+              .disabled(
+                Int(rate) == nil || Int(rate) == traffic.effectiveRequestsPerMinute
+              )
+              .accessibilityIdentifier("github-apply-rate")
             }
           }
         } header: {
@@ -100,18 +110,12 @@ struct GitHubTrafficSheet: View {
       }
       .formStyle(.grouped)
       .contentMargins(.bottom, 16, for: .scrollContent)
-      .frame(minHeight: 290, idealHeight: 540, maxHeight: 650)
     } buttons: {
       Button("Refresh Storage") { store.send(.loadStorage) }.disabled(store.busy)
       Spacer()
       Button("Done", role: .cancel) { store.send(.dismissPanel) }
         .keyboardShortcut(.cancelAction)
         .disabled(store.busy)
-      Button("Apply Limit") {
-        if let requested = Int(rate) { store.send(.setRate(requested)) }
-      }
-      .disabled(store.busy || Int(rate) == nil || Int(rate) == traffic.effectiveRequestsPerMinute)
-      .accessibilityIdentifier("github-apply-rate")
     }
     .onChange(of: store.storage?.revision, initial: true) {
       if let storage = store.storage { limit = String(storage.limitGb) }

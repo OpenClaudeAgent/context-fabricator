@@ -55,7 +55,7 @@ struct BenchmarkRunnerView: View {
   let loadingCorpus: Bool
   let inspect: (Suite, Question, AnswerResponse) -> Void
 
-  @State private var selectedID = ""
+  @State private var selectedID: String?
   @State private var mode: Components.Schemas.BenchmarkQuestion.retrievalPayload = .hybrid
   @State private var rows: [ResultRow] = []
   @State private var batch: Set<Int> = []
@@ -66,7 +66,11 @@ struct BenchmarkRunnerView: View {
   @State private var selectedRow: Int?
   @State private var activeRequest: UUID?
 
-  private var suite: Suite? { suites.first { $0.id == selectedID } }
+  private var suite: Suite? {
+    suites.first { $0.id == selectedID }
+      ?? suites.first { preferredReference != nil && $0.reference == preferredReference }
+      ?? suites.first(where: \.ready) ?? suites.first
+  }
   private var selectedQuestion: Question? {
     displayedRows.first { $0.id == selectedRow }?.question
   }
@@ -81,12 +85,16 @@ struct BenchmarkRunnerView: View {
   var body: some View {
     VStack(alignment: .leading, spacing: 0) {
       HStack {
-        Picker("Question Set", selection: $selectedID) {
-          ForEach(suites) { suite in
-            Text(verbatim: suite.title).tag(suite.id)
+        if let suite {
+          Picker(
+            "Question Set", selection: Binding(get: { suite.id }, set: { selectedID = $0 })
+          ) {
+            ForEach(suites) { option in
+              Text(verbatim: option.title).tag(option.id)
+            }
           }
+          .disabled(running)
         }
-        .disabled(running)
         if suite?.reference != nil {
           Picker("Search mode", selection: $mode) {
             Text("Hybrid").tag(Components.Schemas.BenchmarkQuestion.retrievalPayload.hybrid)
@@ -233,7 +241,7 @@ struct BenchmarkRunnerView: View {
     .frame(maxWidth: .infinity, maxHeight: .infinity)
     .onChange(of: isSelected, initial: true) { _, _ in selectAvailableSuite() }
     .onChange(of: suites.map(\.id)) { _, _ in selectAvailableSuite() }
-    .onChange(of: suite?.questions) { _, _ in
+    .onChange(of: suite?.questions, initial: true) { _, _ in
       rows = []
       selectedRow =
         suite?.questions.firstIndex(where: \.available)
@@ -244,10 +252,8 @@ struct BenchmarkRunnerView: View {
   }
 
   private func selectAvailableSuite() {
-    guard isSelected, suite == nil else { return }
-    selectedID =
-      suites.first(where: { preferredReference != nil && $0.reference == preferredReference })?.id
-      ?? suites.first(where: \.ready)?.id ?? suites.first?.id ?? ""
+    guard isSelected else { return }
+    selectedID = suite?.id
   }
 
   @ViewBuilder private func outcome(_ row: ResultRow) -> some View {

@@ -129,6 +129,7 @@ struct AnswerPipelineView: View {
   @State private var importKind: BenchmarkImport = .files
   @State private var importFeedback: String?
   let sources: AnswerPipelineSources
+  @State private var showsSources = false
   @State private var showsSourceManager = false
   @State private var sourceManagerTab: SourceManagerTab = .corpora
   @State private var showsFixtureCatalog = false
@@ -425,66 +426,48 @@ struct AnswerPipelineView: View {
           .lineLimit(1)
           .labelStyle(PipelineHeadingStyle(tint: .indigo))
         Spacer()
-        if !benchmarkSelected {
-          Text("Search in").font(.callout).foregroundStyle(.secondary)
-          benchmarkMenu.frame(maxWidth: 310)
-        }
-        Button("Sources…", systemImage: "slider.horizontal.3") {
-          showsSourceManager = true
-        }
-        .disabled(loadingCorpus || restoringSources || requestID != nil || benchmarkRunning)
-        .accessibilityIdentifier("pipeline-manage-sources")
-        if !benchmarkSelected {
-          corpusMenu
-          if inspectorSize.width >= 940, let reference = referenceCorpus {
-            referenceStatus(reference)
-          }
-        }
+        sourceControl
         Button("Done") { dismiss() }
-          .keyboardShortcut(.cancelAction)
+          .keyboardShortcut(showsSources ? nil : .cancelAction)
           .disabled(requestID != nil || loadingCorpus || benchmarkRunning)
           .accessibilityIdentifier("answer-pipeline-close")
       }
       if !benchmarkSelected { queryComposer }
-      ZStack(alignment: .leading) {
-        if let importFeedback {
-          Label(importFeedback, systemImage: "exclamationmark.circle")
-            .foregroundStyle(.orange)
-            .help(importFeedback)
-            .accessibilityIdentifier("benchmark-import-feedback")
-        } else if let setupFeedback {
-          Text(verbatim: setupFeedback).foregroundStyle(.secondary).help(setupFeedback)
-        }
-      }
-      .font(.caption)
-      .lineLimit(1)
-      .frame(maxWidth: .infinity, minHeight: 16, maxHeight: 16, alignment: .leading)
     }
     .padding(.horizontal, 22)
     .padding(.vertical, 14)
   }
 
+  private var benchmarkModePicker: some View {
+    Picker("Search mode", selection: $benchmarkRetrieval) {
+      Text("Hybrid").tag(Components.Schemas.BenchmarkQuestion.retrievalPayload.hybrid)
+      Text("BM25").tag(Components.Schemas.BenchmarkQuestion.retrievalPayload.bm25)
+    }
+    .pickerStyle(.menu)
+    .fixedSize()
+    .accessibilityIdentifier("benchmark-retrieval-mode")
+  }
+
   private var queryComposer: some View {
     HStack(alignment: .center, spacing: 8) {
-      questionMenu
       TextField("Question about the local corpus", text: $question)
-        .textFieldStyle(.roundedBorder)
+        .textFieldStyle(.plain)
+        .focusEffectDisabled()
         .focused($composerFocused)
         .onSubmit(run)
-        .accessibilityIdentifier("answer-pipeline-question")
-      if referenceCorpus != nil {
-        Picker("Search mode", selection: $benchmarkRetrieval) {
-          Text("Hybrid").tag(Components.Schemas.BenchmarkQuestion.retrievalPayload.hybrid)
-          Text("BM25").tag(Components.Schemas.BenchmarkQuestion.retrievalPayload.bm25)
+        .padding(.horizontal, 9)
+        .frame(height: 26)
+        .background(.background, in: .rect(cornerRadius: 6))
+        .overlay {
+          RoundedRectangle(cornerRadius: 6)
+            .strokeBorder(
+              composerFocused ? Color.accentColor.opacity(0.65) : Color.secondary.opacity(0.25),
+              lineWidth: 1
+            )
+            .allowsHitTesting(false)
         }
-        .labelsHidden()
-        .fixedSize()
-        .disabled(requestID != nil)
-        .accessibilityIdentifier("benchmark-retrieval-mode")
-      }
-      if inspectorSize.width < 940, let reference = referenceCorpus {
-        referenceStatus(reference)
-      }
+        .accessibilityIdentifier("answer-pipeline-question")
+      questionMenu
       Button {
         if requestID != nil { cancel() } else { run() }
       } label: {
@@ -492,7 +475,10 @@ struct AnswerPipelineView: View {
           if requestID != nil {
             Label("Cancel", systemImage: "stop.fill")
           } else {
-            Label("Run", systemImage: "return")
+            HStack(spacing: 5) {
+              Text("Run")
+              Image(systemName: "return").accessibilityHidden(true)
+            }
           }
         }
         .lineLimit(1)
@@ -533,8 +519,12 @@ struct AnswerPipelineView: View {
       }
       Divider()
       Button("GitHub Replay Questions…") { showsFixtureCatalog = true }
+      Button("Import Question Set (JSON)…", systemImage: "square.and.arrow.down") {
+        openImporter(.suite)
+      }
+      .accessibilityIdentifier("benchmark-import")
     } label: {
-      Label("Benchmark Questions", systemImage: "list.bullet")
+      Label("Questions", systemImage: "list.bullet")
     }
     .fixedSize()
     .disabled(requestID != nil || loadingCorpus || restoringSources)
@@ -548,116 +538,233 @@ struct AnswerPipelineView: View {
     }
   }
 
-  private var benchmarkMenu: some View {
-    Menu {
-      Button("All Connected Sources") { selectScope(.all) }
-      if !documents.isEmpty {
-        Button("Temporary files") { selectScope(.temporary) }
-      }
-      Section("Benchmark Corpora") {
-        ForEach(managedReferences, id: \.source) { reference in
-          Button {
-            selectScope(.reference(reference.source))
-          } label: {
-            Label {
-              Text("\(reference.repository) · \(String(reference.revision.prefix(8)))")
-            } icon: {
-              if scope == .reference(reference.source) {
-                Image(systemName: "checkmark")
-              } else if sources.savedCorpora[reference.source] == nil {
-                Image(systemName: "arrow.down")
-              }
-            }
-          }
-          .accessibilityIdentifier("benchmark-corpus-\(reference.repository)-\(reference.revision)")
-        }
-      }
-      let currentRepositories = repositories.filter { $0.features.currentCode }
-      if !currentRepositories.isEmpty {
-        Section("Repositories") {
-          ForEach(currentRepositories, id: \.repository.id) { item in
-            Button("\(item.repository.fullName) · \(item.branch)") {
-              selectScope(.repository(item.repository.id))
-            }
-          }
-        }
-      }
-      if !sources.workflows.active.isEmpty {
-        Section("GitHub Actions") {
-          ForEach(sources.workflows.active) { workflow in
-            Button {
-              selectScope(.workflow(workflow, origin: .connected))
-            } label: {
-              workflowLabel(workflow)
-            }
-            .accessibilityIdentifier("pipeline-workflow-source-\(workflow.id)")
-          }
-        }
-      }
-      if !sources.downloadedWorkflows.active.isEmpty {
-        Section("Downloaded Benchmark Actions") {
-          let groups = Dictionary(grouping: sources.downloadedWorkflows.active, by: \.repository)
-          ForEach(groups.keys.sorted(), id: \.self) { repository in
-            Menu(repository) {
-              ForEach(groups[repository] ?? []) { workflow in
-                Button {
-                  selectScope(.workflow(workflow, origin: .downloaded))
-                } label: {
-                  Text(
-                    verbatim:
-                      "\(workflow.name) · #\(workflow.runID) · \(String(workflow.commit.prefix(8)))"
-                  )
-                }
-              }
-            }
-          }
-        }
-      }
-      if !sources.recordedWorkflows.active.isEmpty {
-        Section("Recorded Benchmark Actions") {
-          ForEach(sources.recordedSnapshots, id: \.repositoryId) { snapshot in
-            let active = sources.recordedWorkflows.active.filter {
-              $0.repositoryID == snapshot.repositoryId
-            }
-            if !active.isEmpty {
-              Menu(snapshot.repository) {
-                ForEach(active) { workflow in
-                  Button {
-                    selectScope(.workflow(workflow, origin: .recorded))
-                  } label: {
-                    Text(
-                      verbatim:
-                        "\(workflow.name) · #\(workflow.runID) · \(String(workflow.commit.prefix(8)))"
-                    )
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    } label: {
-      Label {
-        if let workflow = selectedWorkflow {
-          Text(verbatim: "\(workflow.name) · #\(workflow.runID)")
-        } else if let referenceCorpus {
-          Text("\(referenceCorpus.repository) · \(String(referenceCorpus.revision.prefix(8)))")
-        } else if scope == .temporary {
-          Text("Temporary corpus")
-        } else if let selectedRepository {
-          Text(verbatim: selectedRepository.repository.fullName)
-        } else {
-          Text("All Connected Sources")
-        }
-      } icon: {
-        Image(systemName: "tray.full")
-      }
-      .lineLimit(1)
-      .truncationMode(.middle)
+  private var sourceScopeTitle: String {
+    if benchmarkSelected { return locale.localized("Sources") }
+    if let selectedWorkflow { return "\(selectedWorkflow.name) · #\(selectedWorkflow.runID)" }
+    if let referenceCorpus {
+      return "\(referenceCorpus.repository) · \(referenceCorpus.revision.prefix(8))"
     }
-    .disabled(requestID != nil || loadingCorpus)
+    if scope == .temporary { return locale.localized("Temporary corpus") }
+    if let selectedRepository { return selectedRepository.repository.fullName }
+    return locale.localized("All Connected Sources")
+  }
+
+  private var sourcesLoading: Bool { loadingCorpus || restoringSources }
+
+  private var sourceWarning: String? { importFeedback ?? setupFeedback }
+
+  private var sourceControl: some View {
+    Button {
+      showsSources.toggle()
+    } label: {
+      HStack(spacing: 7) {
+        Image(systemName: "tray.full")
+        Text(verbatim: sourceScopeTitle)
+          .lineLimit(1)
+          .truncationMode(.middle)
+          .frame(maxWidth: .infinity, alignment: .leading)
+        ZStack {
+          if sourcesLoading {
+            ProgressView().controlSize(.small)
+          } else if sourceWarning != nil {
+            Image(systemName: "exclamationmark.circle").foregroundStyle(.orange)
+          } else if !benchmarkSelected, referenceCorpus != nil, readyReference == nil {
+            Image(systemName: "arrow.down.circle").foregroundStyle(.secondary)
+          }
+        }
+        .frame(width: 16, height: 16)
+        Image(systemName: "chevron.down").font(.caption2.weight(.semibold))
+          .foregroundStyle(.secondary)
+      }
+      .frame(width: 236)
+    }
+    .accessibilityLabel("Sources")
+    .accessibilityValue(
+      sourcesLoading
+        ? locale.localized("Loading…")
+        : sourceWarning.map { "\(sourceScopeTitle). \($0)" } ?? sourceScopeTitle
+    )
     .accessibilityIdentifier("answer-pipeline-scope")
-    .help("Choose all connected sources or one specific source")
+    .help(sourceWarning ?? locale.localized("Choose all connected sources or one specific source"))
+    .disabled(requestID != nil || benchmarkRunning)
+    .popover(isPresented: $showsSources) {
+      sourcePopover
+        .onExitCommand { showsSources = false }
+    }
+  }
+
+  private var sourcePopover: some View {
+    VStack(alignment: .leading, spacing: 10) {
+      Text(benchmarkSelected ? "Sources" : "Search in")
+        .font(.headline)
+        .accessibilityAddTraits(.isHeader)
+      if sourcesLoading {
+        ProgressView("Loading…").controlSize(.small)
+      }
+      if let sourceWarning {
+        Label(sourceWarning, systemImage: "exclamationmark.circle")
+          .font(.caption)
+          .foregroundStyle(.orange)
+          .lineLimit(3)
+          .help(sourceWarning)
+          .accessibilityIdentifier("benchmark-import-feedback")
+      }
+      if !benchmarkSelected {
+        if let reference = referenceCorpus {
+          HStack {
+            referenceStatus(reference)
+            Spacer()
+            benchmarkModePicker
+          }
+          .disabled(sourcesLoading)
+        }
+        Divider()
+        ScrollView {
+          VStack(alignment: .leading, spacing: 8) {
+            sourceChoices
+          }
+          .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .frame(height: 255)
+        .disabled(sourcesLoading)
+        Divider()
+      }
+      HStack {
+        Spacer()
+        if !benchmarkSelected { addCorpusMenu }
+        Button("Manage Sources…", systemImage: "slider.horizontal.3") {
+          showsSources = false
+          showsSourceManager = true
+        }
+        .accessibilityIdentifier("pipeline-manage-sources")
+      }
+      .disabled(sourcesLoading)
+    }
+    .padding(14)
+    .frame(width: 388)
+  }
+
+  @ViewBuilder private var sourceChoices: some View {
+    sourceRow(.all, title: locale.localized("All Connected Sources"))
+    if !documents.isEmpty {
+      sourceRow(.temporary, title: locale.localized("Temporary files"))
+    }
+    sourceSection("Benchmark Corpora") {
+      ForEach(managedReferences, id: \.source) { reference in
+        sourceRow(
+          .reference(reference.source),
+          title: "\(reference.repository) · \(reference.revision.prefix(8))",
+          downloadable: sources.savedCorpora[reference.source] == nil
+        )
+        .accessibilityIdentifier("benchmark-corpus-\(reference.repository)-\(reference.revision)")
+      }
+    }
+    let currentRepositories = repositories.filter { $0.features.currentCode }
+    if !currentRepositories.isEmpty {
+      sourceSection("Repositories") {
+        ForEach(currentRepositories, id: \.repository.id) { item in
+          sourceRow(
+            .repository(item.repository.id), title: "\(item.repository.fullName) · \(item.branch)")
+        }
+      }
+    }
+    if !sources.workflows.active.isEmpty {
+      sourceSection("GitHub Actions") {
+        ForEach(sources.workflows.active) { workflow in
+          sourceRow(
+            .workflow(workflow, origin: .connected),
+            title: "\(workflow.repository) · \(workflow.name)",
+            detail: locale.localized("Run \(workflow.runID) · Attempt \(workflow.attempt)")
+          )
+          .accessibilityIdentifier("pipeline-workflow-source-\(workflow.id)")
+        }
+      }
+    }
+    if !sources.downloadedWorkflows.active.isEmpty {
+      sourceSection("Downloaded Benchmark Actions") {
+        let groups = Dictionary(grouping: sources.downloadedWorkflows.active, by: \.repository)
+        ForEach(groups.keys.sorted(), id: \.self) { repository in
+          workflowScopeMenu(repository, workflows: groups[repository] ?? [], origin: .downloaded)
+        }
+      }
+    }
+    if !sources.recordedWorkflows.active.isEmpty {
+      sourceSection("Recorded Benchmark Actions") {
+        ForEach(sources.recordedSnapshots, id: \.repositoryId) { snapshot in
+          let active = sources.recordedWorkflows.active.filter {
+            $0.repositoryID == snapshot.repositoryId
+          }
+          if !active.isEmpty {
+            workflowScopeMenu(snapshot.repository, workflows: active, origin: .recorded)
+          }
+        }
+      }
+    }
+  }
+
+  private func sourceSection<Content: View>(
+    _ title: LocalizedStringKey, @ViewBuilder content: () -> Content
+  ) -> some View {
+    VStack(alignment: .leading, spacing: 2) {
+      Text(title)
+        .font(.caption.weight(.semibold))
+        .foregroundStyle(.secondary)
+        .padding(.leading, 7)
+        .accessibilityAddTraits(.isHeader)
+      content()
+    }
+  }
+
+  private func sourceRow(
+    _ next: CorpusScope, title: String, detail: String? = nil, downloadable: Bool = false
+  ) -> some View {
+    let selected = scope == next
+    return Button {
+      selectScope(next)
+    } label: {
+      HStack(spacing: 7) {
+        ZStack {
+          if selected {
+            Image(systemName: "checkmark").foregroundStyle(Color.accentColor)
+          } else if downloadable {
+            Image(systemName: "arrow.down.circle").foregroundStyle(.secondary)
+          }
+        }
+        .frame(width: 16)
+        .accessibilityHidden(true)
+        VStack(alignment: .leading, spacing: 2) {
+          Text(verbatim: title).lineLimit(1).truncationMode(.middle)
+          if let detail {
+            Text(verbatim: detail).font(.caption.monospaced()).foregroundStyle(.secondary)
+          }
+        }
+        Spacer(minLength: 0)
+      }
+      .padding(.horizontal, 7)
+      .padding(.vertical, 4)
+      .background(
+        selected ? Color.accentColor.opacity(0.12) : .clear, in: .rect(cornerRadius: 5)
+      )
+      .contentShape(Rectangle())
+    }
+    .buttonStyle(.plain)
+    .accessibilityAddTraits(selected ? [.isSelected] : [])
+    .help(detail.map { "\(title)\n\($0)" } ?? title)
+  }
+
+  private func workflowScopeMenu(
+    _ repository: String, workflows: [PipelineWorkflow], origin: WorkflowOrigin
+  ) -> some View {
+    Menu(repository) {
+      ForEach(workflows) { workflow in
+        Button {
+          selectScope(.workflow(workflow, origin: origin))
+        } label: {
+          Text(verbatim: "\(workflow.name) · #\(workflow.runID) · \(workflow.commit.prefix(8))")
+        }
+      }
+    }
+    .padding(.leading, 7)
   }
 
   private func selectScope(_ next: CorpusScope) {
@@ -668,51 +775,43 @@ struct AnswerPipelineView: View {
     hybridUnavailable = false
   }
 
-  private var corpusMenu: some View {
+  private var addCorpusMenu: some View {
     Menu {
-      Button("Add Files…", systemImage: "doc.badge.plus") { openImporter(.files) }
-      Button("Paste Text…", systemImage: "clipboard") { showsDocumentEditor = true }
-        .accessibilityIdentifier("benchmark-add-text")
-      Divider()
-      Button("Import Question Set (JSON)…", systemImage: "square.and.arrow.down") {
-        openImporter(.suite)
+      Button("Add Files…", systemImage: "doc.badge.plus") {
+        showsSources = false
+        openImporter(.files)
       }
-      .accessibilityIdentifier("benchmark-import")
+      Button("Paste Text…", systemImage: "clipboard") {
+        showsSources = false
+        showsDocumentEditor = true
+      }
+      .accessibilityIdentifier("benchmark-add-text")
       if !documents.isEmpty {
+        Divider()
         Button("Clear Temporary Corpus", role: .destructive) {
           documents = []
-          if scope == .temporary {
-            scope = .all
-          }
+          if scope == .temporary { scope = .all }
         }
       }
     } label: {
       Label("Add", systemImage: "plus")
     }
     .fixedSize()
-    .disabled(requestID != nil || loadingCorpus)
     .accessibilityIdentifier("answer-pipeline-import-corpus")
   }
 
-  private func referenceStatus(_ reference: PipelineBenchmark.Reference) -> some View {
-    HStack(spacing: 8) {
-      if let loaded = readyReference {
-        Label("Ready", systemImage: "checkmark.circle")
-          .foregroundStyle(.green)
-          .help("\(loaded.files) files indexed · \(String(reference.revision.prefix(12)))")
-          .accessibilityIdentifier("benchmark-reference-ready")
-      } else if loadingCorpus {
-        ProgressView().controlSize(.small)
-        Text("Loading…")
-      } else {
-        Button(sources.savedCorpora[reference.source] == nil ? "Download Corpus" : "Activate") {
-          loadReference(reference)
-        }
-        .accessibilityIdentifier("benchmark-load-reference")
+  @ViewBuilder private func referenceStatus(_ reference: PipelineBenchmark.Reference) -> some View {
+    if let loaded = readyReference {
+      Label("Ready", systemImage: "checkmark.circle")
+        .foregroundStyle(.green)
+        .help("\(loaded.files) files indexed · \(reference.revision.prefix(12))")
+        .accessibilityIdentifier("benchmark-reference-ready")
+    } else {
+      Button(sources.savedCorpora[reference.source] == nil ? "Download Corpus" : "Activate") {
+        loadReference(reference)
       }
+      .accessibilityIdentifier("benchmark-load-reference")
     }
-    .font(.callout)
-    .frame(width: 155, height: 24, alignment: .trailing)
   }
 
   private func loadReference(_ reference: PipelineBenchmark.Reference) {
@@ -729,7 +828,7 @@ struct AnswerPipelineView: View {
       do {
         let session = try await supervisor.connect(startIfNeeded: false)
         try await importReference(reference, session: session)
-        composerFocused = true
+        if !showsSources { composerFocused = true }
       } catch {
         importFeedback = error.localizedDescription
       }
@@ -761,33 +860,16 @@ struct AnswerPipelineView: View {
         VStack(alignment: .leading, spacing: 0) {
           HStack(spacing: 12) {
             Text(sourceManagerTab.title).font(.headline).lineLimit(2)
+              .accessibilityAddTraits(.isHeader)
             Spacer()
             sourceManagerAction
+              .fixedSize()
           }
-          .padding(.horizontal, 18).padding(.vertical, 14)
+          .padding(.horizontal, 18)
+          .frame(height: 52)
           .disabled(loadingCorpus)
           Divider()
-          ScrollView {
-            VStack(alignment: .leading, spacing: 12) {
-              switch sourceManagerTab {
-              case .corpora:
-                benchmarkCorpusDownloads
-              case .publicActions:
-                benchmarkActionDownloads
-              case .connectedActions:
-                connectedActions
-              case .recordedActions:
-                recordedActions
-              }
-            }
-            .padding(16)
-            .disabled(loadingCorpus)
-          }
-          .overlay {
-            if loadingCorpus && sourceBatchStarted == nil && pendingReference == nil {
-              ProgressView().padding(16).background(.regularMaterial, in: .rect(cornerRadius: 8))
-            }
-          }
+          sourceManagerContent
         }
       }
       Divider()
@@ -796,8 +878,45 @@ struct AnswerPipelineView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .frame(height: 44)
     }
-    .frame(width: min(830, inspectorSize.width), height: min(580, inspectorSize.height))
+    .frame(width: min(920, inspectorSize.width), height: min(620, inspectorSize.height))
     .interactiveDismissDisabled(loadingCorpus)
+  }
+
+  private var sourceManagerContent: some View {
+    ZStack {
+      if sourceManagerTab == .recordedActions && sources.recordedSnapshots.isEmpty {
+        ContentUnavailableView("No Recorded Captures", systemImage: "archivebox")
+          .opacity(loadingCorpus ? 0 : 1)
+          .accessibilityHidden(loadingCorpus)
+      } else if sourceManagerTab == .connectedActions && actionRepositories.isEmpty {
+        ContentUnavailableView {
+          Label("Connected Repositories", systemImage: "link")
+        } description: {
+          Text("Enable GitHub Actions for a connected repository to load its runs.")
+        }
+      } else {
+        ScrollView {
+          VStack(alignment: .leading, spacing: 12) {
+            switch sourceManagerTab {
+            case .corpora: benchmarkCorpusDownloads
+            case .publicActions: benchmarkActionDownloads
+            case .connectedActions: connectedActions
+            case .recordedActions: recordedActions
+            }
+          }
+          .frame(maxWidth: .infinity, alignment: .leading)
+          .padding(18)
+          .disabled(loadingCorpus)
+        }
+      }
+      if loadingCorpus
+        && (sourceBatchStarted == nil && pendingReference == nil
+          || sourceManagerTab == .recordedActions && sources.recordedSnapshots.isEmpty)
+      {
+        ProgressView().padding(16).background(.regularMaterial, in: .rect(cornerRadius: 8))
+      }
+    }
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
   }
 
   private var sourceManagerNavigation: some View {
@@ -805,7 +924,7 @@ struct AnswerPipelineView: View {
       sourceManagerLink("Benchmark Corpora", icon: "tray.full", tab: .corpora)
       Section("GitHub Actions") {
         sourceManagerLink("Public Downloads", icon: "arrow.down.circle", tab: .publicActions)
-        sourceManagerLink("Connected Repositories", icon: "link", tab: .connectedActions)
+        sourceManagerLink("Repositories", icon: "link", tab: .connectedActions)
         sourceManagerLink("Recorded Captures", icon: "archivebox", tab: .recordedActions)
       }
     }
@@ -822,7 +941,8 @@ struct AnswerPipelineView: View {
       sourceManagerTab = tab
     } label: {
       Label(title, systemImage: icon)
-        .lineLimit(1)
+        .lineLimit(2)
+        .fixedSize(horizontal: false, vertical: true)
         .frame(maxWidth: .infinity, alignment: .leading)
         .contentShape(Rectangle())
     }
@@ -947,18 +1067,12 @@ struct AnswerPipelineView: View {
 
   private var connectedActions: some View {
     VStack(alignment: .leading, spacing: 6) {
-      if actionRepositories.isEmpty {
-        Text("Enable GitHub Actions for a connected repository to load its runs.")
-          .foregroundStyle(.secondary)
-      }
       ForEach(actionRepositories, id: \.repository.id) { repository in
         let id = repository.repository.id
         if id != actionRepositories.first?.repository.id { Divider() }
         if let runs = sources.workflows.runs(for: id), !runs.isEmpty {
           DisclosureGroup {
-            ForEach(runs) { workflow in
-              workflowActivationRow(workflow, origin: .connected)
-            }
+            workflowActivationRows(runs, origin: .connected)
           } label: {
             actionRepositoryRow(repository.repository.fullName, count: runs.count)
           }
@@ -971,6 +1085,7 @@ struct AnswerPipelineView: View {
               importBatch(references: [], actionRepositories: [repository])
             }
             .accessibilityIdentifier("pipeline-load-workflow-runs-\(id)")
+            .frame(width: 104, alignment: .trailing)
           }
           .frame(minHeight: 32)
         }
@@ -991,22 +1106,24 @@ struct AnswerPipelineView: View {
         HStack {
           corpusIdentity(reference)
           Spacer()
+          referenceActivity(reference.source)
           actionRunCount(runs.count)
             .opacity(download == nil ? 0 : 1)
             .accessibilityHidden(download == nil)
-            .frame(width: 112, alignment: .trailing)
-          referenceActivity(reference.source)
+            .frame(width: 96, alignment: .trailing)
           Button(download == nil ? "Download" : "Refresh") {
             importBatch(references: [], actionRepositories: [], benchmarkActions: [reference])
           }
           .accessibilityIdentifier(
-            "pipeline-download-actions-\(reference.repository)-\(reference.revision)")
+            "pipeline-download-actions-\(reference.repository)-\(reference.revision)"
+          )
+          .frame(width: 104, alignment: .trailing)
         }
         if !runs.isEmpty {
-          DisclosureGroup("Workflow Runs") {
-            ForEach(runs) { workflow in
-              workflowActivationRow(workflow, origin: .downloaded)
-            }
+          DisclosureGroup {
+            workflowActivationRows(runs, origin: .downloaded)
+          } label: {
+            Text("Workflow Runs").frame(maxWidth: .infinity, alignment: .leading)
           }
         }
       }
@@ -1015,12 +1132,8 @@ struct AnswerPipelineView: View {
 
   private var recordedActions: some View {
     VStack(alignment: .leading, spacing: 14) {
-      if sources.recordedSnapshots.isEmpty {
-        ContentUnavailableView("Recorded Benchmark Attempts", systemImage: "archivebox")
-      } else {
-        recordedActionsGroup("Recorded Benchmark Attempts", pinned: true)
-        recordedActionsGroup("Runs on other commits", pinned: false)
-      }
+      recordedActionsGroup("Recorded Benchmark Attempts", pinned: true)
+      recordedActionsGroup("Runs on other commits", pinned: false)
     }
   }
 
@@ -1031,9 +1144,7 @@ struct AnswerPipelineView: View {
           .filter { workflowMatchesBenchmark($0) == pinned }
         if !runs.isEmpty {
           DisclosureGroup {
-            ForEach(runs) { workflow in
-              workflowActivationRow(workflow, origin: .recorded)
-            }
+            workflowActivationRows(runs, origin: .recorded)
           } label: {
             actionRepositoryRow(snapshot.repository, count: runs.count)
           }
@@ -1068,35 +1179,56 @@ struct AnswerPipelineView: View {
       .contains { $0.repository == workflow.repository && $0.revision == workflow.commit }
   }
 
+  private func workflowActivationRows(_ runs: [PipelineWorkflow], origin: WorkflowOrigin)
+    -> some View
+  {
+    VStack(alignment: .leading, spacing: 0) {
+      ForEach(runs) { workflow in
+        if workflow.id != runs.first?.id { Divider() }
+        workflowActivationRow(workflow, origin: origin)
+      }
+    }
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .padding(.leading, 16)
+  }
+
   private func workflowActivationRow(_ workflow: PipelineWorkflow, origin: WorkflowOrigin)
     -> some View
   {
-    Toggle(
-      isOn: Binding(
-        get: { workflowSources(origin).isActive(workflow) },
-        set: { enabled in
-          switch origin {
-          case .recorded:
-            sources.recordedWorkflows.setActive(enabled, for: workflow)
-            sourcePreferences.recordedWorkflows = Set(sources.recordedWorkflows.active.map(\.id))
-          case .downloaded:
-            sources.downloadedWorkflows.setActive(enabled, for: workflow)
-            sourcePreferences.downloadedWorkflows = Set(
-              sources.downloadedWorkflows.active.map(\.id))
-          case .connected:
-            sources.workflows.setActive(enabled, for: workflow)
-            if enabled {
-              sourcePreferences.workflows.insert(workflow.id)
-            } else {
-              sourcePreferences.workflows.remove(workflow.id)
+    HStack(alignment: .center, spacing: 12) {
+      workflowLabel(workflow, recorded: origin != .connected, showRepository: false)
+        .frame(maxWidth: .infinity, alignment: .leading)
+      Toggle(
+        workflow.name,
+        isOn: Binding(
+          get: { workflowSources(origin).isActive(workflow) },
+          set: { enabled in
+            switch origin {
+            case .recorded:
+              sources.recordedWorkflows.setActive(enabled, for: workflow)
+              sourcePreferences.recordedWorkflows = Set(sources.recordedWorkflows.active.map(\.id))
+            case .downloaded:
+              sources.downloadedWorkflows.setActive(enabled, for: workflow)
+              sourcePreferences.downloadedWorkflows = Set(
+                sources.downloadedWorkflows.active.map(\.id))
+            case .connected:
+              sources.workflows.setActive(enabled, for: workflow)
+              if enabled {
+                sourcePreferences.workflows.insert(workflow.id)
+              } else {
+                sourcePreferences.workflows.remove(workflow.id)
+              }
             }
+            saveSourcePreferences()
           }
-          saveSourcePreferences()
-        }
+        )
       )
-    ) { workflowLabel(workflow, recorded: origin != .connected) }
-    .toggleStyle(.switch)
-    .accessibilityIdentifier("pipeline-active-workflow-\(workflow.id)")
+      .labelsHidden()
+      .toggleStyle(.switch)
+      .accessibilityLabel(Text(verbatim: "\(workflow.repository) · \(workflow.name)"))
+      .accessibilityIdentifier("pipeline-active-workflow-\(workflow.id)")
+    }
+    .padding(.vertical, 8)
   }
 
   private var managedReferences: [PipelineBenchmark.Reference] {
@@ -1168,9 +1300,11 @@ struct AnswerPipelineView: View {
     .frame(width: 700, height: 550)
   }
 
-  private func workflowLabel(_ workflow: PipelineWorkflow, recorded: Bool = false) -> some View {
+  private func workflowLabel(
+    _ workflow: PipelineWorkflow, recorded: Bool = false, showRepository: Bool = true
+  ) -> some View {
     VStack(alignment: .leading, spacing: 3) {
-      Text(verbatim: "\(workflow.repository) · \(workflow.name)")
+      Text(verbatim: showRepository ? "\(workflow.repository) · \(workflow.name)" : workflow.name)
       Text("Run \(workflow.runID) · Attempt \(workflow.attempt)")
         .font(.caption.monospaced()).foregroundStyle(.secondary)
       if recorded {
@@ -1828,32 +1962,60 @@ struct AnswerPipelineView: View {
   @ViewBuilder
   private func neighbors(_ matches: [Components.Schemas.AnswerVectorMatch]) -> some View {
     if !matches.isEmpty {
-      Text("Nearest passages").font(.headline)
+      HStack {
+        Text("Nearest passages").font(.headline)
+        Spacer()
+        Text("Similarity").font(.caption).foregroundStyle(.secondary)
+      }
+      .accessibilityAddTraits(.isHeader)
       Text("Similarity is the dot product of the normalized query and passage vectors.")
         .font(.caption).foregroundStyle(.secondary)
-      ForEach(Array(matches.enumerated()), id: \.offset) { index, match in
-        DisclosureGroup {
-          if let location = match.evidence.location {
-            Text("Lines \(location.startLine)–\(location.endLine) · \(match.evidence.revision)")
-              .font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
-            if let url = URL(string: location.fileUrl), url.host != "benchmark.invalid" {
-              Link("Open source", destination: url)
-            }
-          }
-          excerpt(match.text)
-          DisclosureGroup("Stored vector · \(match.vector.count) dimensions") {
-            excerpt(match.vector.map { String(describing: $0) }.joined(separator: ", "))
-          }
-        } label: {
-          HStack {
-            Text("#\(index + 1)").monospacedDigit()
-            Text(verbatim: match.evidence.title).lineLimit(1).truncationMode(.middle)
-            Spacer()
-            Text(match.similarity.formatted(.number.precision(.fractionLength(5))))
-              .monospacedDigit().foregroundStyle(.secondary)
-          }
+      VStack(alignment: .leading, spacing: 0) {
+        ForEach(Array(matches.enumerated()), id: \.offset) { index, match in
+          if index > 0 { Divider() }
+          neighborRow(match, rank: index + 1)
         }
       }
+    }
+  }
+
+  private func neighborRow(_ match: Components.Schemas.AnswerVectorMatch, rank: Int) -> some View {
+    let location = match.evidence.location
+    let path = location?.path ?? match.evidence.title
+    return DisclosureGroup {
+      VStack(alignment: .leading, spacing: 8) {
+        if let location {
+          Text("Lines \(location.startLine)–\(location.endLine) · \(match.evidence.revision)")
+            .font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
+          if let url = URL(string: location.fileUrl), url.host != "benchmark.invalid" {
+            Link("Open source", destination: url)
+          }
+        }
+        excerpt(match.text)
+        DisclosureGroup("Stored vector · \(match.vector.count) dimensions") {
+          excerpt(match.vector.map { String(describing: $0) }.joined(separator: ", "))
+        }
+      }
+      .frame(maxWidth: .infinity, alignment: .leading)
+      .padding(.bottom, 8)
+    } label: {
+      HStack(alignment: .firstTextBaseline, spacing: 8) {
+        Text("#\(rank)")
+          .font(.callout.monospacedDigit()).foregroundStyle(.secondary)
+          .frame(width: 32, alignment: .trailing)
+        VStack(alignment: .leading, spacing: 2) {
+          Text(verbatim: path).lineLimit(1).truncationMode(.middle).help(path)
+          if let location {
+            Text("Lines \(location.startLine)–\(location.endLine)")
+              .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+          }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        Text(match.similarity.formatted(.number.precision(.fractionLength(5))))
+          .font(.callout.monospacedDigit())
+          .frame(width: 68, alignment: .trailing)
+      }
+      .frame(maxWidth: .infinity, minHeight: 38, alignment: .leading)
     }
   }
 

@@ -107,6 +107,7 @@ struct GitHubOptionsSheet: View {
         }
         localDataSection(repository)
       }
+      .accessibilityIdentifier("github-settings-status-form")
       .frame(minWidth: 370, idealWidth: 450)
     }
     .formStyle(.grouped)
