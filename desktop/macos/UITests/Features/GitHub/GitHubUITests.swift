@@ -256,25 +256,37 @@ final class GitHubUITests: XCTestCase {
   ) throws {
     let form = app.scrollViews["github-settings-status-form"]
     let purge = app.buttons["github-purge-data"]
-    let compact = !purge.isHittable
-    if compact { form.scroll(byDeltaX: 0, deltaY: -400) }
-    _ = try XCTUnwrap(purge.wait(for: \.isHittable, toEqual: true, timeout: 5) ? purge : nil)
-    XCTAssertTrue(purge.wait(for: \.isEnabled, toEqual: true, timeout: 5))
+    try revealRepositoryControl(purge, in: form, deltaY: -400)
     purge.click()
     let confirm = app.buttons["Delete Local Data"]
-    XCTAssertTrue(confirm.wait(for: \.isHittable, toEqual: true, timeout: 5))
+    _ = try XCTUnwrap(
+      confirm.wait(for: \.isHittable, toEqual: true, timeout: 5) ? confirm : nil,
+      "Repository Settings must present the destructive confirmation before purging data.")
     confirm.click()
     _ = try XCTUnwrap(
       paused.wait(for: \.label, toEqual: "Automatic collection paused", timeout: 8)
         ? paused : nil)
     capture("History-only repository paused", in: app)
-    if !refresh.isHittable { form.scroll(byDeltaX: 0, deltaY: 400) }
-    XCTAssertTrue(refresh.wait(for: \.isHittable, toEqual: true, timeout: 5))
-    XCTAssertTrue(refresh.isEnabled)
+    try revealRepositoryControl(refresh, in: form, deltaY: 400)
     refresh.click()
     XCTAssertTrue(refreshed.waitForExistence(timeout: 8))
     XCTAssertTrue(paused.waitForNonExistence(timeout: 4))
     capture("History-only repository after resuming", in: app)
+  }
+
+  private func revealRepositoryControl(
+    _ control: XCUIElement, in form: XCUIElement, deltaY: CGFloat
+  ) throws {
+    XCTAssertTrue(form.waitForExistence(timeout: 5))
+    // XCUI can mark a clipped form row as hittable even when its center is below the viewport.
+    if !form.frame.contains(control.frame) {
+      form.scroll(byDeltaX: 0, deltaY: deltaY)
+    }
+    XCTAssertTrue(control.wait(for: \.isHittable, toEqual: true, timeout: 5))
+    _ = try XCTUnwrap(
+      form.frame.contains(control.frame) ? control : nil,
+      "The repository control must be visible inside the scroll view before clicking.")
+    XCTAssertTrue(control.wait(for: \.isEnabled, toEqual: true, timeout: 5))
   }
 
   private func prepareRefreshInterval(in app: XCUIApplication) throws {
