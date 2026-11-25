@@ -163,6 +163,105 @@ final class AnswersUITests: XCTestCase {
     XCTAssertTrue(answer.exists)
   }
 
+  func testPinnedBenchmarkCorpusCanBeReactivatedAfterRestart() async throws {
+    let environment = ProcessInfo.processInfo.environment
+    let port = try XCTUnwrap(environment["CTXFAB_BENCHMARK_GIT_PORT"])
+    let revision = try XCTUnwrap(environment["CTXFAB_BENCHMARK_GIT_REVISION"])
+    let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+    let app = XCUIApplication()
+    app.launchEnvironment["CTXFAB_TEST_GITHUB_FIXTURE_PORT"] = port
+    defer {
+      app.terminate()
+      try? FileManager.default.removeItem(at: directory)
+    }
+    _ = try launchAnswerFixture(in: app, directory: directory, hybrid: true)
+    let endpoint = try BackendEndpoint.read(in: directory)
+    try await setEmbeddingIndex(false, in: endpoint)
+    try await fetchPinnedCorpus(revision: revision, in: endpoint)
+    openPinnedCorpus(revision: revision, in: app)
+    let ready = app.descendants(matching: .any).matching(identifier: "benchmark-reference-ready")
+      .firstMatch
+    XCTAssertTrue(ready.exists)
+    app.buttons["pipeline-manage-sources"].click()
+    let activations = app.descendants(matching: .any)
+      .matching(identifier: "pipeline-active-corpus-fixture/alpha-\(revision)")
+    let activation = activations.firstMatch
+    XCTAssertTrue(activation.wait(for: \.isHittable, toEqual: true, timeout: 5))
+    XCTAssertEqual(activation.value as? Int, 1)
+    activation.click()
+    let inactive = activations.matching(NSPredicate(format: "value == 0")).firstMatch
+    XCTAssertTrue(inactive.waitForExistence(timeout: 5))
+
+    app.terminate()
+    app.launch()
+    openPinnedCorpus(revision: revision, in: app)
+    let activate = app.buttons["benchmark-load-reference"]
+    XCTAssertEqual(activate.label, "Activate")
+    activate.click()
+    XCTAssertTrue(ready.waitForExistence(timeout: 10))
+    dismissPipelineSources(in: app)
+    try await verifyPinnedCorpusSearch(in: app, endpoint: BackendEndpoint.read(in: directory))
+  }
+
+  private func verifyPinnedCorpusSearch(in app: XCUIApplication, endpoint: BackendEndpoint)
+    async throws
+  {
+    let question = app.textFields["answer-pipeline-question"]
+    question.click()
+    question.typeText("Driftmarker")
+    question.typeKey(.return, modifierFlags: [])
+    let fallback = app.buttons["Use BM25"]
+    XCTAssertTrue(fallback.wait(for: \.isHittable, toEqual: true, timeout: 10))
+    fallback.click()
+    app.buttons["answer-pipeline-run"].click()
+    app.buttons["answer-pipeline-stage-verification"].click()
+    let answer = app.staticTexts.matching(
+      NSPredicate(format: "value == %@", "Driftmarker waits 108 ms.")
+    ).firstMatch
+    XCTAssertTrue(answer.waitForExistence(timeout: 10))
+
+    try await setEmbeddingIndex(true, in: endpoint)
+    openPipelineSources(in: app)
+    selectBenchmarkSearchMode("Hybrid", in: app)
+    dismissPipelineSources(in: app)
+    app.buttons["answer-pipeline-run"].click()
+    app.buttons["answer-pipeline-stage-embedding"].click()
+    XCTAssertTrue(app.staticTexts["Nearest passages"].waitForExistence(timeout: 12))
+    XCTAssertTrue(app.staticTexts["queue.txt"].exists)
+  }
+
+  private func fetchPinnedCorpus(revision: String, in endpoint: BackendEndpoint) async throws {
+    struct Corpus: Decodable {
+      let files: Int
+      let revision: String
+    }
+    var request = URLRequest(url: endpoint.url.appending(path: "v1/benchmarks/corpus"))
+    request.httpMethod = "POST"
+    request.setValue("Bearer \(endpoint.token)", forHTTPHeaderField: "Authorization")
+    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+    request.httpBody = try JSONEncoder().encode([
+      "repository": "fixture/alpha", "revision": revision,
+    ])
+    let (body, response) = try await URLSession.shared.data(for: request)
+    XCTAssertEqual((response as? HTTPURLResponse)?.statusCode, 200)
+    let corpus = try JSONDecoder().decode(Corpus.self, from: body)
+    XCTAssertEqual(corpus.files, 1)
+    XCTAssertEqual(corpus.revision, revision)
+  }
+
+  private func openPinnedCorpus(revision: String, in app: XCUIApplication) {
+    let ready = app.descendants(matching: .any).matching(identifier: "backend-ready").firstMatch
+    XCTAssertTrue(ready.waitForExistence(timeout: 12))
+    app.selectWorkspace("answers")
+    let inspector = app.buttons["open-answer-pipeline"]
+    XCTAssertTrue(inspector.wait(for: \.isHittable, toEqual: true, timeout: 8))
+    inspector.click()
+    openPipelineSources(in: app)
+    let corpus = app.buttons["benchmark-corpus-fixture/alpha-\(revision)"]
+    XCTAssertTrue(corpus.wait(for: \.isHittable, toEqual: true, timeout: 5))
+    corpus.click()
+  }
+
   private func checkBenchmarkSources(in app: XCUIApplication) throws {
     openPipelineSources(in: app)
     let manage = app.buttons["pipeline-manage-sources"]
@@ -196,12 +295,12 @@ final class AnswersUITests: XCTestCase {
     XCTAssertTrue(app.textFields["answer-pipeline-question"].exists)
   }
 
-  private func useBM25(in app: XCUIApplication) {
+  private func selectBenchmarkSearchMode(_ title: String, in app: XCUIApplication) {
     let mode = app.descendants(matching: .any).matching(identifier: "benchmark-retrieval-mode")
       .firstMatch
     XCTAssertTrue(mode.wait(for: \.isHittable, toEqual: true, timeout: 5))
     mode.click()
-    app.menuItems["BM25"].click()
+    app.menuItems[title].click()
   }
 
   private func pasteBenchmarkDocument(in app: XCUIApplication) {
@@ -249,7 +348,7 @@ final class AnswersUITests: XCTestCase {
     let ready = app.descendants(matching: .any).matching(identifier: "benchmark-reference-ready")
       .firstMatch
     XCTAssertTrue(ready.waitForExistence(timeout: 35))
-    useBM25(in: app)
+    selectBenchmarkSearchMode("BM25", in: app)
     dismissPipelineSources(in: app)
     app.descendants(matching: .any).matching(identifier: "benchmark-questions-for-corpus")
       .firstMatch.click()
@@ -308,7 +407,7 @@ final class AnswersUITests: XCTestCase {
     XCTAssertTrue(ready.waitForExistence(timeout: 35))
     XCTAssertEqual(editor.frame, initialEditorFrame)
     XCTAssertEqual(run.frame, initialRunFrame)
-    useBM25(in: app)
+    selectBenchmarkSearchMode("BM25", in: app)
     dismissPipelineSources(in: app)
     captureWindow("Commons CLI · corpus ready", in: app)
     let questions = app.descendants(matching: .any)
@@ -706,18 +805,22 @@ final class AnswersUITests: XCTestCase {
       try JSONDecoder().decode(Page.self, from: body).entries.map(\.question), [question])
   }
 
+  private func setEmbeddingIndex(_ enabled: Bool, in endpoint: BackendEndpoint) async throws {
+    var request = URLRequest(url: endpoint.url.appending(path: "v1/retrieval/index"))
+    request.httpMethod = "PUT"
+    request.setValue("Bearer \(endpoint.token)", forHTTPHeaderField: "Authorization")
+    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+    request.httpBody = try JSONEncoder().encode(["enabled": enabled])
+    let (_, response) = try await URLSession.shared.data(for: request)
+    XCTAssertEqual((response as? HTTPURLResponse)?.statusCode, 200)
+  }
+
   private func enableHybridIndex(in endpoint: BackendEndpoint) async throws {
     struct Progress: Decodable {
       let state: String
       let indexed: Int
     }
-    var request = URLRequest(url: endpoint.url.appending(path: "v1/retrieval/index"))
-    request.httpMethod = "PUT"
-    request.setValue("Bearer \(endpoint.token)", forHTTPHeaderField: "Authorization")
-    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-    request.httpBody = Data(#"{"enabled":true}"#.utf8)
-    let (_, response) = try await URLSession.shared.data(for: request)
-    XCTAssertEqual((response as? HTTPURLResponse)?.statusCode, 200)
+    try await setEmbeddingIndex(true, in: endpoint)
     var progress = URLRequest(url: endpoint.url.appending(path: "v1/retrieval"))
     progress.setValue("Bearer \(endpoint.token)", forHTTPHeaderField: "Authorization")
     let deadline = ContinuousClock.now + .seconds(8)

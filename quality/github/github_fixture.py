@@ -13,6 +13,7 @@ import hashlib
 import json
 import re
 import subprocess
+import tempfile
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -504,7 +505,7 @@ class GitHub(BaseHTTPRequestHandler):
             log.write(f"{self.command} {self.path}\n")
         token = self.headers.get("Authorization")
         expected = "Basic " + base64.b64encode(b"x-access-token:github_pat_fixture_primary").decode()
-        if token != expected:
+        if token != expected and not (public_benchmark and token is None):
             self.respond(401)
             return
         if (directory / "throttle-pack").exists() and self.command == "POST":
@@ -554,6 +555,32 @@ def git_fixture(*args):
                                    text=True).strip()
 
 
+def prepare_public_benchmark(root):
+    """Serve one immutable code corpus without contacting GitHub."""
+    remote = root / "fixture/alpha.git"
+    remote.parent.mkdir()
+    with tempfile.TemporaryDirectory(dir=root) as checkout:
+        worktree = Path(checkout)
+        (worktree / "queue.txt").write_text("Driftmarker waits 108 ms.", encoding="utf-8")
+        commands = [
+            ["init", "-q", "--object-format=sha1", "-b", "main"],
+            ["add", "queue.txt"],
+            ["-c", "user.name=Benchmark Fixture", "-c", "user.email=fixture@example.invalid",
+             "-c", "commit.gpgsign=false", "commit", "-qm", "Benchmark corpus"],
+            ["clone", "-q", "--bare", ".", str(remote)],
+        ]
+        environment = {
+            **os.environ,
+            "GIT_AUTHOR_DATE": "2000-01-01T00:00:00Z",
+            "GIT_COMMITTER_DATE": "2000-01-01T00:00:00Z",
+        }
+        for args in commands:
+            subprocess.run(["git", "-C", checkout, *args], check=True, env=environment)
+    git_fixture("config", "uploadpack.allowReachableSHA1InWant", "true")
+    (root / "smart-git").touch()
+    (root / "revision").write_text(git_fixture("rev-parse", "HEAD"), encoding="ascii")
+
+
 class LoopbackHTTPServer(ThreadingHTTPServer):
     def server_bind(self):
         # The numeric loopback address needs no hostname lookup to serve HTTP.
@@ -563,9 +590,12 @@ class LoopbackHTTPServer(ThreadingHTTPServer):
 
 directory = Path(sys.argv[1])
 ui_control = sys.argv[2:] == ["--ui-control"]
+public_benchmark = sys.argv[2:] == ["--public-benchmark"]
 hits = directory / "hits.log"
 expired = directory / "expire"
 references = pinned_routes(os.getenv("CTXFAB_REFERENCE_CORPUS"))
+if public_benchmark:
+    prepare_public_benchmark(directory)
 if STARTUP_DIAGNOSTICS:
     print("GitHub fixture: binding to loopback", file=sys.stderr, flush=True)
 with LoopbackHTTPServer(("127.0.0.1", 0), GitHub) as server:

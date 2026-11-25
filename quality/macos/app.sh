@@ -169,9 +169,10 @@ if [[ $mode == test || $mode == test-built-ui ]]; then
     hub_fixture=
     github_pid=
     hub_pid=
+    benchmark_pid=
     cleanup_fixtures() {
         local pid
-        for pid in "$github_pid" "$hub_pid"; do
+        for pid in "$github_pid" "$hub_pid" "$benchmark_pid"; do
             [[ -n $pid ]] || continue
             kill "$pid" 2>/dev/null || true
             wait "$pid" 2>/dev/null || true
@@ -205,6 +206,16 @@ if [[ $mode == test || $mode == test-built-ui ]]; then
         wait_for_fixture "$github_fixture/port" "$github_pid" "$report/github-fixture.log"
         export TEST_RUNNER_CTXFAB_GITHUB_TEST_PORT="$(< "$github_fixture/port")"
         export TEST_RUNNER_CTXFAB_GITHUB_TEST_HITS="$github_fixture/hits.log"
+    fi
+    if [[ $shard == all || $shard == answers ]]; then
+        benchmark_fixture="$fixture_root/public-benchmark"
+        mkdir "$benchmark_fixture"
+        python3 "$quality_root/quality/github/github_fixture.py" "$benchmark_fixture" --public-benchmark \
+            > "$report/public-benchmark-fixture.log" 2>&1 &
+        benchmark_pid=$!
+        wait_for_fixture "$benchmark_fixture/port" "$benchmark_pid" "$report/public-benchmark-fixture.log"
+        export TEST_RUNNER_CTXFAB_BENCHMARK_GIT_PORT="$(< "$benchmark_fixture/port")"
+        export TEST_RUNNER_CTXFAB_BENCHMARK_GIT_REVISION="$(< "$benchmark_fixture/revision")"
     fi
     if [[ $shard == all || $shard == answers || $shard == models ]]; then
         hub_fixture="$fixture_root/hugging-face"
