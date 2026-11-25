@@ -627,6 +627,7 @@ struct AnswerPipelineView: View {
         }
         .frame(height: 255)
         .disabled(sourcesLoading)
+        .accessibilityIdentifier("pipeline-source-list")
         Divider()
       }
       HStack {
@@ -908,6 +909,7 @@ struct AnswerPipelineView: View {
           .padding(18)
           .disabled(loadingCorpus)
         }
+        .accessibilityIdentifier("pipeline-source-manager-content")
       }
       if loadingCorpus
         && (sourceBatchStarted == nil && pendingReference == nil

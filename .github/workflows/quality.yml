@@ -8,6 +8,14 @@ on:
         description: Run the macOS XCTest groups and merge their coverage
         type: boolean
         default: false
+      native_ui_shard:
+        description: XCTest group to run in native UI mode
+        type: choice
+        options: [all, foundation, answers, github]
+        default: all
+      native_ui_test:
+        description: Optional XCTest identifier such as AnswersUITests/testExample
+        type: string
 
 permissions:
   contents: read
@@ -178,9 +186,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [foundation, answers, github]
+        shard: ${{ fromJSON(inputs.native_ui_only && inputs.native_ui_shard && inputs.native_ui_shard != 'all' && format('["{0}"]', inputs.native_ui_shard) || '["foundation","answers","github"]') }}
     env:
       CTXFAB_UI_SHARD: ${{ matrix.shard }}
+      CTXFAB_UI_TEST: ${{ inputs.native_ui_only && inputs.native_ui_shard != 'all' && inputs.native_ui_test || '' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -205,6 +214,7 @@ jobs:
   native-ui-coverage:
     name: Native Swift application coverage
     needs: native-ui
+    if: ${{ !inputs.native_ui_only || !inputs.native_ui_shard || inputs.native_ui_shard == 'all' }}
     runs-on: macos-26
     timeout-minutes: 10
     steps:

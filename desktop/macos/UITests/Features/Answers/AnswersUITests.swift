@@ -179,15 +179,16 @@ final class AnswersUITests: XCTestCase {
     let endpoint = try BackendEndpoint.read(in: directory)
     try await setEmbeddingIndex(false, in: endpoint)
     try await fetchPinnedCorpus(revision: revision, in: endpoint)
-    openPinnedCorpus(revision: revision, in: app)
+    try openPinnedCorpus(revision: revision, in: app)
     let ready = app.descendants(matching: .any).matching(identifier: "benchmark-reference-ready")
       .firstMatch
-    XCTAssertTrue(ready.exists)
+    _ = try XCTUnwrap(
+      ready.waitForExistence(timeout: 5) ? ready : nil, "The selected corpus should be ready.")
     app.buttons["pipeline-manage-sources"].click()
     let activations = app.descendants(matching: .any)
       .matching(identifier: "pipeline-active-corpus-fixture/alpha-\(revision)")
     let activation = activations.firstMatch
-    XCTAssertTrue(activation.wait(for: \.isHittable, toEqual: true, timeout: 5))
+    try revealPipelineControl(activation, in: app.scrollViews["pipeline-source-manager-content"])
     XCTAssertEqual(activation.value as? Int, 1)
     activation.click()
     let inactive = activations.matching(NSPredicate(format: "value == 0")).firstMatch
@@ -195,8 +196,9 @@ final class AnswersUITests: XCTestCase {
 
     app.terminate()
     app.launch()
-    openPinnedCorpus(revision: revision, in: app)
+    try openPinnedCorpus(revision: revision, in: app)
     let activate = app.buttons["benchmark-load-reference"]
+    _ = try XCTUnwrap(activate.wait(for: \.isHittable, toEqual: true, timeout: 5) ? activate : nil)
     XCTAssertEqual(activate.label, "Activate")
     activate.click()
     XCTAssertTrue(ready.waitForExistence(timeout: 10))
@@ -250,7 +252,7 @@ final class AnswersUITests: XCTestCase {
     XCTAssertEqual(corpus.revision, revision)
   }
 
-  private func openPinnedCorpus(revision: String, in app: XCUIApplication) {
+  private func openPinnedCorpus(revision: String, in app: XCUIApplication) throws {
     let ready = app.descendants(matching: .any).matching(identifier: "backend-ready").firstMatch
     XCTAssertTrue(ready.waitForExistence(timeout: 12))
     app.selectWorkspace("answers")
@@ -259,8 +261,20 @@ final class AnswersUITests: XCTestCase {
     inspector.click()
     openPipelineSources(in: app)
     let corpus = app.buttons["benchmark-corpus-fixture/alpha-\(revision)"]
-    XCTAssertTrue(corpus.wait(for: \.isHittable, toEqual: true, timeout: 5))
+    try revealPipelineControl(corpus, in: app.scrollViews["pipeline-source-list"])
     corpus.click()
+  }
+
+  private func revealPipelineControl(_ control: XCUIElement, in scroll: XCUIElement) throws {
+    _ = try XCTUnwrap(scroll.waitForExistence(timeout: 5) ? scroll : nil)
+    _ = try XCTUnwrap(control.waitForExistence(timeout: 5) ? control : nil)
+    if !scroll.frame.contains(control.frame) {
+      scroll.scroll(byDeltaX: 0, deltaY: -400)
+    }
+    _ = try XCTUnwrap(
+      control.wait(for: \.isHittable, toEqual: true, timeout: 5)
+        && scroll.frame.contains(control.frame) ? control : nil,
+      "The source control must be visible inside its scroll view before clicking.")
   }
 
   private func checkBenchmarkSources(in app: XCUIApplication) throws {

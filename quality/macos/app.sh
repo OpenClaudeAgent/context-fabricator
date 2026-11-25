@@ -151,6 +151,13 @@ if [[ $mode == test || $mode == test-built-ui ]]; then
         github) subjects=(-only-testing:"$target/GitHubUITests") ;;
         *) echo "Unknown macOS UI test shard: $shard" >&2; exit 2 ;;
     esac
+    if [[ -n ${CTXFAB_UI_TEST:-} ]]; then
+        if [[ ! $CTXFAB_UI_TEST =~ ^[[:alnum:]_]+/test[[:alnum:]_]+$ ]]; then
+            echo 'Expected an XCTest identifier in ClassName/testMethod form.' >&2
+            exit 2
+        fi
+        subjects=(-only-testing:"$target/$CTXFAB_UI_TEST")
+    fi
     if [[ $shard == all || $shard == answers ]]; then
         if [[ ${CTXFAB_XCTEST_LIVE_BENCHMARK:-0} == 1 ]]; then
             export TEST_RUNNER_CTXFAB_XCTEST_LIVE_BENCHMARK=1
