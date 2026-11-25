@@ -18,6 +18,7 @@ func benchmarkAnswersStayWithinTheSelectedRevision() async throws {
     #expect(Set(active.map(\.revision)) == [old.revision, new.revision])
     try await verifyBenchmarkAnswer(in: session, reference: old, delay: 205)
     try await verifyBenchmarkAnswer(in: session, reference: new, delay: 108)
+    try await verifyBenchmarkRejectsOtherRevisionQuote(in: session, reference: new)
 
     try await session.unloadBenchmarkCorpus(old)
     do {
@@ -34,6 +35,22 @@ func benchmarkAnswersStayWithinTheSelectedRevision() async throws {
     try await verifyBenchmarkAnswer(in: session, reference: old, delay: 205)
     #expect(try Data(contentsOf: hits) == before)
   }
+}
+
+private func verifyBenchmarkRejectsOtherRevisionQuote(
+  in session: SessionClient, reference: Components.Schemas.BenchmarkReference
+) async throws {
+  let response = try await session.askBenchmark(
+    "Driftmarker conflicting revision citation", id: UUID(), reference: reference, retrieval: .bm25)
+  let answer = response.answer
+  #expect(answer.outcome == .insufficientEvidence)
+  #expect(answer.text == nil && answer.citations.isEmpty)
+  let review = try #require(answer.evidenceReview)
+  #expect(review.reason == .citationsUnverified)
+  let draft = try #require(review.pipeline?.draft)
+  #expect(draft.citations.map(\.quote) == ["Driftmarker waits 205 ms."])
+  let modelContext = try #require(answer.modelContext)
+  #expect(modelContext.sources.flatMap(\.parts).map(\.text) == ["Driftmarker waits 108 ms."])
 }
 
 private func verifyBenchmarkAnswer(

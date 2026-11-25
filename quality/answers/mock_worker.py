@@ -308,6 +308,9 @@ def draft_for(prompt):
         ]
         return {"answer": ", ".join(c["quote"] for c in citations), "citations": citations}
     excerpt = prompt["passages"][0]
+    if question == "Driftmarker conflicting revision citation":
+        quote = "Driftmarker waits 205 ms."
+        return {"answer": quote, "citations": [{"passage": excerpt["id"], "quote": quote}]}
     if "purgeguardprobe" in question:
         excerpt = next(item for item in prompt["passages"] if "Betaguardmarker" in item["text"])
     if prompt.get("evidenceFamily") == "githubActions":
