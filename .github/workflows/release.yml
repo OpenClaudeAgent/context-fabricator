@@ -6,11 +6,11 @@ on:
   workflow_dispatch:
     inputs:
       create_tag:
-        description: Create the candidate tag and a GitHub prerelease draft
+        description: Create the candidate tag and upload packages to GitHub Releases
         type: boolean
         default: false
       preview:
-        description: Build an ad hoc preview and report native app coverage without enforcing its threshold
+        description: Report native app coverage and publish an ad hoc prerelease when create_tag is enabled
         type: boolean
         default: false
       native_inference:
@@ -144,8 +144,8 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-  draft:
-    name: Prepare the GitHub prerelease draft
+  release:
+    name: Deliver packages to GitHub Releases
     needs: [source, candidate]
     if: needs.source.outputs.tag != ''
     runs-on: ubuntu-24.04
@@ -160,7 +160,7 @@ jobs:
         with:
           name: release-candidate
           path: ${{ runner.temp }}/release-candidate
-      - name: Tag the tested commit and attach the packages to a draft
+      - name: Tag the tested commit, attach the packages and publish previews
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -168,6 +168,7 @@ jobs:
           REVISION: ${{ needs.source.outputs.revision }}
           RELEASE_TAG: ${{ needs.source.outputs.tag }}
           CREATE_TAG: ${{ inputs.create_tag || false }}
+          PREVIEW: ${{ inputs.preview || false }}
         run: |
           cd "$RUNNER_TEMP/release-candidate"
           sha256sum -c SHA256SUMS
@@ -186,21 +187,30 @@ jobs:
           if [[ $release == null ]]; then
             gh release create "$RELEASE_TAG" --verify-tag --draft --prerelease \
               --title "Context Fabricator $RELEASE_TAG" --notes-file RELEASE-NOTES.md
-            release='{"assets":[]}'
-          elif ! jq -e --rawfile notes RELEASE-NOTES.md \
-            'def trim_end: sub("[[:space:]]+$"; ""); .draft and ((.body | trim_end) == ($notes | trim_end))' \
+            release='{"draft":true,"assets":[]}'
+          elif ! jq -e --argjson preview "$PREVIEW" --rawfile notes RELEASE-NOTES.md \
+            'def trim_end: sub("[[:space:]]+$"; "");
+             .prerelease and (.draft or $preview) and ((.body | trim_end) == ($notes | trim_end))' \
             <<< "$release" >/dev/null; then
             echo "A different release already exists for this tag." >&2
             exit 1
           fi
+          is_draft=$(jq -r .draft <<< "$release")
           for asset in *.zip *.deb SHA256SUMS; do
-            existing=$(jq -r --arg name "$asset" '.assets[] | select(.name == $name) | (.digest // "unknown")' <<< "$release")
-            if [[ -z $existing ]]; then
+            existing=$(jq -r --arg name "$asset" '.assets[] | select(.name == $name and .state == "uploaded") | (.digest // "unknown")' <<< "$release")
+            if [[ -z $existing && $is_draft == true ]]; then
               gh release upload "$RELEASE_TAG" "$asset"
             else
               digest=$(sha256sum -- "$asset")
-              [[ $existing == "sha256:${digest%% *}" ]]
+              if [[ $existing != "sha256:${digest%% *}" ]]; then
+                echo "The GitHub release asset is missing or has a different checksum: $asset" >&2
+                exit 1
+              fi
             fi
           done
-          release_url=$(gh release view "$RELEASE_TAG" --json url --jq .url)
-          printf '[Download packages from the GitHub release draft](%s)\n' "$release_url" >> "$GITHUB_STEP_SUMMARY"
+          if [[ $PREVIEW == true && $is_draft == true ]]; then
+            gh release edit "$RELEASE_TAG" --draft=false --prerelease --latest=false
+          fi
+          release_url=$(gh release view "$RELEASE_TAG" --json url,isDraft,isPrerelease |
+            jq -er --argjson preview "$PREVIEW" 'select(.isPrerelease and (.isDraft != $preview)) | .url')
+          printf '[Download packages from GitHub Releases](%s)\n' "$release_url" >> "$GITHUB_STEP_SUMMARY"

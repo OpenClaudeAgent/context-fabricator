@@ -23,8 +23,8 @@ Context Fabricator is in preview. The native macOS project declares version `0.1
 
 Run [Release candidate](../.github/workflows/release.yml) to qualify both packages and produce a single artifact with their checksums. Enable `create_tag` to create the version tag on the qualified commit and prepare a GitHub prerelease draft. Pushing an existing version tag also starts the workflow.
 
-For an ad hoc build to test from GitHub, enable `preview` and `create_tag` together. The preview uses a tag such as `v0.1.0-preview.12`, runs the functional and packaging checks, and reports native app coverage in the workflow summary. The 90% native app coverage threshold still applies to the version tag qualification.
+Enable `preview` and `create_tag` together to publish a public prerelease with an ad hoc macOS ZIP after the functional and packaging checks. The preview uses a tag such as `v0.1.0-preview.12` and reports native app coverage in the workflow summary alongside the download link. The 90% native app coverage threshold still applies to the version tag qualification.
 
-The macOS ZIP in the draft uses an ad hoc signature. Replace it with a Developer ID-signed and notarized ZIP and update the checksums before publishing. The Release candidate workflow leaves the draft unpublished.
+For a qualified version tag, the workflow delivers a draft. Replace its macOS ZIP with a Developer ID-signed and notarized ZIP and update the checksums before publishing.
 
 Record the source revision, package checksum, platform, installation and upgrade results, and one verified answer from each package in scope. Keep the fixture UI results and real-weight inference results identified in the release report. Include the packaged third-party notices and model download requirements with the release assets. Use a fresh pair of native and Qt screenshots when qualifying the final candidate. [Quality checks](../quality/README.md)
