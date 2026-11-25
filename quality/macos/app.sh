@@ -6,6 +6,20 @@ require_mac
 cd "$quality_root/desktop/macos"
 mode=${1:-build}
 destination='platform=macOS,arch=arm64'
+native_ui_shards=(answers github foundation)
+
+if [[ $mode == ui-shards ]]; then
+    requested=${2:-all}
+    jq -cen --arg requested "$requested" --args '
+        $ARGS.positional
+        | if $requested == "all" then . else map(select(. == $requested)) | select(length == 1) end
+        ' "${native_ui_shards[@]}" || {
+        echo "Unknown macOS UI test shard: $requested" >&2
+        exit 2
+    }
+    exit 0
+fi
+
 check_app_coverage() {
     jq -er --arg app "$PWD/App/" --argjson minimum "$minimum_line_coverage" --arg mode "${2:-enforce}" '
         [.targets[].files[] | select(.path | startswith($app))]
@@ -24,7 +38,7 @@ if [[ ${1:-} == merge-ui ]]; then
     mkdir -p "$quality_dir/reports"
     quality_begin_report report app-coverage
     inputs=()
-    for shard in foundation answers github; do
+    for shard in "${native_ui_shards[@]}"; do
         shard_dir="$2/native-ui-$shard"
         pairs=("$shard_dir"/app.*/coverage/*.xccovreport "$shard_dir"/coverage/*.xccovreport)
         found=0
@@ -139,27 +153,32 @@ fi
 
 if [[ $mode == test || $mode == test-built-ui ]]; then
     shard=${CTXFAB_UI_SHARD:-all}
+    selected_test=${CTXFAB_UI_TEST:-}
     target=ContextFabricatorUITests
     performance="$target/BackendLifecycleUITests/testLaunchToBackendReadyPerformance"
+    corpus_reactivation=AnswersUITests/testPinnedBenchmarkCorpusCanBeReactivatedAfterRestart
     case "$shard" in
         all) subjects=(-skip-testing:"$performance") ;;
         foundation) subjects=(
             -only-testing:"$target/BackendLifecycleUITests"
             -only-testing:"$target/DiagnosticsUITests"
+            -only-testing:"$target/ModelLibraryUITests"
             -skip-testing:"$performance") ;;
         answers) subjects=(
             -only-testing:"$target/AnswersUITests"
-            -only-testing:"$target/ModelLibraryUITests") ;;
+            -skip-testing:"$target/$corpus_reactivation") ;;
         models) subjects=(-only-testing:"$target/ModelLibraryUITests") ;;
-        github) subjects=(-only-testing:"$target/GitHubUITests") ;;
+        github) subjects=(
+            -only-testing:"$target/GitHubUITests"
+            -only-testing:"$target/$corpus_reactivation") ;;
         *) echo "Unknown macOS UI test shard: $shard" >&2; exit 2 ;;
     esac
-    if [[ -n ${CTXFAB_UI_TEST:-} ]]; then
-        if [[ ! $CTXFAB_UI_TEST =~ ^[[:alnum:]_]+/test[[:alnum:]_]+$ ]]; then
+    if [[ -n $selected_test ]]; then
+        if [[ ! $selected_test =~ ^[[:alnum:]_]+/test[[:alnum:]_]+$ ]]; then
             echo 'Expected an XCTest identifier in ClassName/testMethod form.' >&2
             exit 2
         fi
-        subjects=(-only-testing:"$target/$CTXFAB_UI_TEST")
+        subjects=(-only-testing:"$target/$selected_test")
     fi
     if [[ $shard == all || $shard == answers ]]; then
         if [[ ${CTXFAB_XCTEST_LIVE_BENCHMARK:-0} == 1 ]]; then
@@ -207,7 +226,7 @@ if [[ $mode == test || $mode == test-built-ui ]]; then
         return 1
     }
 
-    if [[ $shard == all || $shard == github ]]; then
+    if [[ $shard == all || $shard == github || $selected_test == GitHubUITests/* ]]; then
         github_fixture="$fixture_root/github"
         mkdir "$github_fixture"
         python3 "$quality_root/quality/github/github_fixture.py" "$github_fixture" --ui-control \
@@ -217,7 +236,7 @@ if [[ $mode == test || $mode == test-built-ui ]]; then
         export TEST_RUNNER_CTXFAB_GITHUB_TEST_PORT="$(< "$github_fixture/port")"
         export TEST_RUNNER_CTXFAB_GITHUB_TEST_HITS="$github_fixture/hits.log"
     fi
-    if [[ $shard == all || $shard == answers ]]; then
+    if [[ $shard == all || $shard == github || $selected_test == "$corpus_reactivation" ]]; then
         benchmark_fixture="$fixture_root/public-benchmark"
         mkdir "$benchmark_fixture"
         python3 "$quality_root/quality/github/github_fixture.py" "$benchmark_fixture" --public-benchmark \
@@ -227,7 +246,8 @@ if [[ $mode == test || $mode == test-built-ui ]]; then
         export TEST_RUNNER_CTXFAB_BENCHMARK_GIT_PORT="$(< "$benchmark_fixture/port")"
         export TEST_RUNNER_CTXFAB_BENCHMARK_GIT_REVISION="$(< "$benchmark_fixture/revision")"
     fi
-    if [[ $shard == all || $shard == answers || $shard == models ]]; then
+    if [[ $shard == all || $shard == foundation || $shard == models ||
+          $selected_test == ModelLibraryUITests/* ]]; then
         hub_fixture="$fixture_root/hugging-face"
         mkdir "$hub_fixture"
         python3 "$quality_root/quality/models/hugging_face_fixture.py" "$hub_fixture" --setup-q5 \
@@ -252,6 +272,11 @@ if [[ $mode == test || $mode == test-built-ui ]]; then
         tee "$report/xcode.log"
     xcrun xcresulttool get test-results summary --path "$report/App.xcresult" > "$report/tests.json"
     jq -e '.passedTests > 0 and .failedTests == 0 and .skippedTests == 0' "$report/tests.json" > /dev/null
+    if [[ $mode == test-built-ui ]]; then
+        xcrun xcresulttool get test-results tests --path "$report/App.xcresult" > "$report/test-details.json"
+        xcrun xcresulttool export attachments --path "$report/App.xcresult" \
+            --output-path "$report/attachments" > "$report/attachments.log"
+    fi
     xcrun xccov view --report "$report/App.xcresult" > "$report/coverage.txt"
     xcrun xccov view --report --json "$report/App.xcresult" > "$report/coverage.json"
     if [[ $shard == all ]]; then

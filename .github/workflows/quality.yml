@@ -165,10 +165,19 @@ jobs:
     name: Build the shared macOS XCUI test bundle
     runs-on: macos-26
     timeout-minutes: 25
+    outputs:
+      shards: ${{ steps.shards.outputs.selected }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - name: Select native UI test groups
+        id: shards
+        env:
+          REQUESTED_SHARD: ${{ inputs.native_ui_only && inputs.native_ui_shard || 'all' }}
+        run: |
+          selected=$(bash quality/macos/app.sh ui-shards "$REQUESTED_SHARD")
+          echo "selected=$selected" >> "$GITHUB_OUTPUT"
       - name: Install app tools
         run: make bootstrap-app
       - name: Build and sign the app and XCUI runner once
@@ -190,7 +199,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: ${{ fromJSON(inputs.native_ui_only && inputs.native_ui_shard && inputs.native_ui_shard != 'all' && format('["{0}"]', inputs.native_ui_shard) || '["foundation","answers","github"]') }}
+        shard: ${{ fromJSON(needs.native-ui-build.outputs.shards) }}
     env:
       CTXFAB_UI_SHARD: ${{ matrix.shard }}
       CTXFAB_UI_TEST: ${{ inputs.native_ui_only && inputs.native_ui_shard != 'all' && inputs.native_ui_test || '' }}
@@ -205,13 +214,24 @@ jobs:
           path: ${{ runner.temp }}
       - name: Run packaged XCUI shard
         run: bash quality/macos/app.sh test-built-ui "$RUNNER_TEMP/native-ui-build.zip"
-      - name: Retain XCUI results
+      - name: Retain test results, attachments and coverage
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: native-ui-${{ matrix.shard }}
-          path: .quality/reports/app.*/
+          path: |
+            .quality/reports/app.*/
+            !.quality/reports/app.*/App.xcresult/**
           if-no-files-found: error
+          include-hidden-files: true
+          retention-days: 14
+      - name: Retain the Xcode result bundle on failure
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: xcui-failure-${{ matrix.shard }}
+          path: .quality/reports/app.*/App.xcresult/
+          if-no-files-found: ignore
           include-hidden-files: true
           retention-days: 14
 
