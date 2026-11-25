@@ -14,6 +14,7 @@ func generatedClientConfiguresTheLiveGitHubFixture() async throws {
 
 func withGitHubBackendFixture(
   answerWorker: Bool = false,
+  publicBenchmark: Bool = false,
   run: (SessionClient, URL) async throws -> Void
 ) async throws {
   let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
@@ -29,7 +30,10 @@ func withGitHubBackendFixture(
   }
   let script = URL(filePath: #filePath).deletingLastPathComponent()
     .appending(path: "../../../../../quality/github/github_fixture.py").standardizedFileURL
-  try start(fixture, executable: "/usr/bin/python3", arguments: [script.path, directory.path])
+  let fixtureArguments = publicBenchmark ? ["--public-benchmark"] : []
+  try start(
+    fixture, executable: "/usr/bin/python3",
+    arguments: [script.path, directory.path] + fixtureArguments)
   let port = try await readFile(directory.appending(path: "port"))
   let executable = try #require(
     ProcessInfo.processInfo.environment["CTXFAB_TEST_BACKEND_EXECUTABLE"])

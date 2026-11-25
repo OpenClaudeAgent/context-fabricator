@@ -3,6 +3,60 @@ import LocalAPI
 import Testing
 
 @Test
+func benchmarkAnswersStayWithinTheSelectedRevision() async throws {
+  try await withGitHubBackendFixture(answerWorker: true, publicBenchmark: true) { session, origin in
+    let old = Components.Schemas.BenchmarkReference(
+      repository: "fixture/alpha",
+      revision: try String(contentsOf: origin.appending(path: "previous-revision"), encoding: .utf8)
+    )
+    let new = Components.Schemas.BenchmarkReference(
+      repository: "fixture/alpha",
+      revision: try String(contentsOf: origin.appending(path: "revision"), encoding: .utf8))
+    _ = try await session.loadBenchmarkCorpus(old)
+    _ = try await session.loadBenchmarkCorpus(new)
+    let active = try await session.listBenchmarkCorpora().filter { $0.active == true }
+    #expect(Set(active.map(\.revision)) == [old.revision, new.revision])
+    try await verifyBenchmarkAnswer(in: session, reference: old, delay: 205)
+    try await verifyBenchmarkAnswer(in: session, reference: new, delay: 108)
+
+    try await session.unloadBenchmarkCorpus(old)
+    do {
+      _ = try await session.askBenchmark(
+        "What is the Driftmarker wait?", id: UUID(), reference: old, retrieval: .bm25)
+      Issue.record("An inactive corpus accepted a benchmark query.")
+    } catch let rejection as AnswerRejection {
+      #expect(rejection.problemCode == "benchmark_corpus_not_loaded")
+    }
+    try await verifyBenchmarkAnswer(in: session, reference: new, delay: 108)
+    let hits = origin.appending(path: "hits.log")
+    let before = try Data(contentsOf: hits)
+    _ = try await session.loadBenchmarkCorpus(old)
+    try await verifyBenchmarkAnswer(in: session, reference: old, delay: 205)
+    #expect(try Data(contentsOf: hits) == before)
+  }
+}
+
+private func verifyBenchmarkAnswer(
+  in session: SessionClient, reference: Components.Schemas.BenchmarkReference, delay: Int
+) async throws {
+  let response = try await session.askBenchmark(
+    "What is the Driftmarker wait?", id: UUID(), reference: reference, retrieval: .bm25)
+  let expected = "Driftmarker waits \(delay) ms."
+  #expect(response.answer.outcome == .answered)
+  #expect(response.answer.text == expected)
+  let modelContext = try #require(response.answer.modelContext)
+  #expect(modelContext.sources.flatMap(\.parts).map(\.text) == [expected])
+  let review = try #require(response.answer.evidenceReview)
+  #expect(!review.candidates.isEmpty)
+  #expect(review.candidates.allSatisfy { $0.revision == reference.revision })
+  let citation = try #require(response.answer.citations.first)
+  #expect(citation.quote == expected)
+  #expect(citation.evidence.revision == reference.revision)
+  #expect(citation.evidence.location?.path == "queue.txt")
+  #expect(citation.evidence.location?.startLine == 1)
+}
+
+@Test
 func generatedClientTracesACitedActionsAnswerAndPurgesItsHistory() async throws {
   try await withGitHubBackendFixture(answerWorker: true) { session, origin in
     let repository = try await collectActions(using: session, origin: origin)

@@ -1903,11 +1903,13 @@ struct AnswerPipelineView: View {
             .accessibilityValue(Text(expanded ? "Expanded" : "Collapsed"))
             .accessibilityIdentifier("pipeline-retrieval-candidate-\(index)")
             if expanded {
-              candidateDetail(candidate)
               Button("View in Ranking") {
                 selectedCandidate = index
                 stage = .ranking
               }
+              .frame(maxWidth: .infinity, alignment: .trailing)
+              .accessibilityIdentifier("pipeline-retrieval-view-ranking-\(index)")
+              candidateDetail(candidate)
             }
           }
         }

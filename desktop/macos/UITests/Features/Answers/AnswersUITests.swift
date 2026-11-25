@@ -99,6 +99,10 @@ final class AnswersUITests: XCTestCase {
     let file = app.staticTexts.matching(NSPredicate(format: "value == %@", "note.txt")).firstMatch
     XCTAssertTrue(file.waitForExistence(timeout: 5))
     captureWindow("Native Answers benchmarks - temporary corpus", in: app)
+    verifyPastedCorpusStages(in: app)
+  }
+
+  private func verifyPastedCorpusStages(in app: XCUIApplication) {
     app.buttons["answer-pipeline-stage-index"].click()
     XCTAssertTrue(app.staticTexts["SQLite FTS5"].exists)
     XCTAssertTrue(app.staticTexts["BM25"].exists)
@@ -107,10 +111,7 @@ final class AnswersUITests: XCTestCase {
       app.staticTexts["This run used keyword search. BM25 does not calculate a query embedding."]
         .exists)
     app.buttons["View Retrieval"].click()
-    let candidate = app.buttons["pipeline-retrieval-candidate-0"]
-    XCTAssertTrue(candidate.waitForExistence(timeout: 5))
-    candidate.click()
-    app.buttons["View in Ranking"].click()
+    openRanking(for: app.buttons["pipeline-retrieval-candidate-0"], in: app)
     XCTAssertTrue(app.buttons["pipeline-ranking-candidate-0"].isSelected)
     app.buttons["pipeline-ranking-open-model-slot"].click()
     let passage = app.staticTexts["answer-pipeline-input-1"]
@@ -423,13 +424,22 @@ final class AnswersUITests: XCTestCase {
     ).firstMatch
     XCTAssertTrue(candidate.waitForExistence(timeout: 12))
     captureWindow("Commons CLI · retrieved candidates", in: app)
-    candidate.click()
-    XCTAssertTrue(app.buttons["View in Ranking"].exists)
-    app.buttons["View in Ranking"].click()
+    openRanking(for: candidate, in: app)
     XCTAssertTrue(app.buttons["answer-pipeline-stage-ranking"].isSelected)
     app.buttons["answer-pipeline-stage-embedding"].click()
     XCTAssertTrue(app.buttons["View Retrieval"].exists)
     captureWindow("Commons CLI · BM25 without embeddings", in: app)
+  }
+
+  private func openRanking(for candidate: XCUIElement, in app: XCUIApplication) {
+    XCTAssertTrue(candidate.wait(for: \.isHittable, toEqual: true, timeout: 5))
+    candidate.click()
+    let ranking = app.buttons.matching(
+      NSPredicate(format: "identifier BEGINSWITH %@", "pipeline-retrieval-view-ranking-")
+    ).firstMatch
+    XCTAssertTrue(ranking.wait(for: \.isHittable, toEqual: true, timeout: 5))
+    XCTAssertEqual(candidate.value as? String, "Expanded")
+    ranking.click()
   }
 
   func testAbstentionTraceShowsSearchedSourcesAndCandidateDisposition() throws {

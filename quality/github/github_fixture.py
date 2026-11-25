@@ -561,24 +561,29 @@ def prepare_public_benchmark(root):
     remote.parent.mkdir()
     with tempfile.TemporaryDirectory(dir=root) as checkout:
         worktree = Path(checkout)
-        (worktree / "queue.txt").write_text("Driftmarker waits 108 ms.", encoding="utf-8")
-        commands = [
-            ["init", "-q", "--object-format=sha1", "-b", "main"],
-            ["add", "queue.txt"],
-            ["-c", "user.name=Benchmark Fixture", "-c", "user.email=fixture@example.invalid",
-             "-c", "commit.gpgsign=false", "commit", "-qm", "Benchmark corpus"],
-            ["clone", "-q", "--bare", ".", str(remote)],
-        ]
         environment = {
             **os.environ,
+            "GIT_AUTHOR_NAME": "Benchmark Fixture",
+            "GIT_COMMITTER_NAME": "Benchmark Fixture",
+            "GIT_AUTHOR_EMAIL": "fixture@example.invalid",
+            "GIT_COMMITTER_EMAIL": "fixture@example.invalid",
             "GIT_AUTHOR_DATE": "2000-01-01T00:00:00Z",
             "GIT_COMMITTER_DATE": "2000-01-01T00:00:00Z",
         }
-        for args in commands:
-            subprocess.run(["git", "-C", checkout, *args], check=True, env=environment)
+        git = ["git", "-C", checkout]
+        subprocess.run([*git, "init", "-q", "--object-format=sha1", "-b", "main"], check=True, env=environment)
+        for delay in [205, 108]:
+            (worktree / "queue.txt").write_text(f"Driftmarker waits {delay} ms.", encoding="utf-8")
+            subprocess.run([*git, "add", "queue.txt"], check=True, env=environment)
+            subprocess.run(
+                [*git, "-c", "commit.gpgsign=false", "commit", "-qm", f"Wait {delay} ms"],
+                check=True, env=environment,
+            )
+        subprocess.run([*git, "clone", "-q", "--bare", ".", str(remote)], check=True, env=environment)
     git_fixture("config", "uploadpack.allowReachableSHA1InWant", "true")
     (root / "smart-git").touch()
     (root / "revision").write_text(git_fixture("rev-parse", "HEAD"), encoding="ascii")
+    (root / "previous-revision").write_text(git_fixture("rev-parse", "HEAD^"), encoding="ascii")
 
 
 class LoopbackHTTPServer(ThreadingHTTPServer):
