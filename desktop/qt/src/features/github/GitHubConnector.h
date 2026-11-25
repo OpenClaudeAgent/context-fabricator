@@ -96,7 +96,7 @@ class GitHubConnector final : public QObject {
     [[nodiscard]] bool draftVerified() const;
     [[nodiscard]] int minimumInterval() const;
     [[nodiscard]] int maximumInterval() const;
-    [[nodiscard]] QUrl tokenUrl(bool actions) const;
+    [[nodiscard]] QUrl tokenUrl(bool actions, bool repositoryScoped = false) const;
     [[nodiscard]] GitHubCollection draftCollection() const;
     [[nodiscard]] QString collectionFeedback() const;
     [[nodiscard]] GitHubUsage usage() const;
@@ -112,7 +112,7 @@ class GitHubConnector final : public QObject {
     [[nodiscard]] std::optional<openapi::GitHubConfiguredRepository> configuredDraft() const;
 
     Q_INVOKABLE void reload();
-    Q_INVOKABLE void openTokenPage(bool actions);
+    Q_INVOKABLE void openTokenPage(bool actions, bool repositoryScoped = false);
     Q_INVOKABLE void authorize(const QString &token);
     Q_INVOKABLE void disconnectAccount();
     Q_INVOKABLE void discover();

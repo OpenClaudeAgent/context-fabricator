@@ -9,6 +9,7 @@ ColumnLayout {
 
     required property GitHubConnector github
     property bool accountManagement: false
+    property bool repositoryScoped: false
     signal disconnectRequested
 
     spacing: 10
@@ -28,14 +29,36 @@ ColumnLayout {
 
             MenuItem {
                 text: qsTr("Repository contents")
-                onTriggered: form.github.openTokenPage(false) // qmllint disable compiler
+                onTriggered: form.github.openTokenPage(false, form.repositoryScoped) // qmllint disable compiler
             }
 
             MenuItem {
                 text: qsTr("Repository contents and Actions")
-                onTriggered: form.github.openTokenPage(true) // qmllint disable compiler
+                onTriggered: form.github.openTokenPage(true, form.repositoryScoped) // qmllint disable compiler
             }
         }
+    }
+
+    Label {
+        Layout.fillWidth: true
+        text: qsTr("On GitHub, set Resource owner to the account or organization that owns the repository. Select the repository under Repository access.")
+        wrapMode: Text.WordWrap
+        color: Theme.muted
+    }
+
+    Label {
+        Layout.fillWidth: true
+        text: qsTr("If GitHub marks the token as pending, an organization admin must approve it.")
+        wrapMode: Text.WordWrap
+        color: Theme.muted
+    }
+
+    Label {
+        Layout.fillWidth: true
+        visible: form.github.credential === GitHubConnector.Connected
+        text: qsTr("Replacing the token can affect access to repositories under other owners.")
+        wrapMode: Text.WordWrap
+        color: Theme.muted
     }
 
     SurfaceInput {

@@ -6,7 +6,7 @@ use std::sync::{Arc, Mutex};
 
 use crate::domain::github::{
     Access, ConfiguredRepository, Discovery, Error, MAX_REQUESTS_PER_MINUTE, Repository,
-    RepositoryName, Selection, Snapshot, TrafficStatus,
+    RepositoryName, Selection, Snapshot, TokenSetup, TrafficStatus,
 };
 
 use super::credentials::{CredentialError, CredentialStore};
@@ -742,6 +742,7 @@ impl GitHub {
         }
 
         Ok(ConfiguredRepository {
+            token_setup: TokenSetup::for_repository(&repository.full_name),
             repository,
             branch,
             interval_minutes: selection.interval_minutes,

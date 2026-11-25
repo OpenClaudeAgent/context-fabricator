@@ -1575,9 +1575,17 @@ components:
         contents: { $ref: '#/components/schemas/GitHubAccess' }
         actions: { $ref: '#/components/schemas/GitHubAccess' }
         verified: { type: boolean }
+        tokenSetup: { $ref: '#/components/schemas/GitHubTokenSetup' }
         codeCollection: { $ref: '#/components/schemas/GitHubCodeCollection' }
         historyActivity: { $ref: '#/components/schemas/GitHubCollectionActivity' }
         actionsActivity: { $ref: '#/components/schemas/GitHubCollectionActivity' }
+    GitHubTokenSetup:
+      type: object
+      description: GitHub token creation links with the configured repository owner preselected.
+      required: [authorizationUrl, actionsAuthorizationUrl]
+      properties:
+        authorizationUrl: { type: string, format: uri }
+        actionsAuthorizationUrl: { type: string, format: uri }
     GitHubCollectionActivity:
       type: object
       description: Last claimed attempt in the active generation and trace of the retained publication for the tracked branch. Links refer to records subject to Diagnostics retention.

@@ -424,7 +424,7 @@ struct GitHubOptionsSheet: View {
         Text("Reconnect to check this repository using a GitHub token.")
       } else if repository.contents == .unavailable || repository.actions == .unavailable {
         Text(
-          "Check the repository and branch, and confirm the token grants read access to the requested features."
+          "Check the branch, the token’s Resource owner and read permissions, and any pending organization approval."
         )
       }
     }

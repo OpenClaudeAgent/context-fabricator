@@ -81,11 +81,30 @@ pub struct ConfiguredRepository {
     pub actions: Access,
     pub verified: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub token_setup: Option<TokenSetup>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub code_collection: Option<current::CollectionStatus>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub history_activity: Option<CollectionActivity>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub actions_activity: Option<CollectionActivity>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TokenSetup {
+    authorization_url: String,
+    actions_authorization_url: String,
+}
+
+impl TokenSetup {
+    pub(crate) fn for_repository(full_name: &str) -> Option<Self> {
+        let owner = RepositoryName::parse(full_name).ok()?.owner;
+        Some(Self {
+            authorization_url: format!("{TOKEN_URL}&target_name={owner}"),
+            actions_authorization_url: format!("{ACTIONS_TOKEN_URL}&target_name={owner}"),
+        })
+    }
 }
 
 #[derive(Debug, Serialize)]
@@ -213,7 +232,7 @@ pub enum Error {
     #[error("Connect GitHub with a valid token before selecting repositories.")]
     Reconnect,
     #[error(
-        "GitHub could not verify access to this repository or account. Check the repository selection and organization approval."
+        "GitHub could not verify repository access. In the token settings, select the repository's owner under Resource owner and include the repository. If the organization requires approval, wait for an administrator to approve the token."
     )]
     Access,
     #[error("GitHub is enforcing a request limit. Wait before trying again.")]

@@ -194,12 +194,15 @@ Item {
     SurfaceDialog {
         id: account
 
+        property bool repositoryScoped: false
+
         parent: Overlay.overlay
         anchors.centerIn: parent
         width: Math.min(500, parent.width - 24)
         modal: true
         closePolicy: page.github.busy ? Popup.NoAutoClose : Popup.CloseOnEscape
         title: qsTr("GitHub Account")
+        onClosed: repositoryScoped = false
 
         contentItem: ColumnLayout {
             spacing: Theme.gap
@@ -209,6 +212,7 @@ Item {
                 enabled: !page.github.busy
                 github: page.github
                 accountManagement: true
+                repositoryScoped: account.repositoryScoped
                 onDisconnectRequested: disconnect.open()
             }
 
@@ -261,6 +265,10 @@ Item {
         github: page.github
         githubActions: page.githubActions
         githubGraph: page.githubGraph
+        onManageTokenRequested: {
+            account.repositoryScoped = true;
+            account.open();
+        }
         onTraceRequested: (traceId, spanId) => page.traceRequested(traceId, spanId)
     }
 

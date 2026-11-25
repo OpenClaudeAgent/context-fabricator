@@ -810,6 +810,7 @@ fn current_authority_fences_replacement_and_preserves_rate_edits() -> Result<(),
         contents: Access::Available,
         actions: Access::Unchecked,
         verified: true,
+        token_setup: None,
         code_collection: None,
         history_activity: None,
         actions_activity: None,
@@ -1029,6 +1030,57 @@ async fn read_only_onboarding_tracks_independent_repository_settings_after_resta
     println!(
         "Two repository profiles survived restart; 9 read-only GitHub requests matched the ledger."
     );
+    Ok(())
+}
+
+#[tokio::test]
+async fn organization_repository_uses_the_resource_owner_in_token_setup()
+-> Result<(), Box<dyn Error>> {
+    let origin = Origin::start().await?;
+    fs::write(origin.directory.path().join("organization-access"), [])?;
+    let store = Arc::new(SqliteStore::open(Path::new(":memory:"))?);
+    let app = origin.app(&store, Some(Arc::new(memory::Credentials::default())))?;
+
+    let personal = authorize(&app, 0, FIRST, 200).await?;
+    assert_eq!(personal["login"], "fixture-user");
+    let hidden = call(
+        &app,
+        "PUT",
+        "/v1/github/repositories",
+        selection(1, "fixture-org/private", 43),
+        403,
+    )
+    .await?;
+    assert_eq!(hidden["code"], "github_access_not_verified");
+
+    let organization = authorize(&app, 1, REPLACEMENT, 200).await?;
+    assert_eq!(organization["login"], personal["login"]);
+    let discovered = call(&app, "GET", "/v1/github/repositories", Value::Null, 200).await?;
+    assert_eq!(
+        discovered["repositories"][0]["fullName"],
+        "fixture-org/private"
+    );
+    let saved = call(
+        &app,
+        "PUT",
+        "/v1/github/repositories",
+        selection(2, "fixture-org/private", 43),
+        200,
+    )
+    .await?;
+    let repository = &saved["repositories"][0];
+    assert_eq!(repository["contents"], "available");
+    assert_eq!(repository["actions"], "available");
+    for (key, template) in [
+        ("authorizationUrl", github::TOKEN_URL),
+        ("actionsAuthorizationUrl", github::ACTIONS_TOKEN_URL),
+    ] {
+        assert_eq!(saved[key], template);
+        assert_eq!(
+            repository["tokenSetup"][key],
+            format!("{template}&target_name=fixture-org")
+        );
+    }
     Ok(())
 }
 

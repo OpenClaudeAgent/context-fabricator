@@ -10,6 +10,13 @@ struct GitHubAccountSheet: View {
   @State private var token = ""
   @State private var disconnect = false
 
+  private var tokenSetup: Components.Schemas.GitHubTokenSetup? {
+    guard store.panel == .repositoryAccount,
+      let id = store.draft?.expectedId ?? store.actionsRepositoryId
+    else { return nil }
+    return snapshot.repositories.first { $0.repository.id == id }?.tokenSetup
+  }
+
   private var accountTitle: LocalizedStringKey {
     switch snapshot.credential {
     case .connected: "GitHub Account"
@@ -30,10 +37,12 @@ struct GitHubAccountSheet: View {
         Section {
           LabeledContent("GitHub") {
             Menu("Create Token") {
-              if let url = URL(string: snapshot.authorizationUrl) {
+              if let url = URL(string: tokenSetup?.authorizationUrl ?? snapshot.authorizationUrl) {
                 Link("Repository contents", destination: url)
               }
-              if let url = URL(string: snapshot.actionsAuthorizationUrl) {
+              if let url = URL(
+                string: tokenSetup?.actionsAuthorizationUrl ?? snapshot.actionsAuthorizationUrl)
+              {
                 Link("Repository contents and Actions", destination: url)
               }
             }
@@ -41,14 +50,20 @@ struct GitHubAccountSheet: View {
           SecureField("Personal access token", text: $token, prompt: Text("github_pat_…"))
             .accessibilityIdentifier("github-token")
         } footer: {
-          Text(
-            "Choose the repositories on GitHub, then paste your token here. It’s stored in Keychain."
-          )
+          VStack(alignment: .leading, spacing: 8) {
+            Text(
+              "On GitHub, set Resource owner to the account or organization that owns the repository. Select the repository under Repository access."
+            )
+            Text("If GitHub marks the token as pending, an organization admin must approve it.")
+            if snapshot.credential == .connected {
+              Text("Replacing the token can affect access to repositories under other owners.")
+            }
+          }
         }
       }
       .formStyle(.grouped)
       .contentMargins(.bottom, 14, for: .scrollContent)
-      .frame(minHeight: 180, idealHeight: snapshot.login == nil ? 210 : 260, maxHeight: 340)
+      .frame(minHeight: 230, idealHeight: snapshot.login == nil ? 260 : 340, maxHeight: 400)
     } buttons: {
       if snapshot.credential != .unconfigured {
         Button("Disconnect…", role: .destructive) { disconnect = true }

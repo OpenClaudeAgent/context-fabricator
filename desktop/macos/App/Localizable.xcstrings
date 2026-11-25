@@ -1667,6 +1667,190 @@
         }
       }
     },
+    "Check the branch, the token’s Resource owner and read permissions, and any pending organization approval." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prüfe den Branch, „Resource owner“ und die Leserechte des Tokens sowie eine eventuell ausstehende Genehmigung durch die Organisation."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comprueba la rama, el «Resource owner» y los permisos de lectura del token. Revisa si hay una aprobación pendiente de la organización."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vérifiez la branche, le « Resource owner » et les droits de lecture du jeton, ainsi que toute approbation en attente auprès de l’organisation."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Controlla il ramo, il «Resource owner» e i permessi di lettura del token, nonché eventuali approvazioni in attesa da parte dell’organizzazione."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ブランチ、トークンの「Resource owner」と読み取り権限、組織の承認待ちの有無を確認してください。"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verifique o ramo, o «Resource owner» e as permissões de leitura do token, bem como qualquer aprovação pendente da organização."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请检查分支、令牌的「Resource owner」和读取权限，以及组织是否还有待处理的审批。"
+          }
+        }
+      }
+    },
+    "If GitHub marks the token as pending, an organization admin must approve it." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wenn GitHub das Token als ausstehend anzeigt, muss es jemand mit Administratorrechten in der Organisation genehmigen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Si GitHub marca el token como pendiente, un administrador de la organización debe aprobarlo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Si GitHub indique que le jeton est en attente, un administrateur de l’organisation doit l’approuver."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se GitHub indica che il token è in attesa, serve l’approvazione di un amministratore dell’organizzazione."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GitHub でトークンが承認待ちの場合は、組織の管理者による承認が必要です。"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se o GitHub indicar que o token está pendente, um administrador da organização tem de o aprovar."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "如果 GitHub 将令牌标记为待审核，组织管理员必须批准该令牌。"
+          }
+        }
+      }
+    },
+    "On GitHub, set Resource owner to the account or organization that owns the repository. Select the repository under Repository access." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wähle auf GitHub unter „Resource owner“ das Konto oder die Organisation aus, dem bzw. der das Repository gehört. Wähle das Repository unter „Repository access“ aus."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En GitHub, elige en «Resource owner» la cuenta u organización propietaria del repositorio. Selecciona el repositorio en «Repository access»."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sur GitHub, choisissez le compte ou l’organisation qui possède le dépôt dans « Resource owner ». Puis sélectionnez le dépôt dans « Repository access »."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Su GitHub, scegli l’account o l’organizzazione proprietaria del repository in «Resource owner». Seleziona il repository in «Repository access»."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GitHub の「Resource owner」で、リポジトリを所有するアカウントまたは組織を選択してください。「Repository access」でリポジトリを選択してください。"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No GitHub, escolha em «Resource owner» a conta ou organização proprietária do repositório. Selecione o repositório em «Repository access»."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在 GitHub 的「Resource owner」中选择仓库所属的账户或组织，然后在「Repository access」中选择该仓库。"
+          }
+        }
+      }
+    },
+    "Replacing the token can affect access to repositories under other owners." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Ersetzen des Tokens kann den Zugriff auf Repositorys anderer Eigentümer beeinträchtigen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reemplazar el token puede afectar al acceso a repositorios de otros propietarios."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le remplacement du jeton peut affecter l’accès aux dépôts d’autres propriétaires."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La sostituzione del token può influire sull’accesso ai repository di altri proprietari."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "トークンを変更すると、他の所有者のリポジトリにアクセスできなくなる場合があります。"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Substituir o token pode afetar o acesso a repositórios de outros proprietários."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更换令牌可能影响对其他所有者的仓库的访问。"
+          }
+        }
+      }
+    },
     "↵" : {
       "localizations" : {
         "de" : {
@@ -6784,52 +6968,6 @@
         }
       }
     },
-    "Check the repository and branch, and confirm the token grants read access to the requested features." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Prüfe das Repository und den Branch. Stelle sicher, dass das Token den Lesezugriff für die gewählten Funktionen erlaubt."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Comprueba el repositorio y la rama, y confirma que el token da acceso de lectura a las funciones solicitadas."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Vérifiez le dépôt et la branche, puis confirmez que le jeton donne accès en lecture aux fonctionnalités demandées."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Controlla il repository e il ramo, poi verifica che il token conceda accesso in lettura alle funzioni richieste."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "リポジトリとブランチを確認し、トークンに要求された機能の読み取り権限があることを確認してください。"
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Confira o repositório e o ramo e confirme que o token dá acesso de leitura aos recursos solicitados."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "请检查仓库和分支，并确认令牌具备所需功能的读取权限。"
-          }
-        }
-      }
-    },
     "Checking compatible files…" : {
       "localizations" : {
         "de" : {
@@ -7517,52 +7655,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "选择允许 Context Fabricator 读取的仓库。"
-          }
-        }
-      }
-    },
-    "Choose the repositories on GitHub, then paste your token here. It’s stored in Keychain." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Wähle die Repositorys auf GitHub aus und füge dein Token hier ein. Es wird im Schlüsselbund gespeichert."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Elige los repositorios en GitHub y pega aquí tu token. Se guardará en el llavero."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Choisissez les dépôts sur GitHub, puis collez votre jeton ici. Il sera enregistré dans le trousseau."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Scegli i repository su GitHub e incolla qui il token. Verrà salvato nel portachiavi."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "GitHub でリポジトリを選択し、トークンをここに貼り付けてください。トークンはキーチェーンに保存されます。"
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Escolha os repositórios no GitHub e cole o token aqui. Ele será guardado nas Chaves."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "在 GitHub 中选择仓库，然后在此粘贴令牌。令牌将保存在钥匙串中。"
           }
         }
       }

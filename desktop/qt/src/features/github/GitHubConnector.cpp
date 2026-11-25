@@ -91,12 +91,22 @@ void GitHubConnector::retranslate() {
     emit changed();
 }
 
-QUrl GitHubConnector::tokenUrl(bool actions) const {
+QUrl GitHubConnector::tokenUrl(bool actions, bool repositoryScoped) const {
     if (!state_) {
         return {};
     }
-    const QUrl url(actions ? state_->getActionsAuthorizationUrl() : state_->getAuthorizationUrl(),
-                   QUrl::StrictMode);
+    auto templateUrl =
+        actions ? state_->getActionsAuthorizationUrl() : state_->getAuthorizationUrl();
+    if (repositoryScoped) {
+        if (const auto repository = configuredDraft()) {
+            const auto setup = repository->getTokenSetup();
+            if (setup.isValid()) {
+                templateUrl =
+                    actions ? setup.getActionsAuthorizationUrl() : setup.getAuthorizationUrl();
+            }
+        }
+    }
+    const QUrl url(templateUrl, QUrl::StrictMode);
     if (url.scheme() != QStringLiteral("https") || url.host() != QStringLiteral("github.com") ||
         url.port(443) != 443 || !url.userInfo().isEmpty() ||
         url.path() != QStringLiteral("/settings/personal-access-tokens/new")) {
@@ -105,8 +115,8 @@ QUrl GitHubConnector::tokenUrl(bool actions) const {
     return url;
 }
 
-void GitHubConnector::openTokenPage(bool actions) {
-    const auto url = tokenUrl(actions);
+void GitHubConnector::openTokenPage(bool actions, bool repositoryScoped) {
+    const auto url = tokenUrl(actions, repositoryScoped);
     if (!url.isEmpty()) {
         QDesktopServices::openUrl(url);
     }

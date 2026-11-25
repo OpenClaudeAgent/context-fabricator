@@ -869,6 +869,10 @@ class GitHubTests : public QObject {
         QVERIFY(first.candidateList()->names().isEmpty());
         first.editRepository(0);
         QVERIFY(first.editing());
+        QVERIFY(QUrlQuery(first.tokenUrl(false)).queryItemValue("target_name").isEmpty());
+        const QUrlQuery scopedToken(first.tokenUrl(true, true));
+        QCOMPARE(scopedToken.queryItemValue("target_name"), QStringLiteral("fixture"));
+        QCOMPARE(scopedToken.queryItemValue("actions"), QStringLiteral("read"));
         QCOMPARE(first.draftFeatures(), AllFeatures);
         QCOMPARE(first.draftInterval(), 90);
         QVERIFY(!first.branchesLoaded());

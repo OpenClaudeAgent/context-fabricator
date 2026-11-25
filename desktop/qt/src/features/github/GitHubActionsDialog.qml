@@ -214,6 +214,7 @@ SurfaceDialog {
             GitHubAccountForm {
                 Layout.fillWidth: true
                 github: dialog.github
+                repositoryScoped: true
                 enabled: !dialog.github.busy
             }
         }

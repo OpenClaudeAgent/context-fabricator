@@ -22,6 +22,7 @@ from urllib.parse import parse_qs, urlsplit
 
 ALPHA = {"id": 41, "full_name": "fixture/alpha", "default_branch": "main", "private": True}
 BETA = {"id": 42, "full_name": "fixture/beta", "default_branch": "trunk", "private": True}
+ORGANIZATION = {"id": 43, "full_name": "fixture-org/private", "default_branch": "main", "private": True}
 PREFIX = "/repos/fixture/alpha"
 COMMIT_A, COMMIT_B = "a" * 40, "b" * 40
 ROOT_A, ROOT_B, SRC_A, SRC_B = "1" * 40, "2" * 40, "3" * 40, "4" * 40
@@ -459,6 +460,22 @@ class GitHub(BaseHTTPRequestHandler):
                 self.respond(200, dict(ALPHA, id=42))
                 return
         beta = dict(BETA, private=False) if (directory / "public-beta").exists() else BETA
+        if (directory / "organization-access").exists():
+            if route.path == "/user/repos":
+                self.respond(200, [ORGANIZATION] if token in replacements else [])
+                return
+            if route.path.startswith("/repos/fixture-org/"):
+                if token not in replacements:
+                    self.respond(404, {"message": "Not Found"})
+                elif route.path == "/repos/fixture-org/private":
+                    self.respond(200, ORGANIZATION)
+                elif route.path == "/repos/fixture-org/private/branches/main":
+                    self.respond(200, {})
+                elif route.path == "/repos/fixture-org/private/actions/runs":
+                    self.respond(200, {"workflow_runs": []})
+                else:
+                    self.respond(404)
+                return
         routes = {
             "/user": (200, {"login": "fixture-user"}),
             "/repos/fixture/alpha": (200, ALPHA),

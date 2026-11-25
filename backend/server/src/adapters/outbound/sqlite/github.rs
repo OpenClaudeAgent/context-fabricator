@@ -6,7 +6,7 @@ use crate::application::github::{Binding, Store};
 use crate::domain::github::current::{CollectionStatus, ManifestPhase, SourceProgress};
 use crate::domain::github::{
     ACTIONS_TOKEN_URL, Access, BUCKET, ConfiguredRepository, CredentialState, Defaults, Error,
-    Features, Repository, Snapshot, TOKEN_URL,
+    Features, Repository, Snapshot, TOKEN_URL, TokenSetup,
 };
 use crate::domain::sync::{Phase, minute_spacing};
 
@@ -362,6 +362,7 @@ const fn access_value(value: Access) -> Option<bool> {
 }
 
 fn read_repository(row: &Row<'_>) -> rusqlite::Result<ConfiguredRepository> {
+    let full_name: String = row.get(1)?;
     let features = Features {
         current_code: row.get(6)?,
         history: row.get(7)?,
@@ -373,9 +374,10 @@ fn read_repository(row: &Row<'_>) -> rusqlite::Result<ConfiguredRepository> {
         features.current_code || features.code_graph,
     )?);
     Ok(ConfiguredRepository {
+        token_setup: TokenSetup::for_repository(&full_name),
         repository: Repository {
             id: row.get(0)?,
-            full_name: row.get(1)?,
+            full_name,
             default_branch: row.get(2)?,
             private: row.get(3)?,
         },

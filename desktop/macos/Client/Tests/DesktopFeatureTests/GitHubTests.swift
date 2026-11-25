@@ -106,6 +106,10 @@ private func verifyCommands(_ session: SessionClient, origin: URL) async throws 
     return
   }
   #expect(saved.repositories.first?.contents == .available)
+  let setup = try #require(saved.repositories.first?.tokenSetup)
+  let url = try #require(URLComponents(string: setup.actionsAuthorizationUrl))
+  #expect(url.queryItems?.first { $0.name == "target_name" }?.value == "fixture")
+  #expect(url.queryItems?.first { $0.name == "actions" }?.value == "read")
   #expect(try await session.status().connectedSources == 1)
   let queued = try await verifyCodeQueue(saved, repositoryID: repository.id, using: session)
   let verified = try await verifySavedAccess(queued, using: session)

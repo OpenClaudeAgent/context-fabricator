@@ -8,6 +8,7 @@ SurfaceDialog {
     required property GitHubConnector github
     required property GitHubActionsActivity githubActions
     required property GitHubGraphBrowser githubGraph
+    signal manageTokenRequested
     signal traceRequested(string traceId, string spanId)
 
     parent: Overlay.overlay
@@ -190,6 +191,13 @@ SurfaceDialog {
                     id: graph
                     text: qsTr("Code graph")
                 }
+            }
+
+            ActionButton {
+                visible: editor.github.editing
+                enabled: !editor.github.busy
+                text: qsTr("Manage Token…")
+                onClicked: editor.manageTokenRequested()
             }
 
             ActionButton {
