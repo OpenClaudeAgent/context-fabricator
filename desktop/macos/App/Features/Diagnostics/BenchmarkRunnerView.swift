@@ -109,7 +109,9 @@ struct BenchmarkRunnerView: View {
         }
         .buttonStyle(.borderedProminent)
         .disabled(
-          running || loadingCorpus || suite?.ready != true || selectedQuestion?.available != true)
+          running || loadingCorpus || suite?.ready != true || selectedQuestion?.available != true
+        )
+        .accessibilityIdentifier("benchmark-run-question")
         Button("Run All") { run() }
           .disabled(running || loadingCorpus || suite?.ready != true)
           .accessibilityIdentifier("benchmark-run-suite")
@@ -191,6 +193,7 @@ struct BenchmarkRunnerView: View {
                   Button("Inspect Result") { inspect(suite, row.question, response) }
                     .disabled(running)
                     .frame(maxWidth: .infinity, alignment: .trailing)
+                    .accessibilityIdentifier("benchmark-inspect-result")
                 }
               }
               .padding(18)

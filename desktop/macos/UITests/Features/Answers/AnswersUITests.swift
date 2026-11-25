@@ -12,15 +12,16 @@ final class AnswersUITests: XCTestCase {
     let activeProfile: String?
   }
 
-  func testPipelineShowsTheRejectedDraftAndItsContext() throws {
+  func testPipelineShowsTheRejectedDraftAndItsContext() async throws {
     let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
     let app = XCUIApplication()
     defer {
       app.terminate()
       try? FileManager.default.removeItem(at: directory)
     }
-    _ = try launchAnswerFixture(in: app, directory: directory)
+    _ = try launchAnswerFixture(in: app, directory: directory, hybrid: true)
     try seedAnswerCorpus(in: directory)
+    try await enableHybridIndex(in: BackendEndpoint.read(in: directory))
     app.selectWorkspace("answers")
     let inspector = app.buttons["open-answer-pipeline"]
     XCTAssertTrue(inspector.waitForExistence(timeout: 5))
@@ -57,8 +58,16 @@ final class AnswersUITests: XCTestCase {
     app.buttons["answer-pipeline-stage-generation"].click()
     XCTAssertTrue(app.staticTexts["answer-pipeline-draft"].exists)
     captureWindow("Native Answers pipeline - rejected draft", in: app)
+    verifyPipelineEmbedding(in: app)
     app.buttons["answer-pipeline-close"].click()
     XCTAssertTrue(question.waitForNonExistence(timeout: 5))
+  }
+
+  private func verifyPipelineEmbedding(in app: XCUIApplication) {
+    app.buttons["answer-pipeline-stage-embedding"].click()
+    XCTAssertTrue(app.staticTexts["Nearest passages"].waitForExistence(timeout: 5))
+    XCTAssertTrue(app.staticTexts["Retry cooldown"].exists)
+    XCTAssertFalse(app.buttons["View Retrieval"].exists)
   }
 
   func testPipelineBenchmarksRunAgainstPastedText() throws {
@@ -90,6 +99,68 @@ final class AnswersUITests: XCTestCase {
     let file = app.staticTexts.matching(NSPredicate(format: "value == %@", "note.txt")).firstMatch
     XCTAssertTrue(file.waitForExistence(timeout: 5))
     captureWindow("Native Answers benchmarks - temporary corpus", in: app)
+    app.buttons["answer-pipeline-stage-index"].click()
+    XCTAssertTrue(app.staticTexts["SQLite FTS5"].exists)
+    XCTAssertTrue(app.staticTexts["BM25"].exists)
+    app.buttons["answer-pipeline-stage-embedding"].click()
+    XCTAssertTrue(
+      app.staticTexts["This run used keyword search. BM25 does not calculate a query embedding."]
+        .exists)
+    app.buttons["View Retrieval"].click()
+    let candidate = app.buttons["pipeline-retrieval-candidate-0"]
+    XCTAssertTrue(candidate.waitForExistence(timeout: 5))
+    candidate.click()
+    app.buttons["View in Ranking"].click()
+    XCTAssertTrue(app.buttons["pipeline-ranking-candidate-0"].isSelected)
+    app.buttons["pipeline-ranking-open-model-slot"].click()
+    let passage = app.staticTexts["answer-pipeline-input-1"]
+    XCTAssertTrue(passage.waitForExistence(timeout: 5))
+    XCTAssertTrue(traceText(passage).contains("Jetmarker waits 73 ms."))
+  }
+
+  func testBenchmarkRunnerReplaysRecordedWorkflowWithoutDownloading() throws {
+    let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+    let app = XCUIApplication()
+    defer {
+      app.terminate()
+      try? FileManager.default.removeItem(at: directory)
+    }
+    _ = try launchAnswerFixture(in: app, directory: directory)
+    app.selectWorkspace("answers")
+    app.buttons["open-answer-pipeline"].click()
+    openPipelineSources(in: app)
+    app.buttons["pipeline-manage-sources"].click()
+    let recorded = app.buttons["Recorded Captures"]
+    XCTAssertTrue(recorded.wait(for: \.isHittable, toEqual: true, timeout: 5))
+    recorded.click()
+    let load = app.buttons["Load Recorded Captures"]
+    XCTAssertTrue(load.wait(for: \.isHittable, toEqual: true, timeout: 5))
+    load.click()
+    XCTAssertTrue(load.waitForNonExistence(timeout: 5))
+    let done = app.buttons["pipeline-manage-sources-done"]
+    XCTAssertTrue(done.wait(for: \.isHittable, toEqual: true, timeout: 5))
+    done.click()
+    XCTAssertTrue(done.waitForNonExistence(timeout: 5))
+
+    app.buttons["answer-pipeline-benchmarks"].click()
+    XCTAssertTrue(
+      app.staticTexts["What was the outcome of the selected CI workflow?"]
+        .firstMatch.waitForExistence(timeout: 5))
+    let run = app.buttons["benchmark-run-question"]
+    XCTAssertTrue(run.wait(for: \.isEnabled, toEqual: true, timeout: 5))
+    run.click()
+    let inspect = app.buttons["benchmark-inspect-result"]
+    XCTAssertTrue(inspect.wait(for: \.isEnabled, toEqual: true, timeout: 12))
+    let answer = app.staticTexts.matching(
+      NSPredicate(format: "value == %@", "Conclusion: cancelled")
+    ).firstMatch
+    XCTAssertTrue(answer.exists)
+    inspect.click()
+    XCTAssertTrue(app.buttons["answer-pipeline-stage-retrieval"].isSelected)
+    app.buttons["answer-pipeline-stage-embedding"].click()
+    XCTAssertTrue(app.staticTexts["Exact workflow attempt"].exists)
+    app.buttons["answer-pipeline-stage-verification"].click()
+    XCTAssertTrue(answer.exists)
   }
 
   private func checkBenchmarkSources(in app: XCUIApplication) throws {

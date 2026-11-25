@@ -3,6 +3,11 @@ name: macOS qualification
 on:
   workflow_call:
   workflow_dispatch:
+    inputs:
+      native_ui_only:
+        description: Run the macOS XCTest groups and merge their coverage
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -17,6 +22,7 @@ env:
 jobs:
   toolchain:
     name: Swift and Rust quality gates
+    if: ${{ !inputs.native_ui_only }}
     runs-on: macos-26
     timeout-minutes: 30
     steps:
@@ -41,6 +47,7 @@ jobs:
 
   macos-product:
     name: macOS product and packaged backend
+    if: ${{ !inputs.native_ui_only }}
     runs-on: macos-26
     timeout-minutes: 35
     steps:
@@ -73,6 +80,7 @@ jobs:
 
   runtime-diagnostics:
     name: macOS runtime diagnostics and controlled failures
+    if: ${{ !inputs.native_ui_only }}
     runs-on: macos-26
     timeout-minutes: 45
     steps:
@@ -96,6 +104,7 @@ jobs:
 
   release-package:
     name: macOS arm64 release package
+    if: ${{ !inputs.native_ui_only }}
     runs-on: macos-26
     timeout-minutes: 35
     steps:
