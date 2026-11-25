@@ -484,6 +484,11 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Problem' }
+        '413':
+          description: The encoded removal confirmation exceeds the request body limit
+          content:
+            text/plain:
+              schema: { type: string }
         '503': { $ref: '#/components/responses/Unavailable' }
   /v1/model-downloads/{profile}/removal-plan:
     get:

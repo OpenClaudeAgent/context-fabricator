@@ -33,7 +33,7 @@ def examples(schema, session):
         )
         if report:
             print(f"Schemathesis validated HTTP {expected} for {method} {path}")
-        return response.json()
+        return response.text if expected == 413 else response.json()
 
     settings = {"revision": 0, "answerLanguage": "auto", "diagnosticRetentionHours": 24}
     saved = check("PUT", "/v1/settings", 200, body=settings)
@@ -121,6 +121,11 @@ def examples(schema, session):
 
     plan = check("GET", downloads + "/{profile}/removal-plan", 200, path_parameters=selected)
     assert plan["profile"] == profile and plan["bytes"] == variant["bytes"] and plan["identity"]
+    check(
+        "DELETE", downloads + "/{profile}", 413,
+        path_parameters=selected, body={"identity": "é" * 2048},
+    )
+    assert check("GET", downloads + "/{profile}/removal-plan", 200, path_parameters=selected) == plan
     active = check("PUT", "/v1/generation/models", 200, body=selected)
     assert active["activeProfile"] == profile
     assert any(model["id"] == profile for model in active["profiles"])
