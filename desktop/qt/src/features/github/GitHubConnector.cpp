@@ -20,6 +20,16 @@ using Configured = openapi::GitHubConfiguredRepository;
 constexpr int DefaultMinimum = 15;
 constexpr int DefaultMaximum = 1440;
 
+QUrl validatedTokenUrl(const QString &value) {
+    const QUrl url(value, QUrl::StrictMode);
+    if (url.scheme() != QStringLiteral("https") || url.host() != QStringLiteral("github.com") ||
+        url.port(443) != 443 || !url.userInfo().isEmpty() ||
+        url.path() != QStringLiteral("/settings/personal-access-tokens/new")) {
+        return {};
+    }
+    return url;
+}
+
 template <typename T> bool hasRow(const QList<T> &items, int row) {
     return row >= 0 && row < items.size();
 }
@@ -95,24 +105,16 @@ QUrl GitHubConnector::tokenUrl(bool actions, bool repositoryScoped) const {
     if (!state_) {
         return {};
     }
-    auto templateUrl =
-        actions ? state_->getActionsAuthorizationUrl() : state_->getAuthorizationUrl();
-    if (repositoryScoped) {
-        if (const auto repository = configuredDraft()) {
-            const auto setup = repository->getTokenSetup();
-            if (setup.isValid()) {
-                templateUrl =
-                    actions ? setup.getActionsAuthorizationUrl() : setup.getAuthorizationUrl();
-            }
+    const auto repository = repositoryScoped ? configuredDraft() : std::nullopt;
+    if (repository) {
+        const auto setup = repository->getTokenSetup();
+        if (setup.isValid()) {
+            return validatedTokenUrl(actions ? setup.getActionsAuthorizationUrl()
+                                             : setup.getAuthorizationUrl());
         }
     }
-    const QUrl url(templateUrl, QUrl::StrictMode);
-    if (url.scheme() != QStringLiteral("https") || url.host() != QStringLiteral("github.com") ||
-        url.port(443) != 443 || !url.userInfo().isEmpty() ||
-        url.path() != QStringLiteral("/settings/personal-access-tokens/new")) {
-        return {};
-    }
-    return url;
+    return validatedTokenUrl(actions ? state_->getActionsAuthorizationUrl()
+                                     : state_->getAuthorizationUrl());
 }
 
 void GitHubConnector::openTokenPage(bool actions, bool repositoryScoped) {
