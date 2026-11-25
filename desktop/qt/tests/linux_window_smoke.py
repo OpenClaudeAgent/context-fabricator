@@ -42,12 +42,13 @@ def xvfb(geometry="1024x768x24"):
         os.close(writer)
     try:
         with os.fdopen(reader, "r", encoding="ascii") as reply:
-            ready, _, _ = select.select([reply], [], [], 5)
+            # A cold Xvfb must compile the XKB keymap before reporting readiness.
+            ready, _, _ = select.select([reply], [], [], 15)
             if not ready:
-                raise AssertionError("Xvfb did not publish a display")
+                raise AssertionError("Xvfb did not publish a display within 15 seconds")
             display_number = reply.readline().strip()
         if not display_number.isdecimal():
-            raise AssertionError("Xvfb did not start")
+            raise AssertionError(f"Xvfb closed its readiness pipe without a display (exit: {display.poll()})")
         yield ":" + display_number
     finally:
         display.terminate()
