@@ -47,7 +47,10 @@ jobs:
       - name: Build the real Rust backend
         run: cargo build --locked --manifest-path backend/Cargo.toml -p ctxfab-server
       - name: Exercise the Swift package and the loopback API
+        env:
+          CTXFAB_GITHUB_FIXTURE_STARTUP_DIAGNOSTICS: '1'
         run: |
+          python3 --version
           log="$RUNNER_TEMP/swift-tests.log"
           CTXFAB_TEST_BACKEND_EXECUTABLE="$PWD/backend/target/debug/ctxfab-server" \
             xcrun swift test --package-path desktop/macos/Client \

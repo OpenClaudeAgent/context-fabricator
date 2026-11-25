@@ -2,6 +2,10 @@ name: macOS qualification
 
 on:
   workflow_call:
+    inputs:
+      preview:
+        type: boolean
+        default: false
   workflow_dispatch:
     inputs:
       native_ui_only:
@@ -225,8 +229,18 @@ jobs:
         with:
           pattern: native-ui-*
           path: .quality/ui-shards
-      - name: Merge XCUI coverage and enforce the gate
+      - name: Merge and report native Swift app coverage
+        env:
+          CTXFAB_NATIVE_COVERAGE_MODE: ${{ inputs.preview && 'report' || 'enforce' }}
         run: make check-native-coverage
+      - name: Write coverage to the workflow summary
+        if: always()
+        run: |
+          for report in .quality/reports/app-coverage.*/coverage-gate.log; do
+            if [[ -s $report ]]; then
+              cat "$report" >> "$GITHUB_STEP_SUMMARY"
+            fi
+          done
       - name: Retain merged coverage
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

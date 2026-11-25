@@ -7,14 +7,16 @@ cd "$quality_root/desktop/macos"
 mode=${1:-build}
 destination='platform=macOS,arch=arm64'
 check_app_coverage() {
-    jq -er --arg app "$PWD/App/" --argjson minimum "$minimum_line_coverage" '
+    jq -er --arg app "$PWD/App/" --argjson minimum "$minimum_line_coverage" --arg mode "${2:-enforce}" '
         [.targets[].files[] | select(.path | startswith($app))]
         | unique_by(.path)
         | (map(.coveredLines) | add // 0) as $covered
         | (map(.executableLines) | add // 0) as $total
         | select($total > 0)
-        | "\($covered)/\($total) native Swift app lines, minimum \($minimum)%",
-          ($covered * 100 >= $minimum * $total)
+        | "\($covered)/\($total) native Swift app lines (\((10000 * $covered / $total | floor) / 100)%), minimum \($minimum)%",
+          (if $covered * 100 >= $minimum * $total then "Coverage threshold met"
+           elif $mode == "report" then "Below the coverage threshold (preview)"
+           else false end)
         ' "$1"
 }
 
@@ -38,7 +40,8 @@ if [[ ${1:-} == merge-ui ]]; then
     xcrun xccov merge --outReport "$report/merged.xccovreport" \
         --outArchive "$report/merged.xccovarchive" "${inputs[@]}"
     xcrun xccov view --report --json "$report/merged.xccovreport" > "$report/coverage.json"
-    check_app_coverage "$report/coverage.json" | tee "$report/coverage-gate.log"
+    check_app_coverage "$report/coverage.json" "${CTXFAB_NATIVE_COVERAGE_MODE:-enforce}" |
+        tee "$report/coverage-gate.log"
     echo "Merged native app coverage in $report"
     exit 0
 fi

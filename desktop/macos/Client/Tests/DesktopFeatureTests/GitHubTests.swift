@@ -32,9 +32,9 @@ func withGitHubBackendFixture(
     .appending(path: "../../../../../quality/github/github_fixture.py").standardizedFileURL
   let fixtureArguments = publicBenchmark ? ["--public-benchmark"] : []
   try start(
-    fixture, executable: "/usr/bin/python3",
-    arguments: [script.path, directory.path] + fixtureArguments)
-  let port = try await readFile(directory.appending(path: "port"))
+    fixture, executable: "/usr/bin/env",
+    arguments: ["python3", script.path, directory.path] + fixtureArguments)
+  let port = try await readFile(directory.appending(path: "port"), from: fixture)
   let executable = try #require(
     ProcessInfo.processInfo.environment["CTXFAB_TEST_BACKEND_EXECUTABLE"])
   let data = directory.appending(path: "data")
@@ -50,7 +50,7 @@ func withGitHubBackendFixture(
     arguments: [
       data.path, "--github-fixture", String(decoding: port, as: UTF8.self),
     ])
-  let endpointData = try await readFile(data.appending(path: "endpoint.json"))
+  let endpointData = try await readFile(data.appending(path: "endpoint.json"), from: backend)
   struct Endpoint: Decodable {
     let url: URL
     let token: String
@@ -285,13 +285,15 @@ private func start(_ process: Process, executable: String, arguments: [String]) 
   process.executableURL = URL(filePath: executable)
   process.arguments = arguments
   process.standardOutput = FileHandle.nullDevice
-  process.standardError = FileHandle.nullDevice
   try process.run()
 }
 
-private func readFile(_ url: URL) async throws -> Data {
+private func readFile(_ url: URL, from process: Process) async throws -> Data {
   let deadline = ContinuousClock.now + .seconds(5)
-  while !FileManager.default.fileExists(atPath: url.path), ContinuousClock.now < deadline {
+  while !FileManager.default.fileExists(atPath: url.path) {
+    try #require(process.isRunning, "Process exited before writing \(url.lastPathComponent)")
+    try #require(
+      ContinuousClock.now < deadline, "Timed out waiting for \(url.lastPathComponent)")
     try await Task.sleep(for: .milliseconds(30))
   }
   return try Data(contentsOf: url)
