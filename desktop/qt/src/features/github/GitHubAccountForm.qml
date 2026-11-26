@@ -20,35 +20,60 @@ ColumnLayout {
         text: form.github.credential === GitHubConnector.ReconnectRequired ? qsTr("Reconnect GitHub") : (form.github.login || qsTr("Not connected"))
     }
 
-    ActionButton {
-        text: qsTr("Create Token")
-        onClicked: tokenMenu.open()
+    Flow {
+        Layout.fillWidth: true
+        Layout.preferredHeight: implicitHeight
+        layoutDirection: Qt.RightToLeft
+        spacing: 8
 
-        Menu {
-            id: tokenMenu
+        ActionButton {
+            text: qsTr("Create Classic Token")
+            highlighted: true
+            onClicked: form.github.openClassicTokenPage(false) // qmllint disable compiler
+        }
 
-            MenuItem {
-                text: qsTr("Repository contents")
-                onTriggered: form.github.openTokenPage(false, form.repositoryScoped) // qmllint disable compiler
+        ActionButton {
+            text: qsTr("Fine-Grained Token")
+            onClicked: tokenMenu.open()
+
+            Menu {
+                id: tokenMenu
+
+                MenuItem {
+                    text: qsTr("Repository contents")
+                    onTriggered: form.github.openTokenPage(false, form.repositoryScoped) // qmllint disable compiler
+                }
+
+                MenuItem {
+                    text: qsTr("Repository contents and Actions")
+                    onTriggered: form.github.openTokenPage(true, form.repositoryScoped) // qmllint disable compiler
+                }
             }
+        }
 
-            MenuItem {
-                text: qsTr("Repository contents and Actions")
-                onTriggered: form.github.openTokenPage(true, form.repositoryScoped) // qmllint disable compiler
-            }
+        ActionButton {
+            text: qsTr("Configure SSO")
+            onClicked: form.github.openClassicTokenPage(true) // qmllint disable compiler
         }
     }
 
     Label {
         Layout.fillWidth: true
-        text: qsTr("On GitHub, set Resource owner to the account or organization that owns the repository. Select the repository under Repository access.")
+        text: qsTr("For private repositories, select the repo scope on GitHub.")
         wrapMode: Text.WordWrap
         color: Theme.muted
     }
 
     Label {
         Layout.fillWidth: true
-        text: qsTr("If GitHub marks the token as pending, an organization admin must approve it.")
+        text: qsTr("If your organization uses SAML, use Configure SSO to authorize the classic token.")
+        wrapMode: Text.WordWrap
+        color: Theme.muted
+    }
+
+    Label {
+        Layout.fillWidth: true
+        text: qsTr("For a fine-grained token, select the repository and its owner on GitHub.")
         wrapMode: Text.WordWrap
         color: Theme.muted
     }

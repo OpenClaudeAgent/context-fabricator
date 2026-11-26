@@ -60,6 +60,7 @@ mod scheduled;
 mod storage;
 
 const FIRST: &str = "github_pat_fixture_primary";
+const CLASSIC: &str = "ghp_fixtureClassic";
 const REPLACEMENT: &str = "github_pat_fixture_replacement";
 
 fn traced_app(
@@ -1085,6 +1086,70 @@ async fn organization_repository_uses_the_resource_owner_in_token_setup()
 }
 
 #[tokio::test]
+async fn a_classic_token_connects_and_authorizes_a_private_organization_repository()
+-> Result<(), Box<dyn Error>> {
+    let origin = Origin::start().await?;
+    let fixtures = origin.directory.path();
+    fs::write(fixtures.join("organization-access"), [])?;
+    let store = Arc::new(SqliteStore::open(Path::new(":memory:"))?);
+    let app = origin.app(&store, Some(Arc::new(memory::Credentials::default())))?;
+
+    let account = authorize(&app, 0, CLASSIC, 200).await?;
+    assert_eq!(account["credential"], "connected");
+    assert_eq!(
+        account["classicAuthorizationUrl"],
+        "https://github.com/settings/tokens/new?description=Context+Fabricator&scopes=repo"
+    );
+    assert_eq!(
+        account["classicSettingsUrl"],
+        "https://github.com/settings/tokens"
+    );
+    let blocked = call(
+        &app,
+        "PUT",
+        "/v1/github/repositories",
+        selection(1, "fixture-org/private", 43),
+        403,
+    )
+    .await?;
+    assert_eq!(blocked["code"], "github_sso_required");
+    assert!(!blocked.to_string().contains("sso-fixture-marker"));
+
+    fs::write(fixtures.join("organization-sso-authorized"), [])?;
+    let discovered = call(&app, "GET", "/v1/github/repositories", Value::Null, 200).await?;
+    assert_eq!(
+        discovered["repositories"][0]["fullName"],
+        "fixture-org/private"
+    );
+    let saved = call(
+        &app,
+        "PUT",
+        "/v1/github/repositories",
+        selection(1, "fixture-org/private", 43),
+        200,
+    )
+    .await?;
+    assert_eq!(saved["repositories"][0]["contents"], "available");
+    assert_eq!(saved["repositories"][0]["actions"], "available");
+
+    fs::remove_file(fixtures.join("organization-sso-authorized"))?;
+    let blocked = call(
+        &app,
+        "POST",
+        "/v1/github/repositories/43/access?revision=2",
+        Value::Null,
+        403,
+    )
+    .await?;
+    assert_eq!(blocked["code"], "github_sso_required");
+    let current = call(&app, "GET", "/v1/github", Value::Null, 200).await?;
+    assert_eq!(current["credential"], "connected");
+    assert_eq!(current["repositories"][0]["contents"], "unavailable");
+    assert_eq!(current["repositories"][0]["actions"], "unavailable");
+    Ok(())
+}
+
+#[tokio::test]
 async fn a_missing_or_expired_credential_and_replacement_preserve_configuration()
 -> Result<(), Box<dyn Error>> {
     let origin = Origin::start().await?;
@@ -1092,7 +1157,7 @@ async fn a_missing_or_expired_credential_and_replacement_preserve_configuration(
     let keychain = Arc::new(memory::Credentials::default());
     let app = origin.app(&store, Some(keychain.clone()))?;
     assert_eq!(
-        authorize(&app, 0, "ghp_wrongkind", 400).await?["code"],
+        authorize(&app, 0, "ghp_invalid_suffix", 400).await?["code"],
         "github_invalid_token"
     );
     assert_eq!(

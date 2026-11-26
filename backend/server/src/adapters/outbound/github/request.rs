@@ -137,6 +137,7 @@ impl GitHubRest {
             let request = request
                 .body(Full::default())
                 .map_err(|_| Error::InvalidSelection)?;
+            let mut needs_sso = false;
             let reply = self
                 .transport
                 .send_guarded(
@@ -154,31 +155,14 @@ impl GitHubRest {
                             trace
                         }
                     }),
-                    async |response| match response.status() {
-                        StatusCode::UNAUTHORIZED => Reply::Credentials,
-                        StatusCode::TOO_MANY_REQUESTS => Reply::Throttled(
-                            cooldown(response.headers()).unwrap_or(Duration::from_secs(60)),
-                        ),
-                        StatusCode::FORBIDDEN => forbidden(response).await,
-                        StatusCode::NOT_FOUND if guarded && path.contains("/git/") => {
-                            Reply::ExpiredCursor
-                        }
-                        StatusCode::NOT_FOUND | StatusCode::CONFLICT => Reply::Permanent,
-                        StatusCode::SERVICE_UNAVAILABLE => {
-                            cooldown(response.headers()).map_or(Reply::Temporary, Reply::Throttled)
-                        }
-                        status if status.is_success() => {
-                            if let Some(delay) = remaining_reset(response.headers())
-                                && self.transport.pause(delay).is_err()
-                            {
-                                return Reply::Temporary;
-                            }
-                            Reply::Success(Hop::Data(read(response).await))
-                        }
-                        status if status.is_redirection() => self
-                            .redirect(response.headers())
-                            .map_or(Reply::Temporary, |next| Reply::Success(Hop::Redirect(next))),
-                        _ => Reply::Temporary,
+                    async |response| {
+                        self.classify_get_reply(
+                            response,
+                            guarded && path.contains("/git/"),
+                            read,
+                            &mut needs_sso,
+                        )
+                        .await
                     },
                 )
                 .await
@@ -194,12 +178,50 @@ impl GitHubRest {
                 }
                 Reply::Credentials => return Err(Error::Reconnect),
                 Reply::Throttled(_) => return Err(Error::Throttled),
+                Reply::Permanent if needs_sso => return Err(Error::SsoRequired),
                 Reply::Permanent => return Err(Error::Access),
                 Reply::ExpiredCursor => return Err(Error::ExpiredPin),
                 Reply::Temporary => return Err(Error::Upstream),
             }
         }
         Err(Error::Upstream)
+    }
+
+    async fn classify_get_reply<T: Send>(
+        &self,
+        response: &mut Response<Incoming>,
+        expired_if_missing: bool,
+        read: fn(&mut Response<Incoming>) -> Parser<'_, T>,
+        needs_sso: &mut bool,
+    ) -> Reply<Hop<T>> {
+        match response.status() {
+            StatusCode::UNAUTHORIZED => Reply::Credentials,
+            StatusCode::TOO_MANY_REQUESTS => {
+                Reply::Throttled(cooldown(response.headers()).unwrap_or(Duration::from_secs(60)))
+            }
+            StatusCode::FORBIDDEN | StatusCode::NOT_FOUND if sso_required(response.headers()) => {
+                *needs_sso = true;
+                Reply::Permanent
+            }
+            StatusCode::FORBIDDEN => forbidden(response).await,
+            StatusCode::NOT_FOUND if expired_if_missing => Reply::ExpiredCursor,
+            StatusCode::NOT_FOUND | StatusCode::CONFLICT => Reply::Permanent,
+            StatusCode::SERVICE_UNAVAILABLE => {
+                cooldown(response.headers()).map_or(Reply::Temporary, Reply::Throttled)
+            }
+            status if status.is_success() => {
+                if let Some(delay) = remaining_reset(response.headers())
+                    && self.transport.pause(delay).is_err()
+                {
+                    return Reply::Temporary;
+                }
+                Reply::Success(Hop::Data(read(response).await))
+            }
+            status if status.is_redirection() => self
+                .redirect(response.headers())
+                .map_or(Reply::Temporary, |next| Reply::Success(Hop::Redirect(next))),
+            _ => Reply::Temporary,
+        }
     }
 
     fn redirect(&self, headers: &HeaderMap) -> Option<Uri> {
@@ -300,6 +322,14 @@ pub(super) async fn forbidden<T>(response: &mut Response<Incoming>) -> Reply<T> 
         return Reply::Throttled(Duration::from_secs(60));
     }
     Reply::Permanent
+}
+
+fn sso_required(headers: &HeaderMap) -> bool {
+    headers
+        .get("x-github-sso")
+        .and_then(|value| value.to_str().ok())
+        .and_then(|value| value.split(';').next())
+        .is_some_and(|directive| directive.trim().eq_ignore_ascii_case("required"))
 }
 
 pub(super) fn cooldown(headers: &HeaderMap) -> Option<Duration> {

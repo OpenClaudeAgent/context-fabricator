@@ -1477,7 +1477,7 @@ components:
           minLength: 12
           maxLength: 512
           writeOnly: true
-          description: Fine-grained token with a github_pat_ prefix followed by ASCII letters, digits or underscores. Surrounding whitespace is trimmed. The input limit is 512 bytes.
+          description: Classic (ghp_) or fine-grained (github_pat_) personal access token. Surrounding whitespace is trimmed. The input limit is 512 bytes.
     GitHubState:
       type: object
       required: [revision, credential, authorizationUrl, actionsAuthorizationUrl, defaults, repositories]
@@ -1487,6 +1487,8 @@ components:
         login: { type: string }
         authorizationUrl: { type: string, format: uri }
         actionsAuthorizationUrl: { type: string, format: uri }
+        classicAuthorizationUrl: { type: string, format: uri }
+        classicSettingsUrl: { type: string, format: uri }
         defaults: { $ref: '#/components/schemas/GitHubDefaults' }
         traffic: { $ref: '#/components/schemas/GitHubTraffic' }
         repositories:

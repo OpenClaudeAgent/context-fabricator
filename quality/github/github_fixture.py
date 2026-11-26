@@ -406,7 +406,8 @@ class GitHub(BaseHTTPRequestHandler):
             return
         token = self.headers.get("Authorization")
         replacements = {"Bearer github_pat_fixture_replacement", "Bearer github_pat_r"}
-        valid = {"Bearer github_pat_fixture_primary", *replacements}
+        classic = token == "Bearer ghp_fixtureClassic"
+        valid = {"Bearer github_pat_fixture_primary", "Bearer ghp_fixtureClassic", *replacements}
         if token not in valid or (token.endswith("_primary") and expired.exists()):
             self.respond(401)
             return
@@ -461,11 +462,16 @@ class GitHub(BaseHTTPRequestHandler):
                 return
         beta = dict(BETA, private=False) if (directory / "public-beta").exists() else BETA
         if (directory / "organization-access").exists():
+            sso = classic and (directory / "organization-sso-authorized").exists()
             if route.path == "/user/repos":
-                self.respond(200, [ORGANIZATION] if token in replacements else [])
+                self.respond(200, [ORGANIZATION] if token in replacements or sso else [])
                 return
             if route.path.startswith("/repos/fixture-org/"):
-                if token not in replacements:
+                if classic and not sso:
+                    self.respond(403, {"message": "SAML SSO required"}, {
+                        "X-GitHub-SSO": "required; url=https://github.com/sso-fixture-marker",
+                    })
+                elif token not in replacements and not sso:
                     self.respond(404, {"message": "Not Found"})
                 elif route.path == "/repos/fixture-org/private":
                     self.respond(200, ORGANIZATION)

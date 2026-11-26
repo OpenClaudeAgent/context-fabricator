@@ -581,12 +581,15 @@ impl GitHub {
             return Err(Error::InvalidToken);
         }
         let token = token.trim();
-        if !token.strip_prefix("github_pat_").is_some_and(|suffix| {
-            !suffix.is_empty()
-                && suffix
-                    .bytes()
-                    .all(|byte| byte.is_ascii_alphanumeric() || byte == b'_')
-        }) {
+        let fine_grained = token.strip_prefix("github_pat_");
+        let suffix = fine_grained
+            .or_else(|| token.strip_prefix("ghp_"))
+            .ok_or(Error::InvalidToken)?;
+        if suffix.is_empty()
+            || !suffix.bytes().all(|byte| {
+                byte.is_ascii_alphanumeric() || (fine_grained.is_some() && byte == b'_')
+            })
+        {
             return Err(Error::InvalidToken);
         }
         let keychain = self.credentials.as_deref().ok_or(Error::Credentials)?;
@@ -783,13 +786,14 @@ impl GitHub {
         };
         let name = RepositoryName::parse(&selection.repository)?;
         let result = self.inspect(&secret, name, &selection).await;
-        match self.observe(&reference, result) {
+        let sso_required = match self.observe(&reference, result) {
             Ok(checked) => {
                 config.contents = checked.contents;
                 config.actions = checked.actions;
                 config.verified = checked.verified;
+                false
             }
-            Err(Error::Access) => {
+            Err(error @ (Error::Access | Error::SsoRequired)) => {
                 config.contents = if config.features.needs_contents() {
                     Access::Unavailable
                 } else {
@@ -801,15 +805,19 @@ impl GitHub {
                     Access::Unchecked
                 };
                 config.verified = false;
+                error == Error::SsoRequired
             }
             Err(Error::Reconnect) => {
                 self.collection_changed();
                 return Err(Error::Reconnect);
             }
             Err(error) => return Err(error),
-        }
+        };
         if self.store.record_access(revision, &config)? {
             self.collection_changed();
+        }
+        if sso_required {
+            return Err(Error::SsoRequired);
         }
         self.snapshot()
     }

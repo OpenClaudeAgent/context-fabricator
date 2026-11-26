@@ -5,8 +5,9 @@ use super::SqliteStore;
 use crate::application::github::{Binding, Store};
 use crate::domain::github::current::{CollectionStatus, ManifestPhase, SourceProgress};
 use crate::domain::github::{
-    ACTIONS_TOKEN_URL, Access, BUCKET, ConfiguredRepository, CredentialState, Defaults, Error,
-    Features, Repository, Snapshot, TOKEN_URL, TokenSetup,
+    ACTIONS_TOKEN_URL, Access, BUCKET, CLASSIC_TOKEN_SETTINGS, CLASSIC_TOKEN_URL,
+    ConfiguredRepository, CredentialState, Defaults, Error, Features, Repository, Snapshot,
+    TOKEN_URL, TokenSetup,
 };
 use crate::domain::sync::{Phase, minute_spacing};
 
@@ -146,6 +147,8 @@ impl Store for SqliteStore {
             login,
             authorization_url: TOKEN_URL,
             actions_authorization_url: ACTIONS_TOKEN_URL,
+            classic_authorization_url: CLASSIC_TOKEN_URL,
+            classic_settings_url: CLASSIC_TOKEN_SETTINGS,
             defaults: Defaults::default(),
             repositories,
             traffic: None,

@@ -1,6 +1,328 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Configure SSO" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SSO konfigurieren"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configurar SSO"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configurer le SSO"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configura SSO"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SSO を設定"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configurar SSO"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "配置 SSO"
+          }
+        }
+      }
+    },
+    "Create Classic Token" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Klassisches Token erstellen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crear token clásico"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Créer un jeton classique"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crea token classico"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "クラシックトークンを作成"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Criar token clássico"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "创建经典令牌"
+          }
+        }
+      }
+    },
+    "Fine-Grained Token" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Detailliertes Token"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Token de acceso específico"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jeton à accès granulaire"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Token con accesso granulare"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "きめ細かいトークン"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Token com acesso granular"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "细粒度令牌"
+          }
+        }
+      }
+    },
+    "For a fine-grained token, select the repository and its owner on GitHub." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wähle für ein detailliertes Token das Repository und seinen Eigentümer auf GitHub aus."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Para un token de acceso específico, selecciona el repositorio y su propietario en GitHub."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pour un jeton à accès granulaire, sélectionne le dépôt et son propriétaire sur GitHub."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Per un token con accesso granulare, seleziona il repository e il suo proprietario su GitHub."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "きめ細かいトークンの場合は、GitHub でリポジトリとその所有者を選択してください。"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Para um token com acesso granular, selecione o repositório e seu proprietário no GitHub."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "对于细粒度令牌，请在 GitHub 上选择仓库及其所有者。"
+          }
+        }
+      }
+    },
+    "For private repositories, select the repo scope on GitHub." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wähle für private Repositorys auf GitHub den Berechtigungsbereich „repo“."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Para repositorios privados, selecciona el ámbito repo en GitHub."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pour les dépôts privés, coche la permission repo sur GitHub."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Per i repository privati, seleziona l’ambito repo su GitHub."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "プライベートリポジトリには、GitHub で repo スコープを選択してください。"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Para repositórios privados, selecione o escopo repo no GitHub."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "对于私有仓库，请在 GitHub 上选择 repo 权限范围。"
+          }
+        }
+      }
+    },
+    "If your organization uses SAML, use Configure SSO to authorize the classic token." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wenn deine Organisation SAML verwendet, autorisiere das klassische Token über „SSO konfigurieren“."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Si tu organización usa SAML, autoriza el token clásico con Configurar SSO."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Si ton organisation utilise SAML, autorise le jeton classique via Configurer le SSO."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se la tua organizzazione usa SAML, autorizza il token classico con Configura SSO."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "組織が SAML を使用している場合は、「SSO を設定」からクラシックトークンを承認してください。"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se a sua organização usar SAML, autorize o token clássico em Configurar SSO."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "如果你的组织使用 SAML，请通过“配置 SSO”授权经典令牌。"
+          }
+        }
+      }
+    },
+    "Organization SSO" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SSO der Organisation"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SSO de la organización"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SSO de l’organisation"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SSO dell’organizzazione"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "組織の SSO"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SSO da organização"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "组织 SSO"
+          }
+        }
+      }
+    },
     "#%lld" : {
       "localizations" : {
         "de" : {
@@ -1709,98 +2031,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "请检查分支、令牌的「Resource owner」和读取权限，以及组织是否还有待处理的审批。"
-          }
-        }
-      }
-    },
-    "If GitHub marks the token as pending, an organization admin must approve it." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Wenn GitHub das Token als ausstehend anzeigt, muss es jemand mit Administratorrechten in der Organisation genehmigen."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Si GitHub marca el token como pendiente, un administrador de la organización debe aprobarlo."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Si GitHub indique que le jeton est en attente, un administrateur de l’organisation doit l’approuver."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Se GitHub indica che il token è in attesa, serve l’approvazione di un amministratore dell’organizzazione."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "GitHub でトークンが承認待ちの場合は、組織の管理者による承認が必要です。"
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Se o GitHub indicar que o token está pendente, um administrador da organização tem de o aprovar."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "如果 GitHub 将令牌标记为待审核，组织管理员必须批准该令牌。"
-          }
-        }
-      }
-    },
-    "On GitHub, set Resource owner to the account or organization that owns the repository. Select the repository under Repository access." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Wähle auf GitHub unter „Resource owner“ das Konto oder die Organisation aus, dem bzw. der das Repository gehört. Wähle das Repository unter „Repository access“ aus."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "En GitHub, elige en «Resource owner» la cuenta u organización propietaria del repositorio. Selecciona el repositorio en «Repository access»."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sur GitHub, choisissez le compte ou l’organisation qui possède le dépôt dans « Resource owner ». Puis sélectionnez le dépôt dans « Repository access »."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Su GitHub, scegli l’account o l’organizzazione proprietaria del repository in «Resource owner». Seleziona il repository in «Repository access»."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "GitHub の「Resource owner」で、リポジトリを所有するアカウントまたは組織を選択してください。「Repository access」でリポジトリを選択してください。"
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No GitHub, escolha em «Resource owner» a conta ou organização proprietária do repositório. Selecione o repositório em «Repository access»."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "在 GitHub 的「Resource owner」中选择仓库所属的账户或组织，然后在「Repository access」中选择该仓库。"
           }
         }
       }
@@ -10974,52 +11204,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "后端重启时计数会重置。最新保留的记录可能来自之前的会话。"
-          }
-        }
-      }
-    },
-    "Create Token" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Token erstellen"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Crear token"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Créer un jeton"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Crea token"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "トークンを作成"
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Criar token"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "创建令牌"
           }
         }
       }

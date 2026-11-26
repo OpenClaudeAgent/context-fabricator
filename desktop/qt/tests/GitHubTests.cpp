@@ -821,12 +821,20 @@ class GitHubTests : public QObject {
         QCOMPARE(first.credential(), Connector::Disconnected);
         QCOMPARE(first.tokenUrl(false).host(), QStringLiteral("github.com"));
         QCOMPARE(QUrlQuery(first.tokenUrl(true)).queryItemValue("actions"), QStringLiteral("read"));
+        QCOMPARE(first.classicTokenUrl(false).path(), QStringLiteral("/settings/tokens/new"));
+        QCOMPARE(QUrlQuery(first.classicTokenUrl(false)).queryItemValue("scopes"),
+                 QStringLiteral("repo"));
+        QCOMPARE(first.classicTokenUrl(true).path(), QStringLiteral("/settings/tokens"));
         LinkRecorder recorder;
         QDesktopServices::setUrlHandler("https", &recorder, "capture");
+        first.openClassicTokenPage(false);
+        first.openClassicTokenPage(true);
         first.openTokenPage(false);
         first.openTokenPage(true);
         QDesktopServices::unsetUrlHandler("https");
-        QCOMPARE(recorder.urls, (QList<QUrl>{first.tokenUrl(false), first.tokenUrl(true)}));
+        QCOMPARE(recorder.urls,
+                 (QList<QUrl>{first.classicTokenUrl(false), first.classicTokenUrl(true),
+                              first.tokenUrl(false), first.tokenUrl(true)}));
 
         first.authorize("github_pat_invalid");
         QTRY_VERIFY_WITH_TIMEOUT(!first.busy(), 18000);

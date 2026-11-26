@@ -9,6 +9,9 @@ pub mod source;
 
 pub const BUCKET: &str = "github";
 pub const MAX_REQUESTS_PER_MINUTE: u16 = 60;
+pub const CLASSIC_TOKEN_URL: &str =
+    "https://github.com/settings/tokens/new?description=Context+Fabricator&scopes=repo";
+pub const CLASSIC_TOKEN_SETTINGS: &str = "https://github.com/settings/tokens";
 pub const TOKEN_URL: &str = "https://github.com/settings/personal-access-tokens/new?name=Context+Fabricator&expires_in=30&contents=read";
 pub const ACTIONS_TOKEN_URL: &str = "https://github.com/settings/personal-access-tokens/new?name=Context+Fabricator&expires_in=30&contents=read&actions=read";
 
@@ -143,6 +146,8 @@ pub struct Snapshot {
     pub login: Option<String>,
     pub authorization_url: &'static str,
     pub actions_authorization_url: &'static str,
+    pub classic_authorization_url: &'static str,
+    pub classic_settings_url: &'static str,
     pub defaults: Defaults,
     pub repositories: Vec<ConfiguredRepository>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -227,14 +232,18 @@ pub enum Error {
         "Enter a GitHub repository as owner/repo or a github.com repository URL, and check the branch name."
     )]
     InvalidSelection,
-    #[error("Enter a fine-grained GitHub personal access token.")]
+    #[error("Enter a valid GitHub personal access token (classic or fine-grained).")]
     InvalidToken,
     #[error("Connect GitHub with a valid token before selecting repositories.")]
     Reconnect,
     #[error(
-        "GitHub could not verify repository access. In the token settings, select the repository's owner under Resource owner and include the repository. If the organization requires approval, wait for an administrator to approve the token."
+        "GitHub could not verify repository access. For a classic token, check the repo scope and your organization’s token policy. For a fine-grained token, select the repository’s owner and include the repository."
     )]
     Access,
+    #[error(
+        "GitHub requires SSO authorization for this organization. In your classic token settings, use Configure SSO to authorize the token for the organization, then try again."
+    )]
+    SsoRequired,
     #[error("GitHub is enforcing a request limit. Wait before trying again.")]
     Throttled,
     #[error("The GitHub API is temporarily unavailable.")]

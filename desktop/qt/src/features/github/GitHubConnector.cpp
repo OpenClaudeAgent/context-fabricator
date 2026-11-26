@@ -20,11 +20,11 @@ using Configured = openapi::GitHubConfiguredRepository;
 constexpr int DefaultMinimum = 15;
 constexpr int DefaultMaximum = 1440;
 
-QUrl validatedTokenUrl(const QString &value) {
+QUrl validatedTokenUrl(const QString &value, const QString &path = QStringLiteral(
+                                                 "/settings/personal-access-tokens/new")) {
     const QUrl url(value, QUrl::StrictMode);
     if (url.scheme() != QStringLiteral("https") || url.host() != QStringLiteral("github.com") ||
-        url.port(443) != 443 || !url.userInfo().isEmpty() ||
-        url.path() != QStringLiteral("/settings/personal-access-tokens/new")) {
+        url.port(443) != 443 || !url.userInfo().isEmpty() || url.path() != path) {
         return {};
     }
     return url;
@@ -115,6 +115,25 @@ QUrl GitHubConnector::tokenUrl(bool actions, bool repositoryScoped) const {
     }
     return validatedTokenUrl(actions ? state_->getActionsAuthorizationUrl()
                                      : state_->getAuthorizationUrl());
+}
+
+QUrl GitHubConnector::classicTokenUrl(bool settings) const {
+    if (!state_) {
+        return {};
+    }
+    if (settings) {
+        return validatedTokenUrl(state_->getClassicSettingsUrl(),
+                                 QStringLiteral("/settings/tokens"));
+    }
+    return validatedTokenUrl(state_->getClassicAuthorizationUrl(),
+                             QStringLiteral("/settings/tokens/new"));
+}
+
+void GitHubConnector::openClassicTokenPage(bool settings) {
+    const auto url = classicTokenUrl(settings);
+    if (!url.isEmpty()) {
+        QDesktopServices::openUrl(url);
+    }
 }
 
 void GitHubConnector::openTokenPage(bool actions, bool repositoryScoped) {

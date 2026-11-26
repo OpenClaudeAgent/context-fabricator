@@ -36,25 +36,43 @@ struct GitHubAccountSheet: View {
         }
         Section {
           LabeledContent("GitHub") {
-            Menu("Create Token") {
-              if let url = URL(string: tokenSetup?.authorizationUrl ?? snapshot.authorizationUrl) {
-                Link("Repository contents", destination: url)
+            HStack {
+              Menu("Fine-Grained Token") {
+                if let url = URL(string: tokenSetup?.authorizationUrl ?? snapshot.authorizationUrl)
+                {
+                  Link("Repository contents", destination: url)
+                }
+                if let url = URL(
+                  string: tokenSetup?.actionsAuthorizationUrl ?? snapshot.actionsAuthorizationUrl)
+                {
+                  Link("Repository contents and Actions", destination: url)
+                }
               }
-              if let url = URL(
-                string: tokenSetup?.actionsAuthorizationUrl ?? snapshot.actionsAuthorizationUrl)
-              {
-                Link("Repository contents and Actions", destination: url)
+              if let value = snapshot.classicAuthorizationUrl, let url = URL(string: value) {
+                Link("Create Classic Token", destination: url)
+                  .buttonStyle(.borderedProminent)
+                  .accessibilityIdentifier("github-create-classic-token")
               }
             }
           }
-          SecureField("Personal access token", text: $token, prompt: Text("github_pat_…"))
-            .accessibilityIdentifier("github-token")
+          if let value = snapshot.classicSettingsUrl, let url = URL(string: value) {
+            LabeledContent("Organization SSO") {
+              Link("Configure SSO", destination: url)
+                .accessibilityIdentifier("github-configure-sso")
+            }
+          }
+          SecureField(
+            "Personal access token", text: $token,
+            prompt: Text(verbatim: "ghp_… / github_pat_…")
+          )
+          .accessibilityIdentifier("github-token")
         } footer: {
           VStack(alignment: .leading, spacing: 8) {
+            Text("For private repositories, select the repo scope on GitHub.")
             Text(
-              "On GitHub, set Resource owner to the account or organization that owns the repository. Select the repository under Repository access."
+              "If your organization uses SAML, use Configure SSO to authorize the classic token."
             )
-            Text("If GitHub marks the token as pending, an organization admin must approve it.")
+            Text("For a fine-grained token, select the repository and its owner on GitHub.")
             if snapshot.credential == .connected {
               Text("Replacing the token can affect access to repositories under other owners.")
             }
@@ -63,7 +81,7 @@ struct GitHubAccountSheet: View {
       }
       .formStyle(.grouped)
       .contentMargins(.bottom, 14, for: .scrollContent)
-      .frame(minHeight: 230, idealHeight: snapshot.login == nil ? 260 : 340, maxHeight: 400)
+      .frame(minHeight: 280, idealHeight: snapshot.login == nil ? 320 : 380, maxHeight: 440)
     } buttons: {
       if snapshot.credential != .unconfigured {
         Button("Disconnect…", role: .destructive) { disconnect = true }

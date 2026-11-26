@@ -455,6 +455,7 @@ fn rejected(error: Error) -> Response {
         Error::InvalidSelection => (StatusCode::BAD_REQUEST, "github_invalid_selection"),
         Error::InvalidToken => (StatusCode::BAD_REQUEST, "github_invalid_token"),
         Error::Access => (StatusCode::FORBIDDEN, "github_access_not_verified"),
+        Error::SsoRequired => (StatusCode::FORBIDDEN, "github_sso_required"),
         Error::Reconnect => (StatusCode::CONFLICT, "github_reconnect"),
         Error::Conflict => (StatusCode::CONFLICT, "github_revision_conflict"),
         Error::ExpiredPin => (StatusCode::CONFLICT, "github_expired_pin"),
