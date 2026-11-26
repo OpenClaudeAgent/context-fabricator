@@ -263,7 +263,11 @@ jobs:
           docker exec "$container" bash -ec 'printf "%s\n" \
             "path-include=/usr/share/doc/context-fabricator-qt" \
             "path-include=/usr/share/doc/context-fabricator-qt/*" > /etc/dpkg/dpkg.cfg.d/zz-ctxfab-qualification-docs
-            apt-get update -qq
+            # Both hosts serve the signed Ubuntu archive, including noble-security.
+            # The security hostname has returned 404 for packages present on the archive hostname.
+            sed -Ei "s|^URIs: http://security[.]ubuntu[.]com/ubuntu/?$|URIs: http://archive.ubuntu.com/ubuntu/|" \
+              /etc/apt/sources.list.d/ubuntu.sources
+            apt-get update -qq -o APT::Update::Error-Mode=any
             apt-get install -y --no-install-recommends --download-only python3 weston xvfb xdotool /candidate.deb' \
             2>&1 | tee "$work/deb-fetch-dependencies.log"
           docker network disconnect bridge "$container"
